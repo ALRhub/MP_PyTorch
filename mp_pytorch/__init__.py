@@ -1,2 +1,2 @@
 from .util import *
-from mp import *
+from mp_pytorch.mp import *
