@@ -90,7 +90,8 @@ def run_time_test(lock: bool) -> Optional[float]:
 
 
 def debug_plot(x: Union[np.ndarray, torch.Tensor],
-               y: [], labels: []=None, title="debug_plot") -> plt.Figure:
+               y: [], labels: []=None, title="debug_plot", grid=True) -> \
+        plt.Figure:
     """
     One line to plot some variable for debugging, numpy + torch
     Args:
@@ -98,6 +99,7 @@ def debug_plot(x: Union[np.ndarray, torch.Tensor],
         y: list of data used for y-axis
         labels: labels in plots
         title: title of current plot
+        grid: show grid or not
 
     Returns:
         None
@@ -118,5 +120,7 @@ def debug_plot(x: Union[np.ndarray, torch.Tensor],
     plt.title(title)
     if labels is not None:
         plt.legend()
+    if grid:
+        plt.grid(alpha=0.5)
     plt.show()
     return fig

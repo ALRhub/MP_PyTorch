@@ -84,3 +84,83 @@ def add_expand_dim(data: Union[torch.Tensor, np.ndarray],
         return eval("eval(str_add_dime_eval).expand(" + str_expand + ")")
     else:
         return eval("np.tile(eval(str_add_dime_eval),[" + str_expand + "])")
+
+
+def to_cholesky(diag_vector=None, off_diag_vector=None,
+                L=None, cov_matrix=None):
+    """
+    Compute Cholesky matrix
+    Args:
+        diag_vector: diag elements in a vector
+        off_diag_vector: off-diagonal elements in a vector
+        L: Cholesky matrix
+        cov_matrix: Covariance matrix
+
+    Returns:
+        Cholesky matrix L
+    """
+    if L is not None:
+        pass
+    elif cov_matrix is None:
+        assert diag_vector is not None and off_diag_vector is not None
+        L = build_lower_matrix(diag_vector, off_diag_vector)
+    elif diag_vector is None and off_diag_vector is None:
+        L = torch.linalg.cholesky(cov_matrix)
+    else:
+        raise RuntimeError("Unexpected behaviours")
+    return L
+
+
+def tensor_linspace(start: Union[float, int, torch.Tensor],
+                    end: Union[float, int, torch.Tensor],
+                    steps: int) -> torch.Tensor:
+    """
+    Vectorized version of torch.linspace.
+    Modified from:
+    https://github.com/zhaobozb/layout2im/blob/master/models/bilinear.py#L246
+
+    Args:
+        start: start value, scalar or tensor
+        end: end value, scalar or tensor
+        steps: num of steps
+
+    Returns:
+        linspace tensor
+    """
+    # Shape of start:
+    # [*add_dim, dim_data] or a scalar
+    #
+    # Shape of end:
+    # [*add_dim, dim_data] or a scalar
+    #
+    # Shape of out:
+    # [*add_dim, steps, dim_data]
+
+    # - out: Tensor of shape start.size() + (steps,), such that
+    #   out.select(-1, 0) == start, out.select(-1, -1) == end,
+    #   and the other elements of out linearly interpolate between
+    #   start and end.
+
+    if isinstance(start, torch.Tensor) and not isinstance(end, torch.Tensor):
+        end += torch.zeros_like(start)
+    elif not isinstance(start, torch.Tensor) and isinstance(end, torch.Tensor):
+        start += torch.zeros_like(end)
+    elif isinstance(start, torch.Tensor) and isinstance(end, torch.Tensor):
+        assert start.size() == end.size()
+    else:
+        return torch.linspace(start, end, steps)
+
+    view_size = start.size() + (1,)
+    w_size = (1,) * start.dim() + (steps,)
+    out_size = start.size() + (steps,)
+
+    start_w = torch.linspace(1, 0, steps=steps).to(start)
+    start_w = start_w.view(w_size).expand(out_size)
+    end_w = torch.linspace(0, 1, steps=steps).to(start)
+    end_w = end_w.view(w_size).expand(out_size)
+
+    start = start.contiguous().view(view_size).expand(out_size)
+    end = end.contiguous().view(view_size).expand(out_size)
+
+    out = start_w * start + end_w * end
+    return out
