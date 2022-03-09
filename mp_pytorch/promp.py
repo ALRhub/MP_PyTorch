@@ -59,8 +59,9 @@ class ProMP(ProbabilisticMPInterface):
         # [*add_dim, num_dof * num_basis, num_dof * num_basis]
 
         if params_L is not None:
-            assert list(params_L.shape) == [*self.add_dim, self.num_params,
-                                            self.num_params]
+            assert list(params_L.shape) == [*self.add_dim,
+                                            self._num_local_params,
+                                            self._num_local_params]
         super().set_mp_params_variances(params_L)
 
     def get_traj_pos(self, times=None, params=None,
@@ -334,7 +335,7 @@ class ProMP(ProbabilisticMPInterface):
         #            -> [*add_dim, num_dof * num_basis, num_dof * num_basis]
         A = torch.einsum('...ki,...kj->...ij', basis_multi_dofs,
                          basis_multi_dofs)
-        A += torch.eye(self.num_params) * reg
+        A += torch.eye(self._num_local_params) * reg
 
         # Reorder axis [*add_dim, num_times, num_dof]
         #           -> [*add_dim, num_dof, num_times]
@@ -355,7 +356,7 @@ class ProMP(ProbabilisticMPInterface):
         params = torch.linalg.solve(A, B)
 
         # Check if parameters basis or phase generator exist
-        if self.basis_gn.total_num_params > 0:
+        if self.basis_gn.num_params > 0:
             params_super = self.basis_gn.get_params()
             params = torch.cat([params_super, params], dim=-1)
 

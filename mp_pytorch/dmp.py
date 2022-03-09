@@ -33,11 +33,11 @@ class DMP(MPInterface):
         self.beta = self.alpha / 4
 
     @property
-    def num_params(self) -> int:
+    def _num_local_params(self) -> int:
         """
         Returns: number of parameters of current class
         """
-        return super().num_params + self.num_dof
+        return super()._num_local_params + self.num_dof
 
     def set_boundary_conditions(self, bc_time: torch.Tensor,
                                 bc_pos: torch.Tensor,

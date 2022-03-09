@@ -6,7 +6,6 @@ from abc import ABC
 from abc import abstractmethod
 
 import torch
-import torch.nn.functional as F
 
 
 # Classes of Phase Generator
@@ -43,7 +42,7 @@ class PhaseGenerator(ABC):
         pass
 
     @property
-    def num_params(self) -> int:
+    def _num_local_params(self) -> int:
         """
         Returns: number of parameters of current class
         """
@@ -55,12 +54,12 @@ class PhaseGenerator(ABC):
         return n_param
 
     @property
-    def total_num_params(self) -> int:
+    def num_params(self) -> int:
         """
         Returns: number of parameters of current class plus parameters of all
         attributes
         """
-        return self.num_params
+        return self._num_local_params
 
     def set_params(self, params: torch.Tensor) -> torch.Tensor:
         """
@@ -92,7 +91,7 @@ class PhaseGenerator(ABC):
             parameters
         """
         # Shape of params
-        # [*add_dim, total_num_params]
+        # [*add_dim, num_params]
 
         params = torch.Tensor([])
         if self.learn_tau:
@@ -177,11 +176,11 @@ class ExpDecayPhaseGenerator(LinearPhaseGenerator):
                                                      learn_wait=learn_wait)
 
     @property
-    def num_params(self) -> int:
+    def _num_local_params(self) -> int:
         """
         Returns: number of parameters of current class
         """
-        n_param = super().num_params
+        n_param = super()._num_local_params
         if self.learn_alpha_phase:
             n_param += 1
 
@@ -211,7 +210,7 @@ class ExpDecayPhaseGenerator(LinearPhaseGenerator):
             parameters
         """
         # Shape of params
-        # [*add_dim, total_num_params]
+        # [*add_dim, num_params]
         params = super().get_params()
         if self.learn_alpha_phase:
             params = torch.cat([params, self.alpha_phase[..., None]], dim=-1)

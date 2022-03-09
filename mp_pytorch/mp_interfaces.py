@@ -92,7 +92,7 @@ class MPInterface(ABC):
         self.times = times
         self.clear_computation_result()
 
-    def set_params(self, params: torch.Tensor) ->torch.Tensor:
+    def set_params(self, params: torch.Tensor) -> torch.Tensor:
         """
         Set MP params
         Args:
@@ -103,18 +103,18 @@ class MPInterface(ABC):
         """
 
         # Shape of params
-        # [*add_dim, total_num_params]
+        # [*add_dim, num_params]
 
         # Check number of params
-        assert params.shape[-1] == self.total_num_params
+        assert params.shape[-1] == self.num_params
 
         # Set additional batch size
         self.set_add_dim(list(params.shape[:-1]))
 
         remaining_params = self.basis_gn.set_params(params)
-        self.params = remaining_params[..., :self.num_params]
+        self.params = remaining_params[..., :self._num_local_params]
         self.clear_computation_result()
-        return remaining_params[..., self.num_params:]
+        return remaining_params[..., self._num_local_params:]
 
     def get_params(self) -> torch.Tensor:
         """
@@ -123,7 +123,7 @@ class MPInterface(ABC):
             parameters
         """
         # Shape of params
-        # [*add_dim, total_num_params]
+        # [*add_dim, num_params]
         params = self.basis_gn.get_params()
         params = torch.cat([params, self.params], dim=-1)
         return params
@@ -210,19 +210,19 @@ class MPInterface(ABC):
         return result
 
     @property
-    def num_params(self) -> int:
+    def _num_local_params(self) -> int:
         """
         Returns: number of parameters of current class
         """
         return self.num_basis * self.num_dof
 
     @property
-    def total_num_params(self) -> int:
+    def num_params(self) -> int:
         """
         Returns: number of parameters of current class plus parameters of all
         attributes
         """
-        return self.num_params + self.basis_gn.total_num_params
+        return self._num_local_params + self.basis_gn.num_params
 
     @abstractmethod
     def get_traj_pos(self, times=None, params=None,
@@ -321,7 +321,7 @@ class ProbabilisticMPInterface(MPInterface):
 
         """
         # Shape of params_L
-        # [*add_dim, num_params, num_params]
+        # [*add_dim, num_mp_params, num_mp_params]
 
         self.params_L = params_L
         self.clear_computation_result()
@@ -580,12 +580,12 @@ class ProbabilisticMPInterface(MPInterface):
         # Shape [*add_dim, num_smp, num_times]
         times = util.add_expand_dim(times, [num_add_dim], [num_smp])
 
-        # Sample parameters, shape [num_smp, *add_dim, num_params]
+        # Sample parameters, shape [num_smp, *add_dim, num_mp_params]
         params_smp = MultivariateNormal(loc=params,
                                         scale_tril=params_L,
                                         validate_args=False).rsample([num_smp])
 
-        # Switch axes to [*add_dim, num_smp, num_params]
+        # Switch axes to [*add_dim, num_smp, num_mp_params]
         params_smp = torch.einsum('i...j->...ij', params_smp)
 
         params_super = self.basis_gn.get_params()

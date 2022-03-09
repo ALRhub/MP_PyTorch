@@ -38,19 +38,19 @@ class BasisGenerator(ABC):
         return self.phase_generator.wait
 
     @property
-    def num_params(self) -> int:
+    def _num_local_params(self) -> int:
         """
         Returns: number of parameters of current class
         """
         return 0
 
     @property
-    def total_num_params(self) -> int:
+    def num_params(self) -> int:
         """
         Returns: number of parameters of current class plus parameters of all
         attributes
         """
-        return self.num_params + self.phase_generator.total_num_params
+        return self._num_local_params + self.phase_generator.num_params
 
     def set_params(self, params: torch.Tensor) -> torch.Tensor:
         """
@@ -72,7 +72,7 @@ class BasisGenerator(ABC):
             parameters
         """
         # Shape of params
-        # [*add_dim, total_num_params]
+        # [*add_dim, num_params]
         params = self.phase_generator.get_params()
         return params
 

@@ -36,11 +36,11 @@ class IDMP(ProMP):
         self.vel_vary_ = None
 
     @property
-    def num_params(self) -> int:
+    def _num_local_params(self) -> int:
         """
         Returns: number of parameters of current class
         """
-        return super().num_params + self.num_dof
+        return super()._num_local_params + self.num_dof
 
     def set_mp_times(self, times: torch.Tensor):
         """
@@ -449,7 +449,7 @@ class IDMP(ProMP):
         #               [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #            -> [*add_dim, num_dof * num_basis_g, num_dof * num_basis_g]
         A = torch.einsum('...ki,...kj->...ij', self.pos_vary_, self.pos_vary_)
-        A += torch.eye(self.num_params) * reg
+        A += torch.eye(self._num_local_params) * reg
 
         # Swap axis and reshape: [*add_dim, num_times, num_dof]
         #                     -> [*add_dim, num_dof, num_times]
@@ -467,11 +467,11 @@ class IDMP(ProMP):
         #            -> [*add_dim, num_dof * num_basis_g]
         B = torch.einsum('...ki,...k->...i', self.pos_vary_, pos_wg)
 
-        # Shape of weights: [*add_dim, num_params=num_dof * num_basis_g]
+        # Shape of weights: [*add_dim, num_dof * num_basis_g]
         params = torch.linalg.solve(A, B)
 
         # Check if parameters basis or phase generator exist
-        if self.basis_gn.total_num_params > 0:
+        if self.basis_gn.num_params > 0:
             params_super = self.basis_gn.get_params()
             params = torch.cat([params_super, params], dim=-1)
 
@@ -564,9 +564,11 @@ class IDMP(ProMP):
         # Reshape: [*add_dim, num_dof, num_times, num_dof * num_basis_g]
         #       -> [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         pos_vary_ = \
-            torch.reshape(pos_vary_, [*self.add_dim, -1, self.num_params])
+            torch.reshape(pos_vary_,
+                          [*self.add_dim, -1, self._num_local_params])
         vel_vary_ = \
-            torch.reshape(vel_vary_, [*self.add_dim, -1, self.num_params])
+            torch.reshape(vel_vary_,
+                          [*self.add_dim, -1, self._num_local_params])
 
         self.pos_vary_ = pos_vary_ + self.basis_multi_dofs
         self.vel_vary_ = vel_vary_ + self.vel_basis_multi_dofs
