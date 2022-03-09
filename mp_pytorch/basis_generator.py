@@ -20,24 +20,6 @@ class BasisGenerator(ABC):
         self.phase_generator = phase_generator
 
     @property
-    def tau(self):
-        """
-        time scaling factor
-        Returns:
-            scaling factor
-        """
-        return self.phase_generator.tau
-
-    @property
-    def wait(self):
-        """
-        wait time factor
-        Returns:
-            waiting time
-        """
-        return self.phase_generator.wait
-
-    @property
     def _num_local_params(self) -> int:
         """
         Returns: number of parameters of current class
@@ -158,15 +140,15 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
 
         # Compute centers and bandwidth
         # Distance between basis centers
-        assert self.tau.nelement() == 1
-        basis_dist = \
-            self.tau / (self.num_basis - 2 * self.num_basis_outside - 1)
+        assert self.phase_generator.tau.nelement() == 1
+        basis_dist = self.phase_generator.tau / (self.num_basis - 2 *
+                                                 self.num_basis_outside - 1)
 
         # RBF centers in time scope
-        centers_t = \
-            torch.linspace(-self.num_basis_outside * basis_dist,
-                           self.tau + self.num_basis_outside * basis_dist,
-                           self.num_basis)
+        centers_t = torch.linspace(-self.num_basis_outside * basis_dist,
+                                   self.phase_generator.tau
+                                   + self.num_basis_outside * basis_dist,
+                                   self.num_basis)
 
         # RBF centers in phase scope
         self.centers_p = self.phase_generator.unbound_phase(centers_t)

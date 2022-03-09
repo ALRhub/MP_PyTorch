@@ -20,13 +20,13 @@ class MPFactory:
         mp_type = config["mp_type"]
         mp_config = config["mp_args"]
         learn_tau = config["learn_tau"]
-        learn_wait = config["learn_wait"]
+        learn_delay = config["learn_delay"]
 
         # Get phase generator
         if mp_type == "promp":
             phase_gn = LinearPhaseGenerator(tau=tau,
                                             learn_tau=learn_tau,
-                                            learn_wait=learn_wait)
+                                            learn_delay=learn_delay)
             basis_gn = NormalizedRBFBasisGenerator(
                 phase_generator=phase_gn,
                 num_basis=mp_config["num_basis"],
@@ -37,7 +37,7 @@ class MPFactory:
         elif mp_type == "dmp":
             phase_gn = ExpDecayPhaseGenerator(tau=tau,
                                               learn_tau=learn_tau,
-                                              learn_wait=learn_wait,
+                                              learn_delay=learn_delay,
                                               alpha_phase=mp_config[
                                                   "alpha_phase"])
             basis_gn = NormalizedRBFBasisGenerator(
@@ -49,7 +49,7 @@ class MPFactory:
         elif mp_type == "idmp":
             phase_gn = ExpDecayPhaseGenerator(tau=tau,
                                               learn_tau=learn_tau,
-                                              learn_wait=learn_wait,
+                                              learn_delay=learn_delay,
                                               alpha_phase=mp_config[
                                                   "alpha_phase"])
             basis_gn = IDMPBasisGenerator(

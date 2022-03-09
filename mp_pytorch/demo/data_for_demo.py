@@ -3,14 +3,14 @@ from addict import Dict
 import mp_pytorch.util as util
 
 
-def get_mp_utils(mp_type: str, learn_tau=False, learn_wait=False):
+def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
     torch.manual_seed(0)
     config = Dict()
 
     config.num_dof = 2
     config.tau = 3
     config.learn_tau = learn_tau
-    config.learn_wait = learn_wait
+    config.learn_delay = learn_delay
 
     config.mp_args.num_basis = 10
     config.mp_args.basis_bandwidth_factor = 2
@@ -43,7 +43,7 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_wait=False):
     torch.manual_seed(0)
     params = torch.randn([num_traj, num_param]) * scale_factor
 
-    if config.learn_wait:
+    if config.learn_delay:
         params = torch.cat([times[..., -1:] * 0.2, params],
                            dim=-1)
     if config.learn_tau:

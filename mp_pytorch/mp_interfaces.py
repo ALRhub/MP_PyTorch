@@ -51,7 +51,7 @@ class MPInterface(ABC):
 
     @property
     def tau(self):
-        return self.basis_gn.tau
+        return self.phase_gn.tau
 
     def clear_computation_result(self):
         """
