@@ -118,7 +118,7 @@ class BasisGenerator(ABC):
         num_basis = basis_single_dof.shape[-1]
 
         # Multiple Dofs, shape:
-        # [*add_dim, num_times, num_dof, num_dof * num_basis]
+        # [*add_dim, num_dof * num_times, num_dof * num_basis]
         basis_multi_dofs = torch.zeros(*add_dim,
                                        num_dof * num_times,
                                        num_dof * num_basis)
