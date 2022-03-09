@@ -37,7 +37,7 @@ class DMP(MPInterface):
         """
         Returns: number of parameters of current class
         """
-        return self.num_basis_g * self.num_dof
+        return super().num_params + self.num_dof
 
     def set_boundary_conditions(self, bc_time: torch.Tensor,
                                 bc_pos: torch.Tensor,

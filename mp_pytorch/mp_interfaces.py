@@ -210,12 +210,11 @@ class MPInterface(ABC):
         return result
 
     @property
-    @abstractmethod
     def num_params(self) -> int:
         """
         Returns: number of parameters of current class
         """
-        pass
+        return self.num_basis * self.num_dof
 
     @property
     def total_num_params(self) -> int:

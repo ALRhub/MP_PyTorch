@@ -28,13 +28,6 @@ class ProMP(ProbabilisticMPInterface):
         # Runtime variables
         self.basis_multi_dofs = None
 
-    @property
-    def num_params(self) -> int:
-        """
-        Returns: number of parameters of current class
-        """
-        return self.num_basis * self.num_dof
-
     def set_mp_times(self, times: torch.Tensor):
         """
         Set MP time points

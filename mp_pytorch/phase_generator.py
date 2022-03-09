@@ -43,7 +43,6 @@ class PhaseGenerator(ABC):
         pass
 
     @property
-    @abstractmethod
     def num_params(self) -> int:
         """
         Returns: number of parameters of current class
@@ -118,13 +117,6 @@ class LinearPhaseGenerator(PhaseGenerator):
         super(LinearPhaseGenerator, self).__init__(tau=tau, wait=wait,
                                                    learn_tau=learn_tau,
                                                    learn_wait=learn_wait)
-
-    @property
-    def num_params(self) -> int:
-        """
-        Returns: number of parameters of current class
-        """
-        return super().num_params
 
     def phase(self, times: torch.Tensor) -> torch.Tensor:
         """

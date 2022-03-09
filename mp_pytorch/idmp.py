@@ -40,7 +40,7 @@ class IDMP(ProMP):
         """
         Returns: number of parameters of current class
         """
-        return self.num_basis_g * self.num_dof
+        return super().num_params + self.num_dof
 
     def set_mp_times(self, times: torch.Tensor):
         """

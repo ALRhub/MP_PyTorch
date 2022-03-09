@@ -38,7 +38,6 @@ class BasisGenerator(ABC):
         return self.phase_generator.wait
 
     @property
-    @abstractmethod
     def num_params(self) -> int:
         """
         Returns: number of parameters of current class
@@ -180,13 +179,6 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
         # to aliasing effect).Empirically chosen
         self.bandWidth = self.basis_bandwidth_factor / (tmp_bandwidth ** 2)
 
-    @property
-    def num_params(self) -> int:
-        """
-        Returns: number of parameters of current class
-        """
-        return super().num_params
-
     def basis(self, times: torch.Tensor) -> torch.Tensor:
         """
         Generate values of basis function at given time points
@@ -250,13 +242,6 @@ class DMPBasisGenerator(NormalizedRBFBasisGenerator):
                                                 num_basis,
                                                 basis_bandwidth_factor,
                                                 num_basis_outside)
-
-    @property
-    def num_params(self) -> int:
-        """
-        Returns: number of parameters of current class
-        """
-        return super().num_params
 
     def basis(self, times: torch.Tensor) -> torch.Tensor:
         """
@@ -413,13 +398,6 @@ class IDMPBasisGenerator(DMPBasisGenerator):
         scaled_times = \
             super(ExpDecayPhaseGenerator, self.phase_generator).phase(times)
         return torch.round(scaled_times / self.scaled_dt).long()
-
-    @property
-    def num_params(self) -> int:
-        """
-        Returns: number of parameters of current class
-        """
-        return super().num_params
 
     def basis(self, times: torch.Tensor):
         """
