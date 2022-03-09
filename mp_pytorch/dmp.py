@@ -126,7 +126,7 @@ class DMP(MPInterface):
         assert torch.all(torch.abs(self.bc_time - self.times[..., 0]) < 1e-8), \
             "The first time step's value should be same to bc_time."
         pos[..., 0, :] = self.bc_pos
-        vel[..., 0, :] = self.bc_vel
+        vel[..., 0, :] = self.bc_vel * self.phase_gn.tau[..., None]
 
         # Get scaled time increment steps
         scaled_times = LinearPhaseGenerator.phase(self.phase_gn, self.times)
@@ -143,6 +143,9 @@ class DMP(MPInterface):
                 pos[..., i, :] + torch.einsum('...,...i->...i',
                                               scaled_dt[..., i],
                                               vel[..., i + 1, :])
+
+        # Unscale velocity to original time space
+        vel = vel / self.phase_gn.tau[..., None, None]
 
         # Store pos and vel
         self.pos = pos

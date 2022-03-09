@@ -12,7 +12,7 @@ from mp_pytorch.demo.data_for_demo import get_mp_utils
 def test_idmp():
     util.print_wrap_title("test_idmp")
     config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
-        get_mp_utils("idmp", False, True)
+        get_mp_utils("idmp", True, True)
     mp = MPFactory.init_mp(config)
     mp.update_mp_inputs(times=times, params=params, params_L=params_L,
                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)

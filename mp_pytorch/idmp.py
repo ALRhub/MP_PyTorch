@@ -350,7 +350,7 @@ class IDMP(ProMP):
         vel_cov = vel_cov + torch.eye(vel_cov.shape[-1]) * reg_term_vel
 
         # Unscale velocity to original time scale space
-        self.vel_cov = vel_cov / self.phase_gn.tau[..., None]**2
+        self.vel_cov = vel_cov / self.phase_gn.tau[..., None, None] ** 2
 
         return self.vel_cov
 
@@ -439,8 +439,7 @@ class IDMP(ProMP):
         trajs = torch.Tensor(trajs)
 
         # Get boundary conditions
-        # dt = (times[..., 1] - times[..., 0])[..., None]
-        dt = self.basis_gn.scaled_dt
+        dt = self.basis_gn.scaled_dt * self.phase_gn.tau
         bc_time = times[..., 0]
         bc_pos = trajs[..., 0, :]
         bc_vel = torch.diff(trajs, dim=-2)[..., 0, :] / dt
@@ -538,15 +537,18 @@ class IDMP(ProMP):
         vel_basis_bc_multi_dofs = self.basis_gn.vel_basis_multi_dofs(
             self.bc_time[..., None], self.num_dof)
 
+        # Scale bc_vel
+        bc_vel = self.bc_vel * self.phase_gn.tau[..., None]
+
         # Compute position and velocity determined part (part 1 and 2)
         # Position and velocity part 1 and part 2
         # Einsum shape: [*add_dim, num_times],
         #               [*add_dim, num_dof]
         #            -> [*add_dim, num_dof, num_times]
         pos_det = torch.einsum('...j,...i->...ij', xi_1, self.bc_pos) \
-                  + torch.einsum('...j,...i->...ij', xi_2, self.bc_vel)
+                  + torch.einsum('...j,...i->...ij', xi_2, bc_vel)
         vel_det = torch.einsum('...j,...i->...ij', dxi_1, self.bc_pos) \
-                  + torch.einsum('...j,...i->...ij', dxi_2, self.bc_vel)
+                  + torch.einsum('...j,...i->...ij', dxi_2, bc_vel)
 
         # Reshape: [*add_dim, num_dof, num_times]
         #       -> [*add_dim, num_dof * num_times]

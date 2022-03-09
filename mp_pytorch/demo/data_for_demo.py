@@ -26,7 +26,7 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
     scale_factor = 1
     if "dmp" in config.mp_type:
         num_param += config.num_dof
-        scale_factor = 100
+        scale_factor = 20
 
     # assume we have 3 trajectories in a batch
     num_traj = 3
@@ -57,7 +57,10 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
 
     bc_time = times[:, 0]
     bc_pos = 5 * torch.ones([num_traj, config.num_dof])
-    bc_vel = -5 * torch.ones([num_traj, config.num_dof])
+    if config.learn_delay:
+        bc_vel = torch.zeros_like(bc_pos)
+    else:
+        bc_vel = -5 * torch.ones([num_traj, config.num_dof])
 
     demos = torch.zeros([*times.shape, config.num_dof])
     for i in range(config.num_dof):
