@@ -223,52 +223,8 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
         return basis
 
 
-class DMPBasisGenerator(NormalizedRBFBasisGenerator):
-    def __init__(self,
-                 phase_generator: PhaseGenerator,
-                 num_basis: int = 10,
-                 basis_bandwidth_factor: int = 3,
-                 num_basis_outside: int = 0):
-        """
-        Constructor of class DMPBasisGenerator
-
-        Args:
-            phase_generator: phase generator
-            num_basis: number of basis function
-            basis_bandwidth_factor: basis bandwidth factor
-            num_basis_outside: basis function outside the duration
-        """
-        super(DMPBasisGenerator, self).__init__(phase_generator,
-                                                num_basis,
-                                                basis_bandwidth_factor,
-                                                num_basis_outside)
-
-    def basis(self, times: torch.Tensor) -> torch.Tensor:
-        """
-        Generate values of basis function at given time points
-        Args:
-            times: times in Tensor
-
-        Returns:
-            basis: basis functions in Tensor
-        """
-        # Shape of times:
-        # [*add_dim, num_times]
-        #
-        # Shape of basis:
-        # [*add_dim, num_times, num_basis]
-        phase = self.phase_generator.phase(times)
-        rbf_basis = super(DMPBasisGenerator, self).basis(times)
-
-        # Einsum shape: [*add_dim, num_times]
-        #               [*add_dim, num_times, num_basis]
-        #            -> [*add_dim, num_times, num_basis]
-        dmp_basis = torch.einsum('...i,...ij->...ij', phase, rbf_basis)
-        return dmp_basis
-
-
-class IDMPBasisGenerator(DMPBasisGenerator):
-    def __init__(self, phase_generator: ExpDecayPhaseGenerator,
+class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
+    def __init__(self, phase_generator: PhaseGenerator,
                  num_basis: int = 10,
                  basis_bandwidth_factor: int = 3,
                  num_basis_outside: int = 0,
@@ -344,20 +300,26 @@ class IDMPBasisGenerator(DMPBasisGenerator):
             0.5 * self.alpha \
             * (torch.exp(0.5 * self.alpha * pc_scaled_time) - 1)
 
-        # p_1 and p_2
         # Get basis of one DOF, shape [num_pc_times, num_basis]
         basis_single_dof = super().basis(pc_scaled_time)
         assert list(basis_single_dof.shape) == [*pc_scaled_time.shape,
                                                 self.num_basis]
 
+        # Get canonical phase x, shape [num_pc_times]
+        canonical_x = self.phase_generator.phase(pc_scaled_time)
+        assert list(canonical_x.shape) == [*pc_scaled_time.shape]
+
+        # p_1 and p_2
         dp_1_value = \
-            torch.einsum('...i,...ij->...ij',
+            torch.einsum('...i,...i,...ij->...ij',
                          pc_scaled_time
                          * torch.exp(self.alpha * pc_scaled_time / 2),
+                         canonical_x,
                          basis_single_dof)
         dp_2_value = \
-            torch.einsum('...i,...ij->...ij',
+            torch.einsum('...i,...i,...ij->...ij',
                          torch.exp(self.alpha * pc_scaled_time / 2),
+                         canonical_x,
                          basis_single_dof)
 
         p_1_value = torch.zeros(size=dp_1_value.shape)

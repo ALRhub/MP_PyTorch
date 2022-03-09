@@ -40,7 +40,7 @@ class MPFactory:
                                               learn_wait=learn_wait,
                                               alpha_phase=mp_config[
                                                   "alpha_phase"])
-            basis_gn = DMPBasisGenerator(
+            basis_gn = NormalizedRBFBasisGenerator(
                 phase_generator=phase_gn,
                 num_basis=mp_config["num_basis"],
                 basis_bandwidth_factor=mp_config["basis_bandwidth_factor"],

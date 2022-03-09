@@ -3,16 +3,17 @@
 """
 
 import torch
-from mp_pytorch.phase_generator import ExpDecayPhaseGenerator
-from mp_pytorch.basis_generator import DMPBasisGenerator
+
+from mp_pytorch import BasisGenerator
 from mp_pytorch.mp_interfaces import MPInterface
+from mp_pytorch.phase_generator import ExpDecayPhaseGenerator
 
 
 class DMP(MPInterface):
     """DMP in PyTorch"""
 
     def __init__(self,
-                 basis_gn: DMPBasisGenerator,
+                 basis_gn: BasisGenerator,
                  num_dof: int,
                  **kwargs):
         """
@@ -105,11 +106,15 @@ class DMP(MPInterface):
         # Get basis, shape [*add_dim, num_times, num_basis]
         basis = self.basis_gn.basis(self.times)
 
+        # Get canonical phase x, shape [*add_dim, num_times]
+        canonical_x = self.phase_gn.phase(self.times)
+
         # Get forcing function
-        # Einsum shape: [*add_dim, num_times, num_basis]
+        # Einsum shape: [*add_dim, num_times]
+        #               [*add_dim, num_times, num_basis]
         #               [*add_dim, num_dof, num_basis]
         #            -> [*add_dim, num_times, num_dof]
-        f = torch.einsum('...ik,...jk->...ij', basis, w)
+        f = torch.einsum('...i,...ik,...jk->...ij', canonical_x, basis, w)
 
         # Initialize trajectory position, velocity
         pos = torch.zeros([*self.add_dim, self.times.shape[-1], self.num_dof])
