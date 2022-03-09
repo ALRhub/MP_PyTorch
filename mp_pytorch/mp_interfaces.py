@@ -92,25 +92,23 @@ class MPInterface(ABC):
         self.times = times
         self.clear_computation_result()
 
-    def set_params(self, params: torch.Tensor):
+    def set_params(self, params: torch.Tensor) ->torch.Tensor:
         """
         Set MP params
         Args:
             params: parameters
 
-        Returns: None
+        Returns: unused parameters
 
         """
 
         # Shape of params
         # [*add_dim, total_num_params]
 
-        num_basis_params = self.basis_gn.total_num_params
-        if num_basis_params > 0:
-            self.basis_gn.set_params(params[..., :num_basis_params])
-
-        self.params = params[..., num_basis_params:]
+        remaining_params = self.basis_gn.set_params(params)
+        self.params = remaining_params[..., :self.num_params]
         self.clear_computation_result()
+        return remaining_params[..., self.num_params:]
 
     def get_params(self) -> torch.Tensor:
         """

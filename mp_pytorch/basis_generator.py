@@ -53,7 +53,7 @@ class BasisGenerator(ABC):
         """
         return self.num_params + self.phase_generator.total_num_params
 
-    def set_params(self, params: torch.Tensor):
+    def set_params(self, params: torch.Tensor) -> torch.Tensor:
         """
         Set parameters of current object and attributes
         Args:
@@ -62,9 +62,9 @@ class BasisGenerator(ABC):
         Returns:
             None
         """
-        num_phase_params = self.phase_generator.num_params
-        if num_phase_params > 0:
-            self.phase_generator.set_params(params[..., :num_phase_params])
+
+        remaining_params = self.phase_generator.set_params(params)
+        return remaining_params
 
     def get_params(self) -> torch.Tensor:
         """
@@ -306,7 +306,6 @@ class IDMPBasisGenerator(DMPBasisGenerator):
 
         self.alpha = alpha
         self.scaled_dt = dt / self.phase_generator.tau
-        self.pc_scaled_time = None
         self.y_1_value = None
         self.y_2_value = None
         self.dy_1_value = None
@@ -343,47 +342,47 @@ class IDMPBasisGenerator(DMPBasisGenerator):
 
         # Pre-compute scaled time steps in [0, 1]
         num_pre_compute = torch.round(1 / self.scaled_dt).long().item() + 1
-        self.pc_scaled_time = torch.linspace(0, 1, num_pre_compute)
+        pc_scaled_time = torch.linspace(0, 1, num_pre_compute)
 
         # y1 and y2
-        self.y_1_value = torch.exp(-0.5 * self.alpha * self.pc_scaled_time)
-        self.y_2_value = self.pc_scaled_time * self.y_1_value
+        self.y_1_value = torch.exp(-0.5 * self.alpha * pc_scaled_time)
+        self.y_2_value = pc_scaled_time * self.y_1_value
 
         self.dy_1_value = -0.5 * self.alpha * self.y_1_value
         self.dy_2_value = -0.5 * self.alpha * self.y_2_value + self.y_1_value
 
         # q_1 and q_2
         q_1_value = \
-            (0.5 * self.alpha * self.pc_scaled_time - 1) \
-            * torch.exp(0.5 * self.alpha * self.pc_scaled_time) + 1
+            (0.5 * self.alpha * pc_scaled_time - 1) \
+            * torch.exp(0.5 * self.alpha * pc_scaled_time) + 1
         q_2_value = \
             0.5 * self.alpha \
-            * (torch.exp(0.5 * self.alpha * self.pc_scaled_time) - 1)
+            * (torch.exp(0.5 * self.alpha * pc_scaled_time) - 1)
 
         # p_1 and p_2
         # Get basis of one DOF, shape [num_pc_times, num_basis]
-        basis_single_dof = super().basis(self.pc_scaled_time)
-        assert list(basis_single_dof.shape) == [*self.pc_scaled_time.shape,
+        basis_single_dof = super().basis(pc_scaled_time)
+        assert list(basis_single_dof.shape) == [*pc_scaled_time.shape,
                                                 self.num_basis]
 
         dp_1_value = \
             torch.einsum('...i,...ij->...ij',
-                         self.pc_scaled_time
-                         * torch.exp(self.alpha * self.pc_scaled_time / 2),
+                         pc_scaled_time
+                         * torch.exp(self.alpha * pc_scaled_time / 2),
                          basis_single_dof)
         dp_2_value = \
             torch.einsum('...i,...ij->...ij',
-                         torch.exp(self.alpha * self.pc_scaled_time / 2),
+                         torch.exp(self.alpha * pc_scaled_time / 2),
                          basis_single_dof)
 
         p_1_value = torch.zeros(size=dp_1_value.shape)
         p_2_value = torch.zeros(size=dp_2_value.shape)
 
-        for i in range(self.pc_scaled_time.shape[0]):
+        for i in range(pc_scaled_time.shape[0]):
             p_1_value[i] = torch.trapz(dp_1_value[:i + 1],
-                                       self.pc_scaled_time[:i + 1], dim=0)
+                                       pc_scaled_time[:i + 1], dim=0)
             p_2_value[i] = torch.trapz(dp_2_value[:i + 1],
-                                       self.pc_scaled_time[:i + 1], dim=0)
+                                       pc_scaled_time[:i + 1], dim=0)
 
         # Compute integral form basis values
         pos_basis_w = p_2_value * self.y_2_value[:, None] \

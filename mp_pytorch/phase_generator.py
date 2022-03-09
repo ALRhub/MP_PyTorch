@@ -63,14 +63,14 @@ class PhaseGenerator(ABC):
         """
         return self.num_params
 
-    def set_params(self, params: torch.Tensor):
+    def set_params(self, params: torch.Tensor) -> torch.Tensor:
         """
         Set parameters of current object and attributes
         Args:
             params: parameters to be set
 
         Returns:
-            None
+            Unused parameters
         """
         iterator = 0
         if self.learn_tau:
@@ -83,6 +83,8 @@ class PhaseGenerator(ABC):
             assert wait.min() > 0
             self.wait = wait
             iterator += 1
+        remaining_params = params[..., iterator:]
+        return remaining_params
 
     def get_params(self) -> torch.Tensor:
         """
@@ -193,24 +195,22 @@ class ExpDecayPhaseGenerator(LinearPhaseGenerator):
 
         return n_param
 
-    def set_params(self, params: torch.Tensor):
+    def set_params(self, params: torch.Tensor) -> torch.Tensor:
         """
         Set parameters of current object and attributes
         Args:
             params: parameters to be set
 
         Returns:
-            None
+            Unused parameters
         """
-        num_super_params = super().total_num_params
-        iterator = num_super_params
+        remaining_params = super().set_params(params)
 
-        # Update parameters from outside to inside
+        iterator = 0
         if self.learn_alpha_phase:
-            self.alpha_phase = params[..., iterator]
+            self.alpha_phase = remaining_params[..., iterator]
             iterator += 1
-
-        super().set_params(params[..., :num_super_params])
+        return remaining_params[..., iterator:]
 
     def get_params(self) -> torch.Tensor:
         """
@@ -240,4 +240,3 @@ class ExpDecayPhaseGenerator(LinearPhaseGenerator):
 
         phase = torch.exp(-self.alpha_phase * super().phase(times))
         return phase
-

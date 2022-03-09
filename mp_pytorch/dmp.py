@@ -1,8 +1,8 @@
 """
 @brief:     Dynamic Movement Primitives in PyTorch
 """
-import torch
 
+import torch
 from mp_pytorch.phase_generator import ExpDecayPhaseGenerator
 from mp_pytorch.basis_generator import DMPBasisGenerator
 from mp_pytorch.mp_interfaces import MPInterface
