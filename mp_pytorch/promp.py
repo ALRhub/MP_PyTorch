@@ -53,27 +53,6 @@ class ProMP(ProbabilisticMPInterface):
         self.basis_multi_dofs = \
             self.basis_gn.basis_multi_dofs(times, self.num_dof)
 
-    def set_params(self, params: torch.Tensor):
-        """
-        Set MP params
-        Args:
-            params: parameters
-
-        Returns: None
-
-        """
-        # Shape of params:
-        # [*add_dim, num_dof * num_basis]
-
-        # Check number of params
-        assert params.shape[-1] == self.total_num_params
-
-        # Set additional batch size
-        self.set_add_dim(list(params.shape[:-1]))
-
-        # Set params
-        super().set_params(params)
-
     def set_mp_params_variances(self, params_L: Union[torch.Tensor, None]):
         """
         Set variance of MP params

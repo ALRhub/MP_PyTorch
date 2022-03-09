@@ -39,27 +39,6 @@ class DMP(MPInterface):
         """
         return self.num_basis_g * self.num_dof
 
-    def set_params(self, params: torch.Tensor):
-        """
-        Set MP params
-        Args:
-            params: parameters
-
-        Returns: None
-
-        """
-        # Shape of params:
-        # [*add_dim, num_dof * num_basis_g]
-
-        # Check number of w and g
-        assert params.shape[-1] == self.total_num_params
-
-        # Set additional batch size
-        self.add_dim = list(params.shape[:-1])
-
-        # Set params
-        super().set_params(params)
-
     def set_boundary_conditions(self, bc_time: torch.Tensor,
                                 bc_pos: torch.Tensor,
                                 bc_vel: torch.Tensor):

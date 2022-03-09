@@ -105,6 +105,12 @@ class MPInterface(ABC):
         # Shape of params
         # [*add_dim, total_num_params]
 
+        # Check number of params
+        assert params.shape[-1] == self.total_num_params
+
+        # Set additional batch size
+        self.set_add_dim(list(params.shape[:-1]))
+
         remaining_params = self.basis_gn.set_params(params)
         self.params = remaining_params[..., :self.num_params]
         self.clear_computation_result()
