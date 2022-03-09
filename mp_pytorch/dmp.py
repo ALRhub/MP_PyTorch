@@ -138,7 +138,8 @@ class DMP(MPInterface):
 
         # Check boundary condition, the desired times should start from
         # boundary condition time steps
-        assert torch.all(torch.abs(self.bc_time - self.times[..., 0]) < 1e-8)
+        assert torch.all(torch.abs(self.bc_time - self.times[..., 0]) < 1e-8), \
+            "The first time step's value should be same to bc_time."
         pos[..., 0, :] = self.bc_pos
         vel[..., 0, :] = self.bc_vel
 

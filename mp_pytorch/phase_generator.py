@@ -137,7 +137,7 @@ class LinearPhaseGenerator(PhaseGenerator):
         # Shape of time
         # [*add_dim, num_times]
 
-        phase = F.relu(self.unbound_phase(times))
+        phase = torch.clip(self.unbound_phase(times), 0, 1)
         return phase
 
     def unbound_phase(self, times: torch.Tensor) -> torch.Tensor:
