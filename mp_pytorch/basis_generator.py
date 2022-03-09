@@ -339,8 +339,8 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
             time indices
         """
         # times to scaled times
-        scaled_times = \
-            super(ExpDecayPhaseGenerator, self.phase_generator).phase(times)
+
+        scaled_times = LinearPhaseGenerator.phase(self.phase_generator, times)
         return torch.round(scaled_times / self.scaled_dt).long()
 
     def basis(self, times: torch.Tensor):
