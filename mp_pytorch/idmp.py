@@ -285,7 +285,10 @@ class IDMP(ProMP):
         #            -> [*add_dim, num_dof * num_times]
         vel_vary = torch.einsum('...ij,...j->...i', self.vel_vary_, self.params)
 
-        self.vel = self.vel_det + vel_vary
+        vel = self.vel_det + vel_vary
+
+        # Unscale velocity to original time scale space
+        self.vel = vel / self.phase_gn.tau[..., None]
 
         if not flat_shape:
             # Reshape to [*add_dim, num_dof, num_times]
@@ -344,7 +347,10 @@ class IDMP(ProMP):
                                               vel_cov)).item() * traj_cov_reg
 
         # Add regularization term for numerical stability
-        self.vel_cov = vel_cov + torch.eye(vel_cov.shape[-1]) * reg_term_vel
+        vel_cov = vel_cov + torch.eye(vel_cov.shape[-1]) * reg_term_vel
+
+        # Unscale velocity to original time scale space
+        self.vel_cov = vel_cov / self.phase_gn.tau[..., None]**2
 
         return self.vel_cov
 
