@@ -1,5 +1,6 @@
 import torch
 from addict import Dict
+
 import mp_pytorch.util as util
 
 
@@ -33,9 +34,8 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
     num_t = int(3 / config.mp_args.dt + 1)
 
     # Get a batched time
-    times = \
-        util.add_expand_dim(torch.linspace(0, config.tau, num_t),
-                            [0], [num_traj])
+    times = util.add_expand_dim(torch.linspace(0, config.tau, num_t),
+                                [0], [num_traj])
     if learn_tau:
         times = times * (torch.rand(1) + 1)
 
