@@ -41,6 +41,18 @@ class PhaseGenerator(ABC):
         """
         pass
 
+    @abstractmethod
+    def phase_to_time(self, phases: torch.Tensor) -> torch.Tensor:
+        """
+        Inverse operation, compute times given phase
+        Args:
+            phases: phases in Tensor
+
+        Returns:
+            times in Tensor
+        """
+        pass
+
     @property
     def _num_local_params(self) -> int:
         """
@@ -132,6 +144,18 @@ class LinearPhaseGenerator(PhaseGenerator):
 
         phase = torch.clip(self.unbound_phase(times), 0, 1)
         return phase
+
+    def phase_to_time(self, phases: torch.Tensor) -> torch.Tensor:
+        """
+        Inverse operation, compute times given phase
+        Args:
+            phases: phases in Tensor
+
+        Returns:
+            times in Tensor
+        """
+        times = phases * self.tau[..., None] + self.delay[..., None]
+        return times
 
     def unbound_phase(self, times: torch.Tensor) -> torch.Tensor:
         """
@@ -229,5 +253,19 @@ class ExpDecayPhaseGenerator(LinearPhaseGenerator):
         # Shape of time
         # [*add_dim, num_times]
 
-        phase = torch.exp(-self.alpha_phase * super().phase(times))
+        phase = torch.exp(-self.alpha_phase[..., None] * super().phase(times))
         return phase
+
+    def phase_to_time(self, phases: torch.Tensor) -> torch.Tensor:
+        """
+        Inverse operation, compute times given phase
+        Args:
+            phases: phases in Tensor
+
+        Returns:
+            times in Tensor
+        """
+        times = super().phase_to_time(torch.log(phases) /
+                                      (-self.alpha_phase[..., None]))
+
+        return times

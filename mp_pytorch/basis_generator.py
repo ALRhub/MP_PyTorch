@@ -265,53 +265,57 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
 
         # Pre-compute scaled time steps in [0, 1]
         num_pre_compute = torch.round(1 / self.scaled_dt).long().item() + 1
-        pc_scaled_time = torch.linspace(0, 1, num_pre_compute)
+        pc_scaled_times = torch.linspace(0, 1, num_pre_compute)
+
 
         # y1 and y2
-        self.y_1_value = torch.exp(-0.5 * self.alpha * pc_scaled_time)
-        self.y_2_value = pc_scaled_time * self.y_1_value
+        self.y_1_value = torch.exp(-0.5 * self.alpha * pc_scaled_times)
+        self.y_2_value = pc_scaled_times * self.y_1_value
 
         self.dy_1_value = -0.5 * self.alpha * self.y_1_value
         self.dy_2_value = -0.5 * self.alpha * self.y_2_value + self.y_1_value
 
         # q_1 and q_2
         q_1_value = \
-            (0.5 * self.alpha * pc_scaled_time - 1) \
-            * torch.exp(0.5 * self.alpha * pc_scaled_time) + 1
+            (0.5 * self.alpha * pc_scaled_times - 1) \
+            * torch.exp(0.5 * self.alpha * pc_scaled_times) + 1
         q_2_value = \
             0.5 * self.alpha \
-            * (torch.exp(0.5 * self.alpha * pc_scaled_time) - 1)
+            * (torch.exp(0.5 * self.alpha * pc_scaled_times) - 1)
 
         # Get basis of one DOF, shape [num_pc_times, num_basis]
-        basis_single_dof = super().basis(pc_scaled_time)
-        assert list(basis_single_dof.shape) == [*pc_scaled_time.shape,
+        pc_times = LinearPhaseGenerator.phase_to_time(self.phase_generator,
+                                                      pc_scaled_times)
+
+        basis_single_dof = super().basis(pc_times)
+        assert list(basis_single_dof.shape) == [*pc_times.shape,
                                                 self.num_basis]
 
         # Get canonical phase x, shape [num_pc_times]
-        canonical_x = self.phase_generator.phase(pc_scaled_time)
-        assert list(canonical_x.shape) == [*pc_scaled_time.shape]
+        canonical_x = self.phase_generator.phase(pc_times)
+        assert list(canonical_x.shape) == [*pc_times.shape]
 
         # p_1 and p_2
         dp_1_value = \
             torch.einsum('...i,...i,...ij->...ij',
-                         pc_scaled_time
-                         * torch.exp(self.alpha * pc_scaled_time / 2),
+                         pc_scaled_times
+                         * torch.exp(self.alpha * pc_scaled_times / 2),
                          canonical_x,
                          basis_single_dof)
         dp_2_value = \
             torch.einsum('...i,...i,...ij->...ij',
-                         torch.exp(self.alpha * pc_scaled_time / 2),
+                         torch.exp(self.alpha * pc_scaled_times / 2),
                          canonical_x,
                          basis_single_dof)
 
         p_1_value = torch.zeros(size=dp_1_value.shape)
         p_2_value = torch.zeros(size=dp_2_value.shape)
 
-        for i in range(pc_scaled_time.shape[0]):
+        for i in range(pc_scaled_times.shape[0]):
             p_1_value[i] = torch.trapz(dp_1_value[:i + 1],
-                                       pc_scaled_time[:i + 1], dim=0)
+                                       pc_scaled_times[:i + 1], dim=0)
             p_2_value[i] = torch.trapz(dp_2_value[:i + 1],
-                                       pc_scaled_time[:i + 1], dim=0)
+                                       pc_scaled_times[:i + 1], dim=0)
 
         # Compute integral form basis values
         pos_basis_w = p_2_value * self.y_2_value[:, None] \

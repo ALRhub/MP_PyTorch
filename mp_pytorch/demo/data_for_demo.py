@@ -27,7 +27,7 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
     scale_factor = 1
     if "dmp" in config.mp_type:
         num_param += config.num_dof
-        scale_factor = 20
+        scale_factor = 100
 
     # assume we have 3 trajectories in a batch
     num_traj = 3
