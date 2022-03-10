@@ -329,11 +329,12 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         self.pc_vel_basis = \
             torch.cat([vel_basis_w, vel_basis_g[:, None]], dim=-1)
 
-    def times_to_indices(self, times: torch.Tensor):
+    def times_to_indices(self, times: torch.Tensor, round_int: bool = True):
         """
         Map time points to pre-compute indices
         Args:
             times: time points
+            round_int: if indices should be rounded to the closest integer
 
         Returns:
             time indices
@@ -341,7 +342,11 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         # times to scaled times
 
         scaled_times = LinearPhaseGenerator.phase(self.phase_generator, times)
-        return torch.round(scaled_times / self.scaled_dt).long()
+        indices = scaled_times / self.scaled_dt
+        if round_int:
+            indices = torch.round(indices).long()
+
+        return indices
 
     def basis(self, times: torch.Tensor):
         """
