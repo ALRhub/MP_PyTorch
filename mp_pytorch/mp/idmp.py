@@ -269,10 +269,8 @@ class IDMP(ProMP):
         # Shape of vel
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
-        if times is not None:
-            self.set_mp_times(times)
-        if params is not None:
-            self.set_params(params)
+        # Update inputs
+        self.update_mp_inputs(times, params, None, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.vel is not None:
