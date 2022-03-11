@@ -1,7 +1,9 @@
 """
     Utilities of matrix operation
 """
-from typing import Union, Optional
+from typing import Optional
+from typing import Union
+
 import numpy as np
 import torch
 
@@ -163,4 +165,40 @@ def tensor_linspace(start: Union[float, int, torch.Tensor],
     end = end.contiguous().view(view_size).expand(out_size)
 
     out = start_w * start + end_w * end
+    out = torch.einsum('...ji->...ij', out)
     return out
+
+
+def indexing_interpolate(data: torch.Tensor,
+                         indices: torch.Tensor) -> torch.Tensor:
+    """
+    Indexing values from a given tensor's data, using non-integer indices and
+    thus apply interpolation.
+
+    Args:
+        data: data tensor from where indexing happens
+        indices: float indices tensor
+
+    Returns:
+        indexed and interpolated data
+    """
+    # Shape of data:
+    # [num_data, *dim_data]
+    #
+    # Shape of indices:
+    # [*add_dim, num_indices]
+    #
+    # Shape of interpolate_result:
+    # [*add_dim, num_indices, *dim_data]
+
+    ndim_data = data.ndim-1
+    indices_0 = torch.clip(indices.floor().long(), 0,
+                           data.shape[-data.ndim] - 2)
+    indices_1 = indices_0 + 1
+    weights = indices - indices_0
+    if ndim_data > 0:
+        weights = add_expand_dim(weights,
+                                 range(indices.ndim, indices.ndim + ndim_data),
+                                 [-1] * ndim_data)
+    interpolate_result = torch.lerp(data[indices_0], data[indices_1], weights)
+    return interpolate_result

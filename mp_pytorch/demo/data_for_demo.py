@@ -31,24 +31,27 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
 
     # assume we have 3 trajectories in a batch
     num_traj = 3
-    num_t = int(3 / config.mp_args.dt + 1)
-
-    # Get a batched time
-    times = util.add_expand_dim(torch.linspace(0, config.tau, num_t),
-                                [0], [num_traj])
-    if learn_tau:
-        times = times * (torch.rand(1) + 1)
+    num_t = int(3 / config.mp_args.dt) * 2 + 1
 
     # Get parameters
     torch.manual_seed(0)
     params = torch.randn([num_traj, num_param]) * scale_factor
 
     if config.learn_delay:
-        params = torch.cat([times[..., -1:] * 0.2, params],
-                           dim=-1)
+        torch.manual_seed(0)
+        delay = torch.rand([num_traj, 1])
+        params = torch.cat([delay, params], dim=-1)
+    else:
+        delay = 0
+
     if config.learn_tau:
         torch.manual_seed(0)
-        params = torch.cat([times[..., -1:], params], dim=-1)
+        tau = torch.rand([num_traj, 1]) + 4
+        params = torch.cat([tau, params], dim=-1)
+        times = util.tensor_linspace(0, tau + delay, num_t).squeeze(-1)
+    else:
+        times = util.tensor_linspace(0, torch.ones([num_traj, 1]) * config.tau
+                                     + delay, num_t).squeeze(-1)
 
     lct = torch.distributions.transforms.LowerCholeskyTransform(cache_size=0)
     torch.manual_seed(0)

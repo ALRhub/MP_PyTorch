@@ -1,7 +1,7 @@
 """
 @brief:     Basis generators in PyTorch
 """
-
+from mp_pytorch import util
 from mp_pytorch.phase_generator import *
 
 
@@ -267,7 +267,6 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         num_pre_compute = torch.round(1 / self.scaled_dt).long().item() + 1
         pc_scaled_times = torch.linspace(0, 1, num_pre_compute)
 
-
         # y1 and y2
         self.y_1_value = torch.exp(-0.5 * self.alpha * pc_scaled_times)
         self.y_2_value = pc_scaled_times * self.y_1_value
@@ -366,9 +365,9 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         #
         # Shape of basis:
         # [*add_dim, num_times, num_basis_g]
-        time_indices = self.times_to_indices(times)
-
-        basis = self.pc_pos_basis[time_indices, :]
+        time_indices = self.times_to_indices(times, False)
+        basis = util.indexing_interpolate(data=self.pc_pos_basis,
+                                          indices=time_indices)
         return basis
 
     def vel_basis(self, times: torch.Tensor):
@@ -385,9 +384,11 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         #
         # Shape of vel_basis:
         # [*add_dim, num_times, num_basis_g]
-        time_indices = self.times_to_indices(times)
 
-        vel_basis = self.pc_vel_basis[time_indices, :]
+        time_indices = self.times_to_indices(times, False)
+
+        vel_basis = util.indexing_interpolate(data=self.pc_vel_basis,
+                                              indices=time_indices)
         return vel_basis
 
     def basis_multi_dofs(self, times: torch.Tensor, num_dof: int):
@@ -470,12 +471,15 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         # Shape of each return
         # [*add_dim, num_times] or [*add_dim]
 
-        time_indices = self.times_to_indices(times)
+        time_indices = self.times_to_indices(times, False)
 
-        # Shape [num_pc_times] -> [*add_dim]
-        y_1_value = self.y_1_value[time_indices]
-        y_2_value = self.y_2_value[time_indices]
-        dy_1_value = self.dy_1_value[time_indices]
-        dy_2_value = self.dy_2_value[time_indices]
+        y_1_value = util.indexing_interpolate(data=self.y_1_value,
+                                              indices=time_indices)
+        y_2_value = util.indexing_interpolate(data=self.y_2_value,
+                                              indices=time_indices)
+        dy_1_value = util.indexing_interpolate(data=self.dy_1_value,
+                                               indices=time_indices)
+        dy_2_value = util.indexing_interpolate(data=self.dy_2_value,
+                                               indices=time_indices)
 
         return y_1_value, y_2_value, dy_1_value, dy_2_value
