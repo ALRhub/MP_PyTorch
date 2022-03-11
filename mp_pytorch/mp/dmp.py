@@ -6,8 +6,7 @@ import torch
 
 from mp_pytorch import BasisGenerator
 from mp_pytorch import LinearPhaseGenerator
-from mp_pytorch.mp_interfaces import MPInterface
-from mp_pytorch.phase_generator import ExpDecayPhaseGenerator
+from .mp_interfaces import MPInterface
 
 
 class DMP(MPInterface):

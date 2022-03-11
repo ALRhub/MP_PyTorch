@@ -8,7 +8,7 @@ from typing import Union
 import torch
 from torch.distributions import MultivariateNormal
 
-from mp_pytorch.basis_generator import BasisGenerator
+from mp_pytorch import BasisGenerator
 import mp_pytorch.util as util
 
 

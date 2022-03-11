@@ -4,8 +4,8 @@
 from typing import Union
 import torch
 
-from mp_pytorch.basis_generator import BasisGenerator
-from mp_pytorch.mp_interfaces import ProbabilisticMPInterface
+from mp_pytorch import BasisGenerator
+from .mp_interfaces import ProbabilisticMPInterface
 
 
 class ProMP(ProbabilisticMPInterface):

@@ -1,7 +1,7 @@
 import torch
 
 from mp_pytorch import IDMPBasisGenerator
-from mp_pytorch.promp import ProMP
+from .promp import ProMP
 
 
 class IDMP(ProMP):

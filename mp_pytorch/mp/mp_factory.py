@@ -1,6 +1,11 @@
-from mp_pytorch import MPInterface
-from mp_pytorch.basis_generator import *
-from mp_pytorch import ProMP, DMP, IDMP
+from mp_pytorch.basis_gn import IDMPBasisGenerator
+from mp_pytorch.basis_gn import NormalizedRBFBasisGenerator
+from mp_pytorch.phase_gn import ExpDecayPhaseGenerator
+from mp_pytorch.phase_gn import LinearPhaseGenerator
+from .dmp import DMP
+from .idmp import IDMP
+from .mp_interfaces import MPInterface
+from .promp import ProMP
 
 
 class MPFactory:
