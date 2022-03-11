@@ -2,6 +2,7 @@
 @brief:     Probabilistic Movement Primitives in PyTorch
 """
 from typing import Union
+
 import torch
 
 from mp_pytorch import BasisGenerator
@@ -247,8 +248,26 @@ class ProMP(ProbabilisticMPInterface):
         Returns:
             vel
         """
-        # todo interpolation?
-        self.vel = None
+
+        # Shape of vel
+        # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
+
+        # Update inputs
+        self.update_mp_inputs(times, params, None, bc_time, bc_pos, bc_vel)
+
+        # Reuse result if existing
+        if self.vel is not None:
+            return self.vel
+
+        # Recompute otherwise
+        pos = self.get_traj_pos()
+
+        vel = torch.zeros_like(pos)
+        vel[..., :-1, :] = torch.diff(pos, dim=-2) \
+                        / torch.diff(self.times)[..., None]
+        vel[..., -1, :] = vel[..., -2, :]
+
+        self.vel = vel
         return self.vel
 
     def get_traj_vel_cov(self, times=None, params_L=None, bc_time=None,

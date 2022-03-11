@@ -43,7 +43,9 @@ def test_promp():
 
     # Vel
     util.print_line_title("vel")
-    assert traj_dict["vel"] is None
+    print("traj_dict[vel].shape", traj_dict["vel"].shape)
+    util.debug_plot(times[0], [traj_dict["vel"][0, :, 0]],
+                    title="promp_vel_mean")
 
     # Vel_cov
     util.print_line_title("vel_cov")
