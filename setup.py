@@ -15,7 +15,5 @@ setup(
         'matplotlib',
         'torch',
         'addict',
-        'pyyaml',
-        'tabulate'
     ]
 )
