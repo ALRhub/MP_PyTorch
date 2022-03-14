@@ -1,48 +1,10 @@
 """
     Utilities of matrix operation
 """
-from typing import Optional
 from typing import Union
 
 import numpy as np
 import torch
-
-
-def build_lower_matrix(param_diag: torch.Tensor,
-                       param_off_diag: Optional[torch.Tensor]) -> torch.Tensor:
-    """
-    Compose the lower triangular matrix L from diag and off-diag elements
-    It seems like faster than using the cholesky transformation from PyTorch
-    Args:
-        param_diag: diagonal parameters
-        param_off_diag: off-diagonal parameters
-
-    Returns:
-        Lower triangular matrix L
-
-    """
-    dim_pred = param_diag.shape[-1]
-    # Fill diagonal terms
-    L = param_diag.diag_embed()
-    if param_off_diag is not None:
-        # Fill off-diagonal terms
-        [row, col] = torch.tril_indices(dim_pred, dim_pred, -1)
-        L[..., row, col] = param_off_diag[..., :]
-
-    return L
-
-
-def transform_to_cholesky(mat: torch.Tensor) -> torch.Tensor:
-    """
-    Transform an unconstrained matrix to cholesky, will abandon half of the data
-    Args:
-        mat: an unconstrained square matrix
-
-    Returns:
-        lower triangle matrix as Cholesky
-    """
-    lct = torch.distributions.transforms.LowerCholeskyTransform(cache_size=0)
-    return lct(mat)
 
 
 def add_expand_dim(data: Union[torch.Tensor, np.ndarray],
@@ -86,31 +48,6 @@ def add_expand_dim(data: Union[torch.Tensor, np.ndarray],
         return eval("eval(str_add_dime_eval).expand(" + str_expand + ")")
     else:
         return eval("np.tile(eval(str_add_dime_eval),[" + str_expand + "])")
-
-
-def to_cholesky(diag_vector=None, off_diag_vector=None,
-                L=None, cov_matrix=None):
-    """
-    Compute Cholesky matrix
-    Args:
-        diag_vector: diag elements in a vector
-        off_diag_vector: off-diagonal elements in a vector
-        L: Cholesky matrix
-        cov_matrix: Covariance matrix
-
-    Returns:
-        Cholesky matrix L
-    """
-    if L is not None:
-        pass
-    elif cov_matrix is None:
-        assert diag_vector is not None and off_diag_vector is not None
-        L = build_lower_matrix(diag_vector, off_diag_vector)
-    elif diag_vector is None and off_diag_vector is None:
-        L = torch.linalg.cholesky(cov_matrix)
-    else:
-        raise RuntimeError("Unexpected behaviours")
-    return L
 
 
 def tensor_linspace(start: Union[float, int, torch.Tensor],
@@ -191,7 +128,7 @@ def indexing_interpolate(data: torch.Tensor,
     # Shape of interpolate_result:
     # [*add_dim, num_indices, *dim_data]
 
-    ndim_data = data.ndim-1
+    ndim_data = data.ndim - 1
     indices_0 = torch.clip(indices.floor().long(), 0,
                            data.shape[-data.ndim] - 2)
     indices_1 = indices_0 + 1

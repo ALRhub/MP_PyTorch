@@ -1,7 +1,6 @@
 """
     Utilities of string operation and printing stuff
 """
-from tabulate import tabulate
 from datetime import datetime
 
 
@@ -83,74 +82,3 @@ def print_wrap_title(title: str = "", char: str = "*", length: int = 60,
         print(char, " " * (length - 2), char, sep="")
     print_line(char=char, length=length, after=after)
     # End of function print_wrap_title
-
-
-def print_table(tabular_data: list, headers: list,
-                table_format: str = "grid") -> None:
-    """
-    Print nice table in using tabulate
-
-    Example:
-    print_table(tabular_data=[["value1", "value2"], ["value3", "value4"]],
-               headers=["headers 1", "headers 2"],
-               table_format="grid"))
-
-    Args:
-        tabular_data: data in table
-        headers: column headers
-        table_format: format
-
-    Returns:
-
-    """
-    print(tabulate(tabular_data, headers, table_format))
-
-
-def get_formatted_date_time() -> str:
-    """
-    Get formatted date and time, e.g. May-01-2021 22:14:31
-    Returns:
-        dt_string: date time string
-    """
-    now = datetime.now()
-    dt_string = now.strftime("%b-%d-%Y %-H:%-M:%-S")
-    return dt_string
-
-
-class BColors:
-    """
-    Colors
-    """
-    HEADER = '\033[95m'
-    OKBLUE = '\033[94m'
-    OKCYAN = '\033[96m'
-    OKGREEN = '\033[92m'
-    WARNING = '\033[93m'
-    FAIL = '\033[91m'
-    ENDC = '\033[0m'
-    BOLD = '\033[1m'
-    UNDERLINE = '\033[4m'
-
-
-def warn(warn_str: str):
-    """
-    Print a warning string in console
-    Args:
-        warn_str: string to be printed
-
-    Returns:
-        None
-    """
-    print(f"{BColors.WARNING}Warning: " + warn_str + f"{BColors.ENDC}")
-
-
-def error(error_str: str):
-    """
-    Print an error string in console
-    Args:
-        error_str: string to be printed
-
-    Returns:
-        None
-    """
-    print(f"{BColors.FAIL}Error: " + error_str + f"{BColors.ENDC}")
