@@ -10,7 +10,7 @@ from .promp import ProMP
 
 class MPFactory:
     @staticmethod
-    def init_mp(config) -> MPInterface:
+    def init_mp(config):
         """
         Create an MP instance given configuration
 
@@ -24,8 +24,8 @@ class MPFactory:
         tau = config["tau"]
         mp_type = config["mp_type"]
         mp_config = config["mp_args"]
-        learn_tau = config["learn_tau"]
-        learn_delay = config["learn_delay"]
+        learn_tau = config.get("learn_tau", False)
+        learn_delay = config.get("learn_delay", False)
 
         # Get phase generator
         if mp_type == "promp":
