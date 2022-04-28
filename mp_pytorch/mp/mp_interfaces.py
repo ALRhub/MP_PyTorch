@@ -5,6 +5,7 @@ from abc import ABC
 from abc import abstractmethod
 from typing import Union
 
+import numpy as np
 import torch
 from torch.distributions import MultivariateNormal
 
@@ -50,8 +51,25 @@ class MPInterface(ABC):
         self.vel = None
 
     @property
+    def learn_tau(self):
+        return self.phase_gn.learn_tau
+
+    @property
+    def learn_delay(self):
+        return self.phase_gn.learn_delay
+
+    @property
     def tau(self):
         return self.phase_gn.tau
+
+    def get_param_bounds(self):
+        critical_bounds = 0
+        critical_bounds += 1 if self.learn_tau else 0
+        critical_bounds += 1 if self.learn_delay else 0
+        max_bounds = torch.ones(self.num_params)*100
+        min_bounds = -max_bounds
+        min_bounds[:critical_bounds] = torch.ones(critical_bounds)*1e-6
+        return min_bounds, max_bounds
 
     def clear_computation_result(self):
         """
@@ -76,7 +94,7 @@ class MPInterface(ABC):
         self.add_dim = add_dim
         self.clear_computation_result()
 
-    def set_mp_times(self, times: torch.Tensor):
+    def set_mp_times(self, times: Union[torch.Tensor, np.ndarray]):
         """
         Set MP time points
         Args:
@@ -89,10 +107,14 @@ class MPInterface(ABC):
         # Shape of times
         # [*add_dim, num_times]
 
-        self.times = times
+        if isinstance(times, np.ndarray):
+            self.times = torch.from_numpy(times)
+        else:
+            self.times = times
+
         self.clear_computation_result()
 
-    def set_params(self, params: torch.Tensor) -> torch.Tensor:
+    def set_params(self, params: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
         """
         Set MP params
         Args:
@@ -104,6 +126,9 @@ class MPInterface(ABC):
 
         # Shape of params
         # [*add_dim, num_params]
+
+        if isinstance(params, np.ndarray):
+            params = torch.from_numpy(params)
 
         # Check number of params
         assert params.shape[-1] == self.num_params
@@ -151,6 +176,11 @@ class MPInterface(ABC):
         #
         # Shape of bc_vel:
         # [*add_dim, num_dof]
+
+        if (isinstance(bc_time, float)):
+            bc_time = torch.from_numpy(bc_time)
+            bc_pos = torch.from_numpy(bc_pos)
+            bc_vel = torch.from_numpy(bc_vel)
 
         self.bc_time = bc_time
         self.bc_pos = bc_pos

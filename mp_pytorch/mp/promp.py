@@ -45,7 +45,7 @@ class ProMP(ProbabilisticMPInterface):
 
         # Shape: [*add_dim, num_dof * num_times, num_dof * num_basis]
         self.basis_multi_dofs = \
-            self.basis_gn.basis_multi_dofs(times, self.num_dof)
+            self.basis_gn.basis_multi_dofs(self.times, self.num_dof)
 
     def set_mp_params_variances(self, params_L: Union[torch.Tensor, None]):
         """
