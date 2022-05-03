@@ -20,7 +20,7 @@ class LinearPhaseGenerator(PhaseGenerator):
 
     def phase(self, times: torch.Tensor) -> torch.Tensor:
         """
-        Compute phase
+        Compute bounded phase in [0, 1]
         Args:
             times: times in Tensor
 
@@ -48,7 +48,7 @@ class LinearPhaseGenerator(PhaseGenerator):
 
     def unbound_phase(self, times: torch.Tensor) -> torch.Tensor:
         """
-        Compute phase
+        Compute unbounded phase
         Args:
             times: times in Tensor
 

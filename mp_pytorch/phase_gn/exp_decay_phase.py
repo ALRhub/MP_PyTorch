@@ -97,3 +97,19 @@ class ExpDecayPhaseGenerator(LinearPhaseGenerator):
                                       (-self.alpha_phase[..., None]))
 
         return times
+
+    def unbound_phase(self, times: torch.Tensor) -> torch.Tensor:
+        """
+        Compute unbounded phase
+        Args:
+            times: times in Tensor
+
+        Returns:
+            phase in Tensor
+
+        """
+        # Shape of time
+        # [*add_dim, num_times]
+        phase = torch.exp(-self.alpha_phase[..., None]
+                          * super().unbound_phase(times))
+        return phase
