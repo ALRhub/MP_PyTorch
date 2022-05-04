@@ -33,9 +33,11 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
                                                  self.num_basis_outside - 1)
 
         # RBF centers in time scope
-        centers_t = torch.linspace(-self.num_basis_outside * basis_dist,
-                                   self.phase_generator.tau
-                                   + self.num_basis_outside * basis_dist,
+        centers_t = torch.linspace(-self.num_basis_outside * basis_dist
+                                   + self.phase_generator.delay,
+                                   self.num_basis_outside * basis_dist
+                                   + self.phase_generator.tau
+                                   + self.phase_generator.delay,
                                    self.num_basis)
 
         # RBF centers in phase scope
