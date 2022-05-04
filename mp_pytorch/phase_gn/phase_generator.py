@@ -25,8 +25,8 @@ class PhaseGenerator(ABC):
             *args: other arguments list
             **kwargs: other keyword arguments
         """
-        self.tau = torch.tensor(tau).float()
-        self.delay = torch.tensor(delay).float()
+        self.tau = torch.tensor(tau)
+        self.delay = torch.tensor(delay)
         self.learn_tau = learn_tau
         self.learn_delay = learn_delay
 
@@ -91,7 +91,7 @@ class PhaseGenerator(ABC):
             iterator += 1
         if self.learn_delay:
             delay = params[..., iterator]
-            assert delay.min() > 0
+            assert delay.min() >= 0
             self.delay = delay
             iterator += 1
         remaining_params = params[..., iterator:]

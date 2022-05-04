@@ -22,7 +22,7 @@ class MPFactory:
         """
         num_dof = config["num_dof"]
         tau = config["tau"]
-        delay = config["delay"]
+        delay = config.get("delay", 0.0)
         mp_type = config["mp_type"]
         mp_config = config["mp_args"]
         learn_tau = config.get("learn_tau", False)
