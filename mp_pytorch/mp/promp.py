@@ -1,6 +1,7 @@
 """
 @brief:     Probabilistic Movement Primitives in PyTorch
 """
+import copy
 from typing import Union
 
 import torch
@@ -28,6 +29,12 @@ class ProMP(ProbabilisticMPInterface):
 
         # Runtime variables
         self.basis_multi_dofs = None
+        self.basis_single_dof = None
+        self.pad = lambda x: x      # if we don't have zero start/ zero goal use weights as it is
+        self.has_zero_padding = hasattr(self.basis_gn, 'num_basis_zero_start')
+        if self.has_zero_padding:
+            self.pad = torch.nn.ConstantPad2d((self.basis_gn.num_basis_zero_start,
+                                               self.basis_gn.num_basis_zero_goal, 0, 0), 0)
 
     def set_mp_times(self, times: torch.Tensor):
         """
@@ -42,10 +49,7 @@ class ProMP(ProbabilisticMPInterface):
         # [*add_dim, num_times]
 
         super().set_mp_times(times)
-
-        # Shape: [*add_dim, num_dof * num_times, num_dof * num_basis]
-        self.basis_multi_dofs = \
-            self.basis_gn.basis_multi_dofs(self.times, self.num_dof)
+        self.basis_single_dof = self.basis_gn.basis(self.times)
 
     def set_mp_params_variances(self, params_L: Union[torch.Tensor, None]):
         """
@@ -94,19 +98,27 @@ class ProMP(ProbabilisticMPInterface):
 
         # Reuse result if existing
         if self.pos is not None:
-            return self.pos
+            return copy.deepcopy(self.pos)
 
-        assert self.params is not None and self.basis_multi_dofs is not None
+        # assert self.params is not None and self.basis_multi_dofs is not None
+        assert self.params is not None and self.basis_single_dof is not None
 
         # Get basis of all Dofs
         # Shape: [*add_dim, num_dof * num_times, num_dof * num_basis]
-        basis_multi_dof = self.basis_multi_dofs
+        # basis_multi_dof = self.basis_multi_dofs
 
         # Einsum shape: [*add_dim, num_dof * num_times, num_dof * num_basis],
         #               [*add_dim, num_dof * num_basis]
         #            -> [*add_dim, num_dof * num_times]
-        pos = torch.einsum('...ij,...j->...i', basis_multi_dof, self.params)
+        # basis_multi_dof = self.basis_gn.basis_multi_dofs(self.times, self.num_dof)
+        # pos = torch.einsum('...ij,...j->...i', basis_multi_dof, self.params)
 
+        # [*add_dim,  num_dof, num_basis] @ [*add_dim, num_times, num_basis].transpose(-2,-1)
+        reshaped_params = self.params.reshape((*self.params.shape[:-1], self.num_dof, -1))
+        # pads zeros if we have zero start/ zero goal or stays same otherwise
+        reshaped_params = self.pad(reshaped_params)
+        # pos = torch.flatten(self.basis_single_dof @ reshaped_params)
+        pos = torch.flatten(reshaped_params@self.basis_single_dof.transpose(-1, -2), -2, -1)
         if not flat_shape:
             # Reshape to [*add_dim, num_dof, num_times]
             pos = pos.reshape(*self.add_dim, self.num_dof, -1)
@@ -114,9 +126,10 @@ class ProMP(ProbabilisticMPInterface):
             # Switch axes to [*add_dim, num_times, num_dof]
             pos = torch.einsum('...ji->...ij', pos)
 
+        pos += self.bc_pos if self.has_zero_padding else 0
         self.pos = pos
 
-        return self.pos
+        return pos
 
     def get_traj_pos_cov(self, times=None, params_L=None, bc_time=None,
                          bc_pos=None,
@@ -137,6 +150,9 @@ class ProMP(ProbabilisticMPInterface):
         Returns:
             pos_cov
         """
+        if self.basis_multi_dofs is None:
+            self.basis_multi_dofs = \
+            self.basis_gn.basis_multi_dofs(self.times, self.num_dof)
 
         # Shape of pos_cov
         # [*add_dim, num_dof * num_times, num_dof * num_times]
@@ -338,6 +354,9 @@ class ProMP(ProbabilisticMPInterface):
         #
         # Shape of params:
         # [*add_dim, num_dof * num_basis]
+        if self.basis_multi_dofs is None:
+            self.basis_multi_dofs = \
+            self.basis_gn.basis_multi_dofs(self.times, self.num_dof)
 
         assert trajs.shape[:-1] == times.shape
         assert trajs.shape[-1] == self.num_dof

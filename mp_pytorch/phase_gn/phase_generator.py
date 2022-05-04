@@ -31,6 +31,10 @@ class PhaseGenerator(ABC):
         self.learn_delay = learn_delay
 
     @abstractmethod
+    def unbound_phase(self, centers: torch.Tensor):
+        pass
+
+    @abstractmethod
     def phase(self, times: torch.Tensor) -> torch.Tensor:
         """
         Basis class phase interface

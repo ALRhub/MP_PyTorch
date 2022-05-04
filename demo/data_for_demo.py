@@ -21,6 +21,10 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
     config.mp_args.dt = 0.001
     config.mp_type = mp_type
 
+    config.mp_args.num_basis_zero_start = 2
+    config.mp_args.num_basis_zero_goal = 0
+    config.mp_args.basis_wandwitdh_factor = 0
+
     # Generate parameters
     num_param = config.num_dof * config.mp_args.num_basis
 
@@ -36,10 +40,12 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
     # Get parameters
     torch.manual_seed(0)
     params = torch.randn([num_traj, num_param]) * scale_factor
+    # params[:, 0] = 0
+    # params[:, 1] = 0
 
     if config.learn_delay:
         torch.manual_seed(0)
-        delay = torch.rand([num_traj, 1])
+        delay = torch.rand([num_traj, 1]) + 6
         params = torch.cat([delay, params], dim=-1)
     else:
         delay = 0
@@ -59,7 +65,8 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
                * 0.01 * scale_factor
 
     bc_time = times[:, 0]
-    bc_pos = 5 * torch.ones([num_traj, config.num_dof])
+    # bc_pos = 5 * torch.ones([num_traj, config.num_dof])
+    bc_pos = 5 * torch.zeros([num_traj, 1, config.num_dof])
     if config.learn_delay:
         bc_vel = torch.zeros_like(bc_pos)
     else:

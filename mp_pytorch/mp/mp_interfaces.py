@@ -66,7 +66,7 @@ class MPInterface(ABC):
         critical_bounds = 0
         critical_bounds += 1 if self.learn_tau else 0
         critical_bounds += 1 if self.learn_delay else 0
-        max_bounds = torch.ones(self.num_params)*100
+        max_bounds = torch.ones(self.num_params)*np.inf
         min_bounds = -max_bounds
         min_bounds[:critical_bounds] = torch.ones(critical_bounds)*1e-6
         return min_bounds, max_bounds
@@ -107,11 +107,7 @@ class MPInterface(ABC):
         # Shape of times
         # [*add_dim, num_times]
 
-        if isinstance(times, np.ndarray):
-            self.times = torch.from_numpy(times)
-        else:
-            self.times = times
-
+        self.times = torch.Tensor(times) if not isinstance(times, torch.Tensor) else times
         self.clear_computation_result()
 
     def set_params(self, params: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
@@ -127,8 +123,10 @@ class MPInterface(ABC):
         # Shape of params
         # [*add_dim, num_params]
 
-        if isinstance(params, np.ndarray):
-            params = torch.from_numpy(params)
+        # TODO : submit issue to choose different float precisions at the beginning
+        if not isinstance(params, torch.Tensor):
+            # params = torch.from_numpy(params)
+            params = torch.Tensor(params)
 
         # Check number of params
         assert params.shape[-1] == self.num_params
@@ -153,9 +151,9 @@ class MPInterface(ABC):
         params = torch.cat([params, self.params], dim=-1)
         return params
 
-    def set_boundary_conditions(self, bc_time: torch.Tensor,
-                                bc_pos: torch.Tensor,
-                                bc_vel: torch.Tensor):
+    def set_boundary_conditions(self, bc_time: Union[torch.Tensor, np.ndarray],
+                                bc_pos: Union[torch.Tensor, np.ndarray],
+                                bc_vel: Union[torch.Tensor, np.ndarray]):
         """
         Set boundary conditions in a batched manner
 
@@ -177,10 +175,13 @@ class MPInterface(ABC):
         # Shape of bc_vel:
         # [*add_dim, num_dof]
 
-        if (isinstance(bc_time, float)):
-            bc_time = torch.from_numpy(bc_time)
-            bc_pos = torch.from_numpy(bc_pos)
-            bc_vel = torch.from_numpy(bc_vel)
+        if not isinstance(bc_time, torch.Tensor):
+            # bc_time = torch.from_numpy(bc_time)
+            # bc_pos = torch.from_numpy(bc_pos)
+            # bc_vel = torch.from_numpy(bc_vel)
+            bc_time = torch.Tensor(bc_time)
+            bc_pos = torch.Tensor(bc_pos)
+            bc_vel = torch.Tensor(bc_vel)
 
         self.bc_time = bc_time
         self.bc_pos = bc_pos
@@ -396,8 +397,8 @@ class ProbabilisticMPInterface(MPInterface):
                                   self.params_L)
         return params_cov
 
-    def get_mp_trajs(self, get_pos=True, get_pos_cov=True, get_pos_std=True,
-                     get_vel=True, get_vel_cov=True, get_vel_std=True,
+    def get_mp_trajs(self, get_pos=True, get_pos_cov=True, get_pos_std=False,
+                     get_vel=False, get_vel_cov=False, get_vel_std=False,
                      flat_shape=False, reg: float = 1e-4):
         """
         Get movement primitives trajectories given flag

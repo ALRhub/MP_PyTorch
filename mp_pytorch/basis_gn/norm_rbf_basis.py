@@ -29,14 +29,14 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
         # Compute centers and bandwidth
         # Distance between basis centers
         assert self.phase_generator.tau.nelement() == 1
-        basis_dist = self.phase_generator.tau / (self.num_basis - 2 *
+        basis_dist = self.phase_generator.tau / (num_basis - 2 *
                                                  self.num_basis_outside - 1)
 
         # RBF centers in time scope
         centers_t = torch.linspace(-self.num_basis_outside * basis_dist,
                                    self.phase_generator.tau
                                    + self.num_basis_outside * basis_dist,
-                                   self.num_basis)
+                                   num_basis)
 
         # RBF centers in phase scope
         self.centers_p = self.phase_generator.unbound_phase(centers_t)
@@ -73,7 +73,7 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
         # Add one axis (basis centers) to phase and get shape:
         # [*add_dim, num_times, num_basis]
         phase = phase[..., None]
-        phase = phase.expand([*phase.shape[:-1], self.num_basis])
+        phase = phase.expand([*phase.shape[:-1], self._num_basis])
 
         # Add one axis (times) to centers in phase scope and get shape:
         # [num_times, num_basis]
@@ -91,3 +91,27 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
 
         # Return
         return basis
+
+
+class ZeroStartNormalizedRBFBasisGenerator(NormalizedRBFBasisGenerator):
+    def __init__(self, phase_generator: PhaseGenerator, num_basis: int = 10, num_basis_zero_start:int = 2,
+                 num_basis_zero_goal:int = 0, basis_bandwidth_factor: int = 3):
+        """
+        Constructor of class RBF
+
+        Args:
+            phase_generator: phase generator
+            num_basis: number of basis function
+            basis_bandwidth_factor: basis bandwidth factor
+            num_basis_outside: basis function outside the duration
+        """
+        self.num_basis_zero_start = num_basis_zero_start
+        self.num_basis_zero_goal = num_basis_zero_goal
+        super().__init__(phase_generator, num_basis+num_basis_zero_start+num_basis_zero_goal, basis_bandwidth_factor,
+                         num_basis_outside=0)
+
+
+    @property
+    def num_basis(self):
+        return super().num_basis - self.num_basis_zero_start - self.num_basis_zero_goal
+
