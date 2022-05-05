@@ -83,9 +83,13 @@ def test_learnable_delay_and_scale():
         config = Dict(config)
         # Generate parameters
         num_param = config.num_dof * config.mp_args.num_basis
+        params_scale_factor = 100
+        params_L_scale_factor = 10
 
         if "dmp" in config.mp_type:
             num_param += config.num_dof
+            params_scale_factor = 1000
+            params_L_scale_factor = 0.1
 
         # assume we have 3 trajectories in a batch
         num_traj = len(tau_list) * len(delay_list)
@@ -95,13 +99,16 @@ def test_learnable_delay_and_scale():
                                      num_t).squeeze(-1)
 
         torch.manual_seed(0)
-        scale_factor = 100
         params = torch.randn([1, num_param]).expand([num_traj, num_param]) \
-                 * scale_factor
+                 * params_scale_factor
+        if "dmp" in config.mp_type:
+            params[:, config.mp_args.num_basis::config.mp_args.num_basis] \
+                *= 0.001
+
         lct = torch.distributions.transforms.LowerCholeskyTransform(
             cache_size=0)
-        params_L = lct(torch.randn(
-            [1, num_param, num_param]).expand([num_traj, num_param, num_param]))
+        params_L = lct(torch.randn([1, num_param, num_param]).expand(
+            [num_traj, num_param, num_param]))* params_L_scale_factor
 
         tau_delay = torch.zeros([num_traj, 2])
         for i, tau in enumerate(tau_list):
