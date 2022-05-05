@@ -43,6 +43,18 @@ class PhaseGenerator(ABC):
         pass
 
     @abstractmethod
+    def unbound_phase(self, times: torch.Tensor) -> torch.Tensor:
+        """
+        Basis class unbound phase interface
+        Args:
+            times: times in Tensor
+
+        Returns: phases in Tensor
+
+        """
+        pass
+
+    @abstractmethod
     def phase_to_time(self, phases: torch.Tensor) -> torch.Tensor:
         """
         Inverse operation, compute times given phase
