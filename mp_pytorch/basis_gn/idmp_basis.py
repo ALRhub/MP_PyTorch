@@ -1,18 +1,18 @@
 import torch
 
-from mp_pytorch.phase_gn import LinearPhaseGenerator
-from .norm_rbf_basis import NormalizedRBFBasisGenerator
-from mp_pytorch.phase_gn import PhaseGenerator
 from mp_pytorch import util
+from mp_pytorch.phase_gn import ExpDecayPhaseGenerator
+from .norm_rbf_basis import NormalizedRBFBasisGenerator
 
 
 class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
-    def __init__(self, phase_generator: PhaseGenerator,
+    def __init__(self, phase_generator: ExpDecayPhaseGenerator,
                  num_basis: int = 10,
                  basis_bandwidth_factor: int = 3,
                  num_basis_outside: int = 0,
                  dt: float = 0.01,
-                 alpha: float = 25, ):
+                 alpha: float = 25,
+                 pre_compute_length_factor=10):
         """
 
         Args:
@@ -22,6 +22,7 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
             num_basis_outside: basis function outside the duration
             dt: time step
             alpha: alpha value of DMP
+            pre_compute_length_factor: (n x tau) time length in pre-computation
         """
         super(IDMPBasisGenerator, self).__init__(phase_generator,
                                                  num_basis,
@@ -30,6 +31,8 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
 
         self.alpha = alpha
         self.scaled_dt = dt / self.phase_generator.tau
+        self.pre_compute_length_factor = pre_compute_length_factor
+
         self.y_1_value = None
         self.y_2_value = None
         self.dy_1_value = None
@@ -65,8 +68,10 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         # Note: num_basis_g = num_basis + 1
 
         # Pre-compute scaled time steps in [0, 1]
-        num_pre_compute = torch.round(1 / self.scaled_dt).long().item() + 1
-        pc_scaled_times = torch.linspace(0, 1, num_pre_compute)
+        num_pre_compute = self.pre_compute_length_factor * \
+                          torch.round(1 / self.scaled_dt).long().item() + 1
+        pc_scaled_times = torch.linspace(0, self.pre_compute_length_factor,
+                                         num_pre_compute)
 
         # y1 and y2
         self.y_1_value = torch.exp(-0.5 * self.alpha * pc_scaled_times)
@@ -84,8 +89,7 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
             * (torch.exp(0.5 * self.alpha * pc_scaled_times) - 1)
 
         # Get basis of one DOF, shape [num_pc_times, num_basis]
-        pc_times = LinearPhaseGenerator.phase_to_time(self.phase_generator,
-                                                      pc_scaled_times)
+        pc_times = self.phase_generator.linear_phase_to_time(pc_scaled_times)
 
         basis_single_dof = super().basis(pc_times)
         assert list(basis_single_dof.shape) == [*pc_times.shape,
@@ -145,7 +149,10 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         """
         # times to scaled times
 
-        scaled_times = LinearPhaseGenerator.phase(self.phase_generator, times)
+        scaled_times = self.phase_generator.left_bound_linear_phase(times)
+        if scaled_times.max() > self.pre_compute_length_factor:
+            raise RuntimeError("Time is beyond the pre-computation range. "
+                               "Set larger pre-computation factor")
         indices = scaled_times / self.scaled_dt
         if round_int:
             indices = torch.round(indices).long()
