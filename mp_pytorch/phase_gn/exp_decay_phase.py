@@ -69,6 +69,21 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
             params = torch.cat([params, self.alpha_phase[..., None]], dim=-1)
         return params
 
+    def get_params_bounds(self) -> torch.Tensor:
+        """
+        Return all learnable parameters' bounds
+        Returns:
+            parameters bounds
+        """
+        # Shape of params_bounds
+        # [num_params, 2]
+
+        params_bounds = super().get_params_bounds()
+        if self.learn_alpha_phase:
+            alpha_phase_bound = torch.Tensor([1e-5, torch.inf])[None]
+            params_bounds = torch.cat([params_bounds, alpha_phase_bound], dim=0)
+        return params_bounds
+
     def left_bound_linear_phase(self, times):
         """
         Compute left bounded linear phase in [0, +inf]

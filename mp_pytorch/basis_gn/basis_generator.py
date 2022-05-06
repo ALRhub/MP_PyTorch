@@ -57,6 +57,18 @@ class BasisGenerator(ABC):
         params = self.phase_generator.get_params()
         return params
 
+    def get_params_bounds(self) -> torch.Tensor:
+        """
+        Return all learnable parameters' bounds
+        Returns:
+            parameters bounds
+        """
+        # Shape of params_bounds
+        # [num_params, 2]
+
+        params_bounds = self.phase_generator.get_params_bounds()
+        return params_bounds
+
     @abstractmethod
     def basis(self, times: torch.Tensor) -> torch.Tensor:
         """
