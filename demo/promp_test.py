@@ -5,9 +5,9 @@
 from matplotlib import pyplot as plt
 
 import mp_pytorch.util as util
+from data_for_demo import get_mp_utils
 from mp_pytorch import MPFactory
 from mp_pytorch import ProMP
-from data_for_demo import get_mp_utils
 
 
 def test_promp():
@@ -62,6 +62,11 @@ def test_promp():
     print("samples.shape", samples.shape)
     util.debug_plot(times[0], [samples[0, i, :, 0] for i in range(num_smp)],
                     title="promp_samples")
+
+    # Parameters demo
+    util.print_line_title("params_bounds")
+    print(mp.get_params_bounds())
+    print(mp.get_params_bounds().shape)
 
     # Learn weights
     util.print_line_title("learn weights")

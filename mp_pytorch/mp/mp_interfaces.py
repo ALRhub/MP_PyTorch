@@ -128,6 +128,22 @@ class MPInterface(ABC):
         params = torch.cat([params, self.params], dim=-1)
         return params
 
+    def get_params_bounds(self) -> torch.Tensor:
+        """
+        Return all learnable parameters' bounds
+        Returns:
+            parameters bounds
+        """
+        # Shape of params_bounds
+        # [num_params, 2]
+
+        params_bounds = self.basis_gn.get_params_bounds()
+        local_params_bound = torch.zeros([self._num_local_params, 2])
+        local_params_bound[:, 0] = -torch.inf
+        local_params_bound[:, 1] = torch.inf
+        params_bounds = torch.cat([params_bounds, local_params_bound], dim=0)
+        return params_bounds
+
     def set_boundary_conditions(self, bc_time: torch.Tensor,
                                 bc_pos: torch.Tensor,
                                 bc_vel: torch.Tensor):

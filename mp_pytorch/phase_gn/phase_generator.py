@@ -1,7 +1,7 @@
 """
 @brief:     Phase generators in PyTorch
 """
-
+import sys
 from abc import ABC
 from abc import abstractmethod
 import torch
@@ -125,4 +125,20 @@ class PhaseGenerator(ABC):
             params = torch.cat([params, self.delay[..., None]], dim=-1)
         return params
 
+    def get_params_bounds(self) -> torch.Tensor:
+        """
+        Return all learnable parameters' bounds
+        Returns:
+            parameters bounds
+        """
+        # Shape of params_bounds
+        # [num_params, 2]
 
+        params_bounds = torch.zeros([0, 2])
+        if self.learn_tau:
+            tau_bound = torch.Tensor([1e-5, torch.inf])[None]
+            params_bounds = torch.cat([params_bounds, tau_bound], dim=0)
+        if self.learn_delay:
+            delay_bound = torch.Tensor([0, torch.inf])[None]
+            params_bounds = torch.cat([params_bounds, delay_bound], dim=0)
+        return params_bounds
