@@ -71,6 +71,57 @@ def is_np(data: any) -> bool:
     return isinstance(data, np.ndarray)
 
 
+def to_ts(data: Union[int, float, np.ndarray, torch.Tensor],
+          dtype: Literal["float32", "float64"] = "float32",
+          device: Literal["cpu", "cuda"] = "cpu") -> torch.Tensor:
+    """
+    Transfer any numerical input to a torch tensor in default data type + device
+
+    Args:
+        device: device of the tensor, default: cpu
+        dtype: data type of tensor, float 32 or float 64 (double)
+        data: float, np.ndarray, torch.Tensor
+
+    Returns:
+        tensor in torch.Tensor
+    """
+    if dtype == "float32":
+        data_type = torch.float32
+    elif dtype == "float64":
+        data_type = torch.float64
+    else:
+        raise NotImplementedError
+
+    if isinstance(data, float) or isinstance(data, int):
+        return torch.tensor(data, dtype=data_type, device=device)
+    elif is_ts(data):
+        return data.clone().detach().to(device).type(data_type)
+
+    elif is_np(data):
+        return torch.tensor(data, dtype=data_type, device=device)
+    else:
+        raise NotImplementedError
+
+
+def to_tss(*datas: [Union[int, float, np.ndarray, torch.Tensor]],
+           dtype: Literal["float32", "float64"] = "float32",
+           device: Literal["cpu", "cuda"] = "cpu") \
+        -> [torch.Tensor]:
+    """
+    transfer a list of any type of numerical input to a list of tensors in given
+    data type and device
+
+    Args:
+        datas: a list of data
+        dtype: data type of tensor, float 32 or float 64 (double)
+        device: device of the tensor, default: cpu
+
+    Returns:
+        a list of np.ndarray
+    """
+    return [to_ts(data, dtype, device) for data in datas]
+
+
 def is_ts(data: any) -> bool:
     """
     is data a torch Tensor?
