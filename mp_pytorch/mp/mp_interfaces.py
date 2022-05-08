@@ -320,11 +320,6 @@ class ProbabilisticMPInterface(MPInterface):
         self.vel_cov = None
         self.vel_std = None
 
-        # Keyword argument
-        # If only computing deterministic trajectories
-        # This will avoid the multi-dof basis computation
-        self.deterministic_only = kwargs.get("deterministic_only", False)
-
     def clear_computation_result(self):
         """
         Clear runtime computation result
