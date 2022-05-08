@@ -27,6 +27,7 @@ class ProMP(ProbabilisticMPInterface):
         super().__init__(basis_gn, num_dof, **kwargs)
 
         # Runtime variables
+        self.basis_single_dof = None
         self.basis_multi_dofs = None
 
     def set_mp_times(self, times: torch.Tensor):
@@ -43,9 +44,13 @@ class ProMP(ProbabilisticMPInterface):
 
         super().set_mp_times(times)
 
-        # Shape: [*add_dim, num_dof * num_times, num_dof * num_basis]
-        self.basis_multi_dofs = \
-            self.basis_gn.basis_multi_dofs(times, self.num_dof)
+        # Shape: [*add_dim, num_times, num_basis]
+        self.basis_single_dof = self.basis_gn.basis(times)
+
+        if not self.deterministic_only:
+            # Shape: [*add_dim, num_dof * num_times, num_dof * num_basis]
+            self.basis_multi_dofs = \
+                self.basis_gn.basis_multi_dofs(times, self.num_dof)
 
     def set_mp_params_variances(self, params_L: Union[torch.Tensor, None]):
         """
@@ -96,23 +101,27 @@ class ProMP(ProbabilisticMPInterface):
         if self.pos is not None:
             return self.pos
 
-        assert self.params is not None and self.basis_multi_dofs is not None
+        assert self.params is not None and self.basis_single_dof is not None
 
-        # Get basis of all Dofs
-        # Shape: [*add_dim, num_dof * num_times, num_dof * num_basis]
-        basis_multi_dof = self.basis_multi_dofs
+        # Get basis
+        # Shape: [*add_dim, num_times, num_basis]
+        basis_single_dof = self.basis_single_dof
 
-        # Einsum shape: [*add_dim, num_dof * num_times, num_dof * num_basis],
-        #               [*add_dim, num_dof * num_basis]
-        #            -> [*add_dim, num_dof * num_times]
-        pos = torch.einsum('...ij,...j->...i', basis_multi_dof, self.params)
+        # Reshape params
+        # [*add_dim, num_dof * num_basis] -> [*add_dim, num_dof, num_basis]
+        params = self.params.reshape(*self.add_dim, self.num_dof, -1)
 
-        if not flat_shape:
-            # Reshape to [*add_dim, num_dof, num_times]
-            pos = pos.reshape(*self.add_dim, self.num_dof, -1)
+        # Einsum shape: [*add_dim, num_times, num_basis],
+        #               [*add_dim, num_dof, num_basis]
+        #            -> [*add_dim, num_times, num_dof,]
+        pos = torch.einsum('...ik,...jk->...ij', basis_single_dof, params)
 
-            # Switch axes to [*add_dim, num_times, num_dof]
+        if flat_shape:
+            # Switch axes to [*add_dim, num_dof, num_times]
             pos = torch.einsum('...ji->...ij', pos)
+
+            # Reshape to [*add_dim, num_dof * num_times]
+            pos = pos.reshape(*self.add_dim, -1)
 
         self.pos = pos
 
@@ -152,7 +161,8 @@ class ProMP(ProbabilisticMPInterface):
         if self.params_L is None:
             return None
         else:
-            assert self.basis_multi_dofs is not None
+            assert self.deterministic_only is False \
+                   and self.basis_multi_dofs is not None
 
         # Get basis of all Dofs
         # Shape: [*add_dim, num_dof * num_times, num_dof * num_basis]
@@ -347,7 +357,7 @@ class ProMP(ProbabilisticMPInterface):
 
         # Get multiple dof basis function values
         # Tensor [*add_dim, num_dof * num_times, num_dof * num_basis]
-        basis_multi_dofs = self.basis_multi_dofs
+        basis_multi_dofs = self.basis_gn.basis_multi_dofs(times, self.num_dof)
 
         # Einsum shape: [*add_dim, num_dof * num_times, num_dof * num_basis],
         #               [*add_dim, num_dof * num_times, num_dof * num_basis],
