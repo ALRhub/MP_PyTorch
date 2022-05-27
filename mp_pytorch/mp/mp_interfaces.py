@@ -173,7 +173,7 @@ class MPInterface(ABC):
 
         # If velocity is non-zero, then cannot wait
         if torch.count_nonzero(bc_vel) != 0:
-            assert torch.count_nonzero(self.phase_gn.delay) == 0,\
+            assert torch.count_nonzero(self.phase_gn.delay) == 0, \
                 "Cannot set non-zero boundary velocity if there is a " \
                 "non-zero delay ."
         self.bc_vel = bc_vel
@@ -600,7 +600,7 @@ class ProbabilisticMPInterface(MPInterface):
 
         # Add additional sample axis to time
         # Shape [*add_dim, num_smp, num_times]
-        times = util.add_expand_dim(times, [num_add_dim], [num_smp])
+        times_smp = util.add_expand_dim(times, [num_add_dim], [num_smp])
 
         # Sample parameters, shape [num_smp, *add_dim, num_mp_params]
         params_smp = MultivariateNormal(loc=params,
@@ -612,19 +612,25 @@ class ProbabilisticMPInterface(MPInterface):
 
         params_super = self.basis_gn.get_params()
         if params_super.nelement() != 0:
-            params_super = util.add_expand_dim(params_super,
-                                               [-2], [num_smp])
-            params_smp = torch.cat([params_super, params_smp], dim=-1)
+            params_super_smp = util.add_expand_dim(params_super, [-2],
+                                                   [num_smp])
+            params_smp = torch.cat([params_super_smp, params_smp], dim=-1)
 
         # Add additional sample axis to boundary condition
-        bc_time = util.add_expand_dim(bc_time, [num_add_dim], [num_smp])
-        bc_pos = util.add_expand_dim(bc_pos, [num_add_dim], [num_smp])
-        bc_vel = util.add_expand_dim(bc_vel, [num_add_dim], [num_smp])
+        bc_time_smp = util.add_expand_dim(bc_time, [num_add_dim], [num_smp])
+        bc_pos_smp = util.add_expand_dim(bc_pos, [num_add_dim], [num_smp])
+        bc_vel_smp = util.add_expand_dim(bc_vel, [num_add_dim], [num_smp])
 
         # Update inputs
-        self.update_mp_inputs(times, params_smp, None, bc_time, bc_pos, bc_vel)
+        self.update_mp_inputs(times_smp, params_smp, None,
+                              bc_time_smp, bc_pos_smp, bc_vel_smp)
 
         # Get sample trajectories
         pos_smp = self.get_traj_pos(flat_shape=flat_shape)
+
+        # Recover old inputs
+        if params_super.nelement() != 0:
+            params = torch.cat([params_super, params], dim=-1)
+        self.update_mp_inputs(times, params, None, bc_time, bc_pos, bc_vel)
 
         return pos_smp
