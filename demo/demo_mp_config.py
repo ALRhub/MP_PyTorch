@@ -18,7 +18,7 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
     config.mp_args.num_basis_outside = 0
     config.mp_args.alpha = 25
     config.mp_args.alpha_phase = 2
-    config.mp_args.dt = 0.01
+    config.mp_args.dt = 0.001
     config.mp_type = mp_type
 
     # Generate parameters
