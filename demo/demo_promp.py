@@ -58,7 +58,7 @@ def test_promp():
     # Sample trajectories
     util.print_line_title("sample trajectories")
     num_smp = 50
-    samples = mp.sample_trajectories(num_smp=num_smp)
+    samples, samples_vel = mp.sample_trajectories(num_smp=num_smp)
     print("samples.shape", samples.shape)
     util.debug_plot(times[0], [samples[0, i, :, 0] for i in range(num_smp)],
                     title="promp_samples")

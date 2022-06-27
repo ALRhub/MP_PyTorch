@@ -10,24 +10,6 @@ from mp_pytorch import IDMP
 from mp_pytorch import MPFactory
 
 
-def test_dmp_vs_idmp():
-    idmp_config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
-        get_mp_utils("idmp", True, True)
-    idmp = MPFactory.init_mp(idmp_config)
-    idmp_pos = idmp.get_traj_pos(times, params, bc_time, bc_pos, bc_vel)
-    idmp_vel = idmp.get_traj_vel(times, params, bc_time, bc_pos, bc_vel)
-
-    dmp_config = get_mp_utils("dmp", True, True)[0]
-    dmp = MPFactory.init_mp(dmp_config)
-    dmp_pos = dmp.get_traj_pos(times, params, bc_time, bc_pos, bc_vel)
-    dmp_vel = dmp.get_traj_vel(times, params, bc_time, bc_pos, bc_vel)
-
-    util.debug_plot(times[0], [dmp_pos[0, :, 0], idmp_pos[0, :, 0]],
-                    ["dmp_pos", "idmp_pos"], "pos comparison")
-    util.debug_plot(times[0], [dmp_vel[0, :, 0], idmp_vel[0, :, 0]],
-                    ["dmp_vel", "idmp_vel"], "pos comparison")
-
-
 def test_idmp():
     util.print_wrap_title("test_idmp")
     config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
@@ -76,7 +58,7 @@ def test_idmp():
     # Sample trajectories
     util.print_line_title("sample trajectories")
     num_smp = 50
-    samples = mp.sample_trajectories(num_smp=num_smp)
+    samples, samples_vel = mp.sample_trajectories(num_smp=num_smp)
     print("samples.shape", samples.shape)
     util.debug_plot(times[0], [samples[0, i, :, 0] for i in range(num_smp)],
                     title="idmp_samples")
@@ -103,47 +85,8 @@ def test_idmp():
                     title="IDMP demos vs. rec_demos")
 
 
-def dmp_vs_idmp_speed_test():
-    idmp_config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
-        get_mp_utils("idmp", True, True)
-
-    # Require gradient
-    params.requires_grad_(True)
-    idmp = MPFactory.init_mp(idmp_config)
-    idmp.update_mp_inputs(times=times, params=params,
-                          bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
-
-    # Entire traj
-    ## forward pass
-    util.print_line_title("idmp, forward")
-    # util.how_fast(100, idmp.get_traj_pos, params=params, bc_time=None, bc_pos=None, bc_vel=None)
-    util.how_fast(100, idmp.get_traj_pos, times=times, params=params,
-                  bc_time=None, bc_pos=None, bc_vel=None)
-    ## backward pass
-    # optimizer = torch.optim.Adam(params=[params], lr=1e-6)
-    # util.how_fast(100, backward_pass, optimizer, idmp, params)
-
-    # Last point
-    dmp_config = get_mp_utils("dmp", True, True)[0]
-    dmp = MPFactory.init_mp(dmp_config)
-    dmp.update_mp_inputs(times=times, params=params,
-                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
-    # Entire traj
-    ## forward pass
-    util.print_line_title("dmp, forward")
-    util.how_fast(100, dmp.get_traj_pos, params=params)
-    # bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
-    ## backward pass
-
-    # Last point
-    ## forward pass
-    ## backward pass
-
-
 def main():
-    # test_idmp()
-    # test_dmp_vs_idmp()
-    dmp_vs_idmp_speed_test()
+    test_idmp()
 
 
 if __name__ == "__main__":

@@ -12,7 +12,7 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
                  num_basis_outside: int = 0,
                  dt: float = 0.01,
                  alpha: float = 25,
-                 pre_compute_length_factor=2):
+                 pre_compute_length_factor=5):
         """
 
         Args:

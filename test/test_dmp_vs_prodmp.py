@@ -76,10 +76,15 @@ def test_dmp_vs_prodmp_identical(plot=False):
                             bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
 
     dmp_pos = dmp.get_traj_pos()
+    dmp_vel = dmp.get_traj_vel()
     prodmp_pos = prodmp.get_traj_pos()
+    prodmp_vel = prodmp.get_traj_vel()
 
     if plot:
         util.debug_plot(x=None, y=[dmp_pos[0, :, 0], prodmp_pos[0, :, 0]],
+                        labels=["dmp", "prodmp"], title="DMP vs. ProDMP")
+
+        util.debug_plot(x=None, y=[dmp_vel[0, :, 0], prodmp_vel[0, :, 0]],
                         labels=["dmp", "prodmp"], title="DMP vs. ProDMP")
 
     # Compute error
@@ -94,4 +99,4 @@ def test_dmp_vs_prodmp_speed():
 
 
 if __name__ == "__main__":
-    test_dmp_vs_prodmp_identical()
+    test_dmp_vs_prodmp_identical(True)
