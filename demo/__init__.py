@@ -1,1 +1,1 @@
-from .data_for_demo import get_mp_utils
+from .demo_mp_config import get_mp_utils
