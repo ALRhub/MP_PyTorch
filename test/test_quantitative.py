@@ -157,6 +157,6 @@ def prodmp_quantitative_test(plot=True):
 
 
 if __name__ == "__main__":
-    dmp_quantitative_test(plot=True)
-    promp_quantitative_test(plot=True)
-    prodmp_quantitative_test(plot=True)
+    dmp_quantitative_test(plot=False)
+    promp_quantitative_test(plot=False)
+    prodmp_quantitative_test(plot=False)
