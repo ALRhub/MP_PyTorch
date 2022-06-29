@@ -42,7 +42,7 @@ class IDMP(ProMP):
         """
         return super()._num_local_params + self.num_dof
 
-    def set_mp_times(self, times: torch.Tensor):
+    def set_times(self, times: torch.Tensor):
         """
         Set MP time points
         Args:
@@ -64,7 +64,7 @@ class IDMP(ProMP):
         self.vel_basis_multi_dofs = \
             self.basis_gn.vel_basis_multi_dofs(times, self.num_dof)
 
-        super().set_mp_times(times)
+        super().set_times(times)
 
     def set_boundary_conditions(self, bc_time: torch.Tensor,
                                 bc_pos: torch.Tensor,
@@ -121,7 +121,7 @@ class IDMP(ProMP):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, params, None, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, None, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.pos is not None:
@@ -132,7 +132,7 @@ class IDMP(ProMP):
         # Einsum shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g],
         #               [*add_dim, num_dof * num_basis_g]
         #            -> [*add_dim, num_dof * num_times]
-        pos_vary = torch.einsum('...ij,...j->...i', self.pos_vary_, self.params)
+        pos_vary = torch.einsum('...ij,...j->...i', self.pos_vary_, self.params * self.weight_scale)
 
         self.pos = self.pos_det + pos_vary
 
@@ -146,8 +146,7 @@ class IDMP(ProMP):
         return self.pos
 
     def get_traj_pos_cov(self, times=None, params_L=None, bc_time=None,
-                         bc_pos=None,
-                         bc_vel=None, reg: float = 1e-4):
+                         bc_pos=None, bc_vel=None, reg: float = 1e-4):
         """
         Compute and return position covariance
 
@@ -169,7 +168,7 @@ class IDMP(ProMP):
         # [*add_dim, num_dof * num_times, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.pos_cov is not None:
@@ -222,7 +221,7 @@ class IDMP(ProMP):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.pos_std is not None:
@@ -270,7 +269,7 @@ class IDMP(ProMP):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, params, None, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, None, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.vel is not None:
@@ -281,7 +280,7 @@ class IDMP(ProMP):
         # Einsum shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g],
         #               [*add_dim, num_dof * num_basis_g]
         #            -> [*add_dim, num_dof * num_times]
-        vel_vary = torch.einsum('...ij,...j->...i', self.vel_vary_, self.params)
+        vel_vary = torch.einsum('...ij,...j->...i', self.vel_vary_, self.params * self.params)
 
         vel = self.vel_det + vel_vary
 
@@ -321,7 +320,7 @@ class IDMP(ProMP):
         # [*add_dim, num_dof * num_times, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.vel_cov is not None:
@@ -378,7 +377,7 @@ class IDMP(ProMP):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.vel_std is not None:
@@ -444,7 +443,7 @@ class IDMP(ProMP):
 
         # Setup stuff
         self.set_add_dim(list(trajs.shape[:-2]))
-        self.set_mp_times(times)
+        self.set_times(times)
         self.set_boundary_conditions(bc_time, bc_pos, bc_vel)
 
         # Solve this: Aw = B -> w = A^{-1} B

@@ -15,12 +15,14 @@ import mp_pytorch.util as util
 
 class MPInterface(ABC):
     @abstractmethod
-    def __init__(self, basis_gn: BasisGenerator, num_dof: int, **kwargs):
+    def __init__(self, basis_gn: BasisGenerator, num_dof: int, weight_scale: float = 1.,
+                 pad_zero_actions: bool = True, **kwargs):
         """
         Constructor interface
         Args:
             basis_gn: basis generator
             num_dof: number of dof
+            weight_scale: scaling for the parameters weights
             **kwargs: keyword arguments
         """
         # Additional batch dimension
@@ -28,12 +30,15 @@ class MPInterface(ABC):
 
         # The basis and phase generators
         self.basis_gn = basis_gn
-        self.phase_gn = basis_gn.phase_generator
+        # self.phase_gn = basis_gn.phase_generator
 
         # Number of basis per DoF and number of DoFs
-        self.num_basis = basis_gn.num_basis
+        # self.num_basis = basis_gn.num_basis
         self.num_dof = num_dof
 
+        self.weight_scale = weight_scale
+
+        # Value caches
         # Compute values at these time points
         self.times = None
 
@@ -62,13 +67,21 @@ class MPInterface(ABC):
     def tau(self):
         return self.phase_gn.tau
 
+    @property
+    def num_basis(self):
+        return self.basis_gn.num_basis
+
+    @property
+    def phase_gn(self):
+        return self.basis_gn.phase_generator
+
     def get_param_bounds(self):
         critical_bounds = 0
         critical_bounds += 1 if self.learn_tau else 0
         critical_bounds += 1 if self.learn_delay else 0
-        max_bounds = torch.ones(self.num_params)*np.inf
+        max_bounds = torch.ones(self.num_params) * np.inf
         min_bounds = -max_bounds
-        min_bounds[:critical_bounds] = torch.ones(critical_bounds)*1e-6
+        min_bounds[:critical_bounds] = torch.ones(critical_bounds) * 1e-6
         return min_bounds, max_bounds
 
     def clear_computation_result(self):
@@ -94,7 +107,7 @@ class MPInterface(ABC):
         self.add_dim = add_dim
         self.clear_computation_result()
 
-    def set_mp_times(self, times: Union[torch.Tensor, np.ndarray]):
+    def set_times(self, times: Union[torch.Tensor, np.ndarray]):
         """
         Set MP time points
         Args:
@@ -109,6 +122,30 @@ class MPInterface(ABC):
 
         self.times = torch.Tensor(times) if not isinstance(times, torch.Tensor) else times
         self.clear_computation_result()
+
+    def set_duration(self, duration: Union[None, torch.Tensor, np.ndarray], dt: Union[torch.Tensor, np.ndarray]):
+        """
+        Set MP time points from duration
+        Args:
+            duration: desired duration of trajectory
+            dt: control frequency
+        Returns:
+            None
+        """
+
+        # Shape of times
+        # [*add_dim, 1]
+
+        if duration is None:
+            duration = self.tau
+
+        # TODO add BC time
+
+        duration = torch.Tensor(duration) if not isinstance(duration, torch.Tensor) else duration
+        # self.times = torch.linspace(0, duration, int(duration / dt))
+        N = int(duration / dt)
+        times = duration[..., None] / (N - duration) * np.arange(N)
+        self.set_times(times)
 
     def set_params(self, params: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
         """
@@ -188,14 +225,14 @@ class MPInterface(ABC):
 
         # If velocity is non-zero, then cannot wait
         if torch.count_nonzero(bc_vel) != 0:
-            assert torch.count_nonzero(self.phase_gn.delay) == 0,\
+            assert torch.count_nonzero(self.phase_gn.delay) == 0, \
                 "Cannot set non-zero boundary velocity if there is a " \
                 "non-zero delay ."
         self.bc_vel = bc_vel
         self.clear_computation_result()
 
-    def update_mp_inputs(self, times=None, params=None,
-                         bc_time=None, bc_pos=None, bc_vel=None, **kwargs):
+    def update_inputs(self, times=None, params=None,
+                      bc_time=None, bc_pos=None, bc_vel=None, **kwargs):
         """
         Update MP
         Args:
@@ -212,12 +249,12 @@ class MPInterface(ABC):
         if params is not None:
             self.set_params(params)
         if times is not None:
-            self.set_mp_times(times)
+            self.set_times(times)
         if all([data is not None for data in {bc_time, bc_pos, bc_vel}]):
             self.set_boundary_conditions(bc_time, bc_pos, bc_vel)
         self.clear_computation_result()
 
-    def get_mp_trajs(self, get_pos: bool = True, get_vel: bool = True) -> dict:
+    def get_trajs(self, get_pos: bool = True, get_vel: bool = True) -> dict:
         """
         Get movement primitives trajectories given flag
         Args:
@@ -232,16 +269,10 @@ class MPInterface(ABC):
         result = dict()
 
         # Position
-        if get_pos:
-            result["pos"] = self.get_traj_pos()
-        else:
-            result["pos"] = None
+        result["pos"] = self.get_traj_pos() if get_pos else None
 
         # Velocity
-        if get_vel:
-            result["vel"] = self.get_traj_vel()
-        else:
-            result["vel"] = None
+        result["vel"] = self.get_traj_vel() if get_vel else None
 
         # Return
         return result
@@ -363,8 +394,8 @@ class ProbabilisticMPInterface(MPInterface):
         self.params_L = params_L
         self.clear_computation_result()
 
-    def update_mp_inputs(self, times=None, params=None, params_L=None,
-                         bc_time=None, bc_pos=None, bc_vel=None, **kwargs):
+    def update_inputs(self, times=None, params=None, params_L=None,
+                      bc_time=None, bc_pos=None, bc_vel=None, **kwargs):
         """
         Set MP
         Args:
@@ -379,7 +410,7 @@ class ProbabilisticMPInterface(MPInterface):
         Returns: None
 
         """
-        super().update_mp_inputs(times, params, bc_time, bc_pos, bc_vel)
+        super().update_inputs(times, params, bc_time, bc_pos, bc_vel)
         if params_L is not None:
             self.set_mp_params_variances(params_L)
         self.clear_computation_result()
@@ -397,9 +428,9 @@ class ProbabilisticMPInterface(MPInterface):
                                   self.params_L)
         return params_cov
 
-    def get_mp_trajs(self, get_pos=True, get_pos_cov=True, get_pos_std=False,
-                     get_vel=False, get_vel_cov=False, get_vel_std=False,
-                     flat_shape=False, reg: float = 1e-4):
+    def get_trajs(self, get_pos=True, get_pos_cov=True, get_pos_std=False,
+                  get_vel=False, get_vel_cov=False, get_vel_std=False,
+                  flat_shape=False, reg: float = 1e-4):
         """
         Get movement primitives trajectories given flag
         Args:
@@ -637,7 +668,7 @@ class ProbabilisticMPInterface(MPInterface):
         bc_vel = util.add_expand_dim(bc_vel, [num_add_dim], [num_smp])
 
         # Update inputs
-        self.update_mp_inputs(times, params_smp, None, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params_smp, None, bc_time, bc_pos, bc_vel)
 
         # Get sample trajectories
         pos_smp = self.get_traj_pos(flat_shape=flat_shape)

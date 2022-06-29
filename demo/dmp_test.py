@@ -15,10 +15,10 @@ def test_dmp():
     mp = MPFactory.init_mp(config)
 
     # params_L here is redundant, but it will not fail the update func
-    mp.update_mp_inputs(times=times, params=params, params_L=params_L,
-                        bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+    mp.update_inputs(times=times, params=params, params_L=params_L,
+                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
 
-    traj_dict = mp.get_mp_trajs(get_pos=True, get_vel=True)
+    traj_dict = mp.get_trajs(get_pos=True, get_vel=True)
 
     # Pos
     util.print_line_title("pos")

@@ -90,7 +90,7 @@ class DMP(MPInterface):
         # [*add_dim, num_times, num_dof]
 
         # Update inputs
-        self.update_mp_inputs(times, params, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.pos is not None:
@@ -174,7 +174,7 @@ class DMP(MPInterface):
         # [*add_dim, num_times, num_dof]
 
         # Update inputs
-        self.update_mp_inputs(times, params, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.vel is not None:
@@ -212,7 +212,7 @@ class DMP(MPInterface):
         # [*add_dim, num_dof, 1]
 
         wg = wg.reshape([*wg.shape[:-1], self.num_dof, self.num_basis_g])
-        w = wg[..., :-1]
+        w = wg[..., :-1] * self.weight_scale
         g = wg[..., -1]
 
         return w, g

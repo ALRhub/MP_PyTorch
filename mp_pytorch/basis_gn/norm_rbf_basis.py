@@ -81,8 +81,7 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
         centers = centers.expand([num_times, -1])
 
         # Basis
-        tmp = torch.einsum('...ij,...j->...ij', (phase - centers) ** 2,
-                           self.bandWidth)
+        tmp = torch.einsum('...ij,...j->...ij', (phase - centers) ** 2, self.bandWidth)
         basis = torch.exp(-tmp / 2)
 
         # Normalization
@@ -94,8 +93,8 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
 
 
 class ZeroStartNormalizedRBFBasisGenerator(NormalizedRBFBasisGenerator):
-    def __init__(self, phase_generator: PhaseGenerator, num_basis: int = 10, num_basis_zero_start:int = 2,
-                 num_basis_zero_goal:int = 0, basis_bandwidth_factor: int = 3):
+    def __init__(self, phase_generator: PhaseGenerator, num_basis: int = 10, num_basis_zero_start: int = 2,
+                 num_basis_zero_goal: int = 0, basis_bandwidth_factor: int = 3):
         """
         Constructor of class RBF
 
@@ -107,11 +106,9 @@ class ZeroStartNormalizedRBFBasisGenerator(NormalizedRBFBasisGenerator):
         """
         self.num_basis_zero_start = num_basis_zero_start
         self.num_basis_zero_goal = num_basis_zero_goal
-        super().__init__(phase_generator, num_basis+num_basis_zero_start+num_basis_zero_goal, basis_bandwidth_factor,
-                         num_basis_outside=0)
-
+        super().__init__(phase_generator, num_basis + num_basis_zero_start + num_basis_zero_goal,
+                         basis_bandwidth_factor, num_basis_outside=0)
 
     @property
     def num_basis(self):
         return super().num_basis - self.num_basis_zero_start - self.num_basis_zero_goal
-

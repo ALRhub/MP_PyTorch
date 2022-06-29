@@ -18,11 +18,11 @@ def test_promp():
 
     mp = MPFactory.init_mp(config)
     assert isinstance(mp, ProMP)
-    mp.update_mp_inputs(times=times, params=params, params_L=params_L,
-                        bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
-    traj_dict = mp.get_mp_trajs(get_pos=True, get_pos_cov=False,
-                                get_pos_std=False, get_vel=True,
-                                get_vel_cov=False, get_vel_std=False)
+    mp.update_inputs(times=times, params=params, params_L=params_L,
+                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+    traj_dict = mp.get_trajs(get_pos=True, get_pos_cov=False,
+                             get_pos_std=False, get_vel=True,
+                             get_vel_cov=False, get_vel_std=False)
     # Pos
     util.print_line_title("pos")
     print("traj_dict[pos].shape", traj_dict["pos"].shape)

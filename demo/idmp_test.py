@@ -33,12 +33,12 @@ def test_idmp():
     config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
         get_mp_utils("idmp", True, True)
     mp = MPFactory.init_mp(config)
-    mp.update_mp_inputs(times=times, params=params, params_L=params_L,
-                        bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+    mp.update_inputs(times=times, params=params, params_L=params_L,
+                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
     assert isinstance(mp, IDMP)
-    traj_dict = mp.get_mp_trajs(get_pos=True, get_pos_cov=True,
-                                get_pos_std=True, get_vel=True,
-                                get_vel_cov=True, get_vel_std=True)
+    traj_dict = mp.get_trajs(get_pos=True, get_pos_cov=True,
+                             get_pos_std=True, get_vel=True,
+                             get_vel_cov=True, get_vel_std=True)
     # Pos
     util.print_line_title("pos")
     print(traj_dict["pos"].shape)
@@ -87,8 +87,8 @@ def test_idmp():
         get_mp_utils("idmp", False, False)
 
     mp = MPFactory.init_mp(config)
-    mp.update_mp_inputs(times=times, params=params, params_L=params_L,
-                        bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+    mp.update_inputs(times=times, params=params, params_L=params_L,
+                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
     params_dict = mp.learn_mp_params_from_trajs(times, demos)
 
     # Reconstruct demos using learned weights
