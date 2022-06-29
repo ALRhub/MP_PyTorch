@@ -1,7 +1,7 @@
 import torch
 from addict import Dict
+from mp_pytorch import util
 
-import util
 from mp_pytorch import MPFactory
 
 
