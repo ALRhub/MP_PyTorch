@@ -627,10 +627,11 @@ class ProbabilisticMPInterface(MPInterface):
 
         # Get sample trajectories
         pos_smp = self.get_traj_pos(flat_shape=flat_shape)
+        vel_smp = self.get_traj_vel(flat_shape=flat_shape)
 
         # Recover old inputs
         if params_super.nelement() != 0:
             params = torch.cat([params_super, params], dim=-1)
         self.update_mp_inputs(times, params, None, bc_time, bc_pos, bc_vel)
 
-        return pos_smp
+        return pos_smp, vel_smp

@@ -20,6 +20,7 @@ def how_fast(repeat: int, func: Callable, *args, **kwargs):
         repeat: number of times to run the function
         func: function to be tested
         *args: list of arguments used in the function call
+        **kwargs: dict of arguments used in the function call
 
     Returns:
         avg duration function call
@@ -111,12 +112,13 @@ def debug_plot(x: Union[np.ndarray, torch.Tensor],
 
     for i, yi in enumerate(y):
         yi = util.to_np(yi)
+        label = labels[i] if labels is not None else None
         if x is not None:
             x = util.to_np(x)
-            label = labels[i] if labels is not None else None
             plt.plot(x, yi, label=label)
         else:
-            plt.plot(yi)
+            plt.plot(yi, label=label)
+
     plt.title(title)
     if labels is not None:
         plt.legend()

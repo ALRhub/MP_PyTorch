@@ -5,27 +5,9 @@
 from matplotlib import pyplot as plt
 
 import mp_pytorch.util as util
-from data_for_demo import get_mp_utils
+from demo_mp_config import get_mp_utils
 from mp_pytorch import IDMP
 from mp_pytorch import MPFactory
-
-
-def test_dmp_vs_idmp():
-    idmp_config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
-        get_mp_utils("idmp", True, True)
-    idmp = MPFactory.init_mp(idmp_config)
-    idmp_pos = idmp.get_traj_pos(times, params, bc_time, bc_pos, bc_vel)
-    idmp_vel = idmp.get_traj_vel(times, params, bc_time, bc_pos, bc_vel)
-
-    dmp_config = get_mp_utils("dmp", True, True)[0]
-    dmp = MPFactory.init_mp(dmp_config)
-    dmp_pos = dmp.get_traj_pos(times, params, bc_time, bc_pos, bc_vel)
-    dmp_vel = dmp.get_traj_vel(times, params, bc_time, bc_pos, bc_vel)
-
-    util.debug_plot(times[0], [dmp_pos[0, :, 0], idmp_pos[0, :, 0]],
-                    ["dmp_pos", "idmp_pos"], "pos comparison")
-    util.debug_plot(times[0], [dmp_vel[0, :, 0], idmp_vel[0, :, 0]],
-                    ["dmp_vel", "idmp_vel"], "pos comparison")
 
 
 def test_idmp():
@@ -76,7 +58,7 @@ def test_idmp():
     # Sample trajectories
     util.print_line_title("sample trajectories")
     num_smp = 50
-    samples = mp.sample_trajectories(num_smp=num_smp)
+    samples, samples_vel = mp.sample_trajectories(num_smp=num_smp)
     print("samples.shape", samples.shape)
     util.debug_plot(times[0], [samples[0, i, :, 0] for i in range(num_smp)],
                     title="idmp_samples")
@@ -105,7 +87,6 @@ def test_idmp():
 
 def main():
     test_idmp()
-    test_dmp_vs_idmp()
 
 
 if __name__ == "__main__":
