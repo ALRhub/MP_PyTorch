@@ -35,7 +35,7 @@ def fill_between(x: Union[np.ndarray, torch.Tensor],
     if axis is None:
         axis = plt.gca()
     if draw_mean:
-        axis.plot(x, y_mean, color=color)
+        axis.plot(x, y_mean)
     axis.fill_between(x=x,
                       y1=y_mean - std_scale * y_std,
                       y2=y_mean + std_scale * y_std,

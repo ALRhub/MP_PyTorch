@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import mp_pytorch.util as util
 
 
-def how_fast(repeat: int, func: Callable, *args):
+def how_fast(repeat: int, func: Callable, *args, **kwargs):
     """
     Test how fast a given function call is
     Args:
@@ -30,7 +30,7 @@ def how_fast(repeat: int, func: Callable, *args):
     run_time_test(lock=True)
     try:
         for i in range(repeat):
-            func(*args)
+            func(*args, **kwargs)
         duration = run_time_test(lock=False)
         if duration is not None:
             print(f"total_time of {repeat} runs: {duration} s")
