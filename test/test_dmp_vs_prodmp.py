@@ -1,8 +1,9 @@
 import torch
 from addict import Dict
 
-import util
+
 from mp_pytorch import MPFactory
+from mp_pytorch import util
 
 
 def get_mp_config():
