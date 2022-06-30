@@ -12,7 +12,7 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
                  num_basis_outside: int = 0,
                  dt: float = 0.01,
                  alpha: float = 25,
-                 pre_compute_length_factor=5):
+                 pre_compute_length_factor=2):
         """
 
         Args:
@@ -80,13 +80,19 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         self.dy_1_value = -0.5 * self.alpha * self.y_1_value
         self.dy_2_value = -0.5 * self.alpha * self.y_2_value + self.y_1_value
 
-        # q_1 and q_2
-        q_1_value = \
-            (0.5 * self.alpha * pc_scaled_times - 1) \
-            * torch.exp(0.5 * self.alpha * pc_scaled_times) + 1
-        q_2_value = \
-            0.5 * self.alpha \
-            * (torch.exp(0.5 * self.alpha * pc_scaled_times) - 1)
+        # y_1 * q_1 and y_2 * q_2 to avoid numerical explosion
+        y_1_q_1_value = (0.5 * self.alpha * pc_scaled_times - 1) \
+                        + torch.exp(-0.5 * self.alpha * pc_scaled_times)
+        y_2_q_2_value = 0.5 * self.alpha * pc_scaled_times \
+                        * (1 - torch.exp(-0.5 * self.alpha * pc_scaled_times))
+
+        # dy_1 * q_1 and dy_2 * q_2 to avoid numerical explosion
+        dy1_q_1_value = -0.25 * self.alpha * self.alpha * pc_scaled_times \
+                        + 0.5 * self.alpha * (1 + torch.exp(
+            -0.5 * self.alpha * pc_scaled_times))
+
+        dy2_q_2_value = 0.25 * self.alpha * self.alpha * pc_scaled_times \
+                        + 0.5 * self.alpha -
 
         # Get basis of one DOF, shape [num_pc_times, num_basis]
         pc_times = self.phase_generator.linear_phase_to_time(pc_scaled_times)
@@ -124,12 +130,12 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         # Compute integral form basis values
         pos_basis_w = p_2_value * self.y_2_value[:, None] \
                       - p_1_value * self.y_1_value[:, None]
-        pos_basis_g = q_2_value * self.y_2_value \
-                      - q_1_value * self.y_1_value
+        pos_basis_g = y_2_q_2_value - y_1_q_1_value
         vel_basis_w = p_2_value * self.dy_2_value[:, None] \
                       - p_1_value * self.dy_1_value[:, None]
-        vel_basis_g = q_2_value * self.dy_2_value \
-                      - q_1_value * self.dy_1_value
+        vel_basis_g = 0.25 * self.alpha * self.alpha \
+                      * torch.exp(-0.5 * self.alpha * pc_scaled_times) \
+                      * pc_scaled_times
 
         # Pre-computed pos and vel basis
         self.pc_pos_basis = \
