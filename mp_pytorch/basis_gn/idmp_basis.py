@@ -80,11 +80,7 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         self.dy_1_value = -0.5 * self.alpha * self.y_1_value
         self.dy_2_value = -0.5 * self.alpha * self.y_2_value + self.y_1_value
 
-        # y_1 * q_1 and y_2 * q_2 to avoid numerical explosion
-        y_1_q_1_value = (0.5 * self.alpha * pc_scaled_times - 1) \
-                        + torch.exp(-0.5 * self.alpha * pc_scaled_times)
-        y_2_q_2_value = 0.5 * self.alpha * pc_scaled_times \
-                        * (1 - torch.exp(-0.5 * self.alpha * pc_scaled_times))
+        # Use the final result to avoid numerical explosion
         y2_q2_minus_y1_q1 = 1 - (0.5 * self.alpha * pc_scaled_times + 1) \
                             * torch.exp(-0.5 * self.alpha * pc_scaled_times)
         dy2q2_minus_dy1q1 = 0.25 * self.alpha * self.alpha \
