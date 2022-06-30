@@ -274,10 +274,10 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
             values of y1, y2, dy1, dy2 at given time steps
         """
         # Shape of times
-        # [*add_dim, num_times] or [*add_dim]
+        # [*add_dim, num_times]
         #
         # Shape of each return
-        # [*add_dim, num_times] or [*add_dim]
+        # [*add_dim, num_times]
 
         time_indices = self.times_to_indices(times, False)
 

@@ -28,12 +28,18 @@ class IDMP(ProMP):
         self.y2 = None
         self.dy1 = None
         self.dy2 = None
-        self.vel_basis_multi_dofs = None
+        self.y1_bc = None
+        self.y2_bc = None
+        self.dy1_bc = None
+        self.dy2_bc = None
 
-        self.pos_det = None
-        self.vel_det = None
-        self.pos_vary_ = None
-        self.vel_vary_ = None
+        self.pos_bc = None
+        self.vel_bc = None
+        self.pos_H_single = None
+        self.vel_H_single = None
+
+        self.pos_H_multi = None
+        self.vel_H_multi = None
 
     @property
     def _num_local_params(self) -> int:
@@ -58,11 +64,6 @@ class IDMP(ProMP):
         # Shape [*add_dim, num_times]
         self.y1, self.y2, self.dy1, self.dy2 = \
             self.basis_gn.general_solution_values(times)
-
-        # Generated blocked basis of multi dofs, shape:
-        # [*add_dim, num_dof * num_times, num_dof * num_basis_g]
-        self.vel_basis_multi_dofs = \
-            self.basis_gn.vel_basis_multi_dofs(times, self.num_dof)
 
         super().set_mp_times(times)
 
@@ -92,10 +93,16 @@ class IDMP(ProMP):
         assert list(bc_time.shape) == [*self.add_dim]
         assert list(bc_pos.shape) == list(bc_vel.shape) \
                and list(bc_vel.shape) == [*self.add_dim, self.num_dof]
-        super().set_boundary_conditions(bc_time, bc_pos, bc_vel)
 
-        # Update shared intermediate variables
-        self.compute_bc_intermediate_variables()
+        y1_bc, y2_bc, dy1_bc, dy2_bc = \
+            self.basis_gn.general_solution_values(bc_time[..., None])
+
+        self.y1_bc = y1_bc.squeeze(-1)
+        self.y2_bc = y2_bc.squeeze(-1)
+        self.dy1_bc = dy1_bc.squeeze(-1)
+        self.dy2_bc = dy2_bc.squeeze(-1)
+
+        super().set_boundary_conditions(bc_time, bc_pos, bc_vel)
 
     def get_traj_pos(self, times=None, params=None,
                      bc_time=None, bc_pos=None, bc_vel=None,
@@ -128,13 +135,21 @@ class IDMP(ProMP):
             return self.pos
 
         # Recompute otherwise
-        # Position and velocity variant (part 3)
-        # Einsum shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g],
-        #               [*add_dim, num_dof * num_basis_g]
-        #            -> [*add_dim, num_dof * num_times]
-        pos_vary = torch.einsum('...ij,...j->...i', self.pos_vary_, self.params)
+        self.compute_intermediate_terms_single()
 
-        self.pos = self.pos_det + pos_vary
+        # Reshape params from [*add_dim, num_dof * num_basis_g]
+        # to [*add_dim, num_dof, num_basis_g]
+        params = self.params.reshape([*self.add_dim, self.num_dof, -1])
+
+        # Position and velocity variant (part 3)
+        # Einsum shape: [*add_dim, num_times, num_basis_g],
+        #               [*add_dim, num_dof, num_basis_g]
+        #            -> [*add_dim, num_dof, num_times]
+        # Reshape to -> [*add_dim, num_dof * num_times]
+        pos_linear = \
+            torch.einsum('...jk,...ik->...ij', self.pos_H_single, params)
+        pos_linear = torch.reshape(pos_linear, [*self.add_dim, -1])
+        self.pos = self.pos_bc + pos_linear
 
         if not flat_shape:
             # Reshape to [*add_dim, num_dof, num_times]
@@ -179,13 +194,16 @@ class IDMP(ProMP):
         if self.params_L is None:
             return None
 
+        self.compute_intermediate_terms_multi_dof()
+
         # Uncertainty of position
         # Einsum shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g],
         #               [*add_dim, num_dof * num_basis_g, num_dof * num_basis_g]
         #               [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #            -> [*add_dim, num_dof * num_times, num_dof * num_times]
         pos_cov = torch.einsum('...ik,...kl,...jl->...ij',
-                               self.pos_vary_, self.params_cov, self.pos_vary_)
+                               self.pos_H_multi, self.params_cov,
+                               self.pos_H_multi)
 
         # Determine regularization term to make traj_cov positive definite
         traj_cov_reg = reg
@@ -277,13 +295,21 @@ class IDMP(ProMP):
             return self.vel
 
         # Recompute otherwise
-        # Position and velocity variant (part 3)
-        # Einsum shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g],
-        #               [*add_dim, num_dof * num_basis_g]
-        #            -> [*add_dim, num_dof * num_times]
-        vel_vary = torch.einsum('...ij,...j->...i', self.vel_vary_, self.params)
+        self.compute_intermediate_terms_single()
 
-        vel = self.vel_det + vel_vary
+        # Reshape params from [*add_dim, num_dof * num_basis_g]
+        # to [*add_dim, num_dof, num_basis_g]
+        params = self.params.reshape([*self.add_dim, self.num_dof, -1])
+
+        # Position and velocity variant (part 3)
+        # Einsum shape: [*add_dim, num_times, num_basis_g],
+        #               [*add_dim, num_dof, num_basis_g]
+        #            -> [*add_dim, num_dof, num_times]
+        # Reshape to -> [*add_dim, num_dof * num_times]
+        vel_linear = \
+            torch.einsum('...jk,...ik->...ij', self.vel_H_single, params)
+        vel_linear = torch.reshape(vel_linear, [*self.add_dim, -1])
+        vel = self.vel_bc + vel_linear
 
         # Unscale velocity to original time scale space
         self.vel = vel / self.phase_gn.tau[..., None]
@@ -331,13 +357,16 @@ class IDMP(ProMP):
         if self.params_L is None:
             return None
 
+        self.compute_intermediate_terms_multi_dof()
+
         # Uncertainty of velocity
         # Einsum shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g],
         #               [*add_dim, num_dof * num_basis_g, num_dof * num_basis_g]
         #               [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #            -> [*add_dim, num_dof * num_times, num_dof * num_times]
         vel_cov = torch.einsum('...ik,...kl,...jl->...ij',
-                               self.vel_vary_, self.params_cov, self.vel_vary_)
+                               self.vel_H_multi, self.params_cov,
+                               self.vel_H_multi)
 
         # Determine regularization term to make traj_cov positive definite
         traj_cov_reg = reg
@@ -447,11 +476,15 @@ class IDMP(ProMP):
         self.set_mp_times(times)
         self.set_boundary_conditions(bc_time, bc_pos, bc_vel)
 
+        self.compute_intermediate_terms_single()
+        self.compute_intermediate_terms_multi_dof()
+
         # Solve this: Aw = B -> w = A^{-1} B
         # Einsum_shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #               [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #            -> [*add_dim, num_dof * num_basis_g, num_dof * num_basis_g]
-        A = torch.einsum('...ki,...kj->...ij', self.pos_vary_, self.pos_vary_)
+        A = torch.einsum('...ki,...kj->...ij', self.pos_H_multi,
+                         self.pos_H_multi)
         A += torch.eye(self._num_local_params) * reg
 
         # Swap axis and reshape: [*add_dim, num_times, num_dof]
@@ -463,12 +496,12 @@ class IDMP(ProMP):
         trajs = trajs.reshape([*self.add_dim, -1])
 
         # Position minus boundary condition terms,
-        pos_wg = trajs - self.pos_det
+        pos_wg = trajs - self.pos_bc
 
         # Einsum_shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #               [*add_dim, num_dof * num_times]
         #            -> [*add_dim, num_dof * num_basis_g]
-        B = torch.einsum('...ki,...k->...i', self.pos_vary_, pos_wg)
+        B = torch.einsum('...ki,...k->...i', self.pos_H_multi, pos_wg)
 
         # Shape of weights: [*add_dim, num_dof * num_basis_g]
         params = torch.linalg.solve(A, B)
@@ -486,60 +519,39 @@ class IDMP(ProMP):
                 "bc_pos": bc_pos,
                 "bc_vel": bc_vel}
 
-    def compute_bc_intermediate_variables(self):
-        """
-        Evaluate boundary condition intermediate shared variables values
-
-        Returns:
-            None
-        """
-
-        # Extract boundary condition values
-        # Shape [*add_dim, 1]
-        y1_bc, y2_bc, dy1_bc, dy2_bc = \
-            self.basis_gn.general_solution_values(self.bc_time[..., None])
-
-        # Shape [*add_dim, 1] -> # Shape [*add_dim]
-        y1_bc = y1_bc.squeeze(-1)
-        y2_bc = y2_bc.squeeze(-1)
-        dy1_bc = dy1_bc.squeeze(-1)
-        dy2_bc = dy2_bc.squeeze(-1)
-
+    def compute_intermediate_terms_single(self):
         # Determinant of boundary condition,
         # Shape: [*add_dim]
-        det = y1_bc * dy2_bc - y2_bc * dy1_bc
-
+        det = self.y1_bc * self.dy2_bc - self.y2_bc * self.dy1_bc
         # Compute coefficients to form up traj position and velocity
         # Shape: [*add_dim], [*add_dim, num_times] -> [*add_dim, num_times]
-        xi_1 = torch.einsum("...,...i->...i", dy2_bc / det, self.y1) \
-               - torch.einsum("...,...i->...i", dy1_bc / det, self.y2)
-        xi_2 = torch.einsum("...,...i->...i", y1_bc / det, self.y2) \
-               - torch.einsum("...,...i->...i", y2_bc / det, self.y1)
-        xi_3 = torch.einsum("...,...i->...i", dy1_bc / det, self.y2) \
-               - torch.einsum("...,...i->...i", dy2_bc / det, self.y1)
-        xi_4 = torch.einsum("...,...i->...i", y2_bc / det, self.y1) \
-               - torch.einsum("...,...i->...i", y1_bc / det, self.y2)
-        dxi_1 = torch.einsum("...,...i->...i", dy2_bc / det, self.dy1) \
-                - torch.einsum("...,...i->...i", dy1_bc / det, self.dy2)
-        dxi_2 = torch.einsum("...,...i->...i", y1_bc / det, self.dy2) \
-                - torch.einsum("...,...i->...i", y2_bc / det, self.dy1)
-        dxi_3 = torch.einsum("...,...i->...i", dy1_bc / det, self.dy2) \
-                - torch.einsum("...,...i->...i", dy2_bc / det, self.dy1)
-        dxi_4 = torch.einsum("...,...i->...i", y2_bc / det, self.dy1) \
-                - torch.einsum("...,...i->...i", y1_bc / det, self.dy2)
+        xi_1 = torch.einsum("...,...i->...i", self.dy2_bc / det, self.y1) \
+               - torch.einsum("...,...i->...i", self.dy1_bc / det, self.y2)
+        xi_2 = torch.einsum("...,...i->...i", self.y1_bc / det, self.y2) \
+               - torch.einsum("...,...i->...i", self.y2_bc / det, self.y1)
+        xi_3 = torch.einsum("...,...i->...i", self.dy1_bc / det, self.y2) \
+               - torch.einsum("...,...i->...i", self.dy2_bc / det, self.y1)
+        xi_4 = torch.einsum("...,...i->...i", self.y2_bc / det, self.y1) \
+               - torch.einsum("...,...i->...i", self.y1_bc / det, self.y2)
+        dxi_1 = torch.einsum("...,...i->...i", self.dy2_bc / det, self.dy1) \
+                - torch.einsum("...,...i->...i", self.dy1_bc / det, self.dy2)
+        dxi_2 = torch.einsum("...,...i->...i", self.y1_bc / det, self.dy2) \
+                - torch.einsum("...,...i->...i", self.y2_bc / det, self.dy1)
+        dxi_3 = torch.einsum("...,...i->...i", self.dy1_bc / det, self.dy2) \
+                - torch.einsum("...,...i->...i", self.dy2_bc / det, self.dy1)
+        dxi_4 = torch.einsum("...,...i->...i", self.y2_bc / det, self.dy1) \
+                - torch.einsum("...,...i->...i", self.y1_bc / det, self.dy2)
 
-        # Generate blocked basis boundary condition values
-        # [*add_dim, num_dof, num_dof * num_basis_g]
-        pos_basis_bc_multi_dofs = self.basis_gn.basis_multi_dofs(
-            self.bc_time[..., None], self.num_dof)
-        vel_basis_bc_multi_dofs = self.basis_gn.vel_basis_multi_dofs(
-            self.bc_time[..., None], self.num_dof)
+        # Generate basis boundary condition values
+        # [*add_dim, num_basis_g]
+        pos_basis_bc = self.basis_gn.basis(self.bc_time[..., None]).squeeze(-2)
+        vel_basis_bc = self.basis_gn.vel_basis(self.bc_time[..., None]).squeeze(
+            -2)
 
         # Scale bc_vel
         bc_vel = self.bc_vel * self.phase_gn.tau[..., None]
 
-        # Compute position and velocity determined part (part 1 and 2)
-        # Position and velocity part 1 and part 2
+        # Compute position and velocity boundary condition part
         # Einsum shape: [*add_dim, num_times],
         #               [*add_dim, num_dof]
         #            -> [*add_dim, num_dof, num_times]
@@ -550,31 +562,67 @@ class IDMP(ProMP):
 
         # Reshape: [*add_dim, num_dof, num_times]
         #       -> [*add_dim, num_dof * num_times]
-        self.pos_det = torch.reshape(pos_det, [*self.add_dim, -1])
-        self.vel_det = torch.reshape(vel_det, [*self.add_dim, -1])
+        self.pos_bc = torch.reshape(pos_det, [*self.add_dim, -1])
+        self.vel_bc = torch.reshape(vel_det, [*self.add_dim, -1])
+
+        # Compute position and velocity linear basis part
+        # Einsum shape: [*add_dim, num_times],
+        #               [*add_dim, num_basis_g]
+        #            -> [*add_dim, num_times, num_basis_g]
+        self.pos_H_single = \
+            torch.einsum('...i,...j->...ij', xi_3, pos_basis_bc) \
+            + torch.einsum('...i,...j->...ij', xi_4, vel_basis_bc) \
+            + self.basis_gn.basis(self.times)
+        self.vel_H_single = \
+            torch.einsum('...i,...j->...ij', dxi_3, pos_basis_bc) \
+            + torch.einsum('...i,...j->...ij', dxi_4, vel_basis_bc) \
+            + self.basis_gn.vel_basis(self.times)
+
+    def compute_intermediate_terms_multi_dof(self):
+        # Determinant of boundary condition,
+        # Shape: [*add_dim]
+        det = self.y1_bc * self.dy2_bc - self.y2_bc * self.dy1_bc
+
+        # Compute coefficients to form up traj position and velocity
+        # Shape: [*add_dim], [*add_dim, num_times] -> [*add_dim, num_times]
+        xi_3 = torch.einsum("...,...i->...i", self.dy1_bc / det, self.y2) \
+               - torch.einsum("...,...i->...i", self.dy2_bc / det, self.y1)
+        xi_4 = torch.einsum("...,...i->...i", self.y2_bc / det, self.y1) \
+               - torch.einsum("...,...i->...i", self.y1_bc / det, self.y2)
+        dxi_3 = torch.einsum("...,...i->...i", self.dy1_bc / det, self.dy2) \
+                - torch.einsum("...,...i->...i", self.dy2_bc / det, self.dy1)
+        dxi_4 = torch.einsum("...,...i->...i", self.y2_bc / det, self.dy1) \
+                - torch.einsum("...,...i->...i", self.y1_bc / det, self.dy2)
+
+        # Generate blocked basis boundary condition values
+        # [*add_dim, num_dof, num_dof * num_basis_g]
+        pos_basis_bc_multi_dofs = self.basis_gn.basis_multi_dofs(
+            self.bc_time[..., None], self.num_dof)
+        vel_basis_bc_multi_dofs = self.basis_gn.vel_basis_multi_dofs(
+            self.bc_time[..., None], self.num_dof)
 
         # Compute position and velocity variant part (part 3)
         # Position and velocity part 3_1 and 3_2
         # Einsum shape: [*add_dim, num_times],
         #               [*add_dim, num_dof, num_dof * num_basis_g]
         #            -> [*add_dim, num_dof, num_times, num_dof * num_basis_g]
-        pos_vary_ = torch.einsum('...j,...ik->...ijk', xi_3,
-                                 pos_basis_bc_multi_dofs) + \
-                    torch.einsum('...j,...ik->...ijk', xi_4,
-                                 vel_basis_bc_multi_dofs)
-        vel_vary_ = torch.einsum('...j,...ik->...ijk', dxi_3,
-                                 pos_basis_bc_multi_dofs) + \
-                    torch.einsum('...j,...ik->...ijk', dxi_4,
-                                 vel_basis_bc_multi_dofs)
-
+        pos_H_ = torch.einsum('...j,...ik->...ijk', xi_3,
+                              pos_basis_bc_multi_dofs) + \
+                 torch.einsum('...j,...ik->...ijk', xi_4,
+                              vel_basis_bc_multi_dofs)
+        vel_H_ = torch.einsum('...j,...ik->...ijk', dxi_3,
+                              pos_basis_bc_multi_dofs) + \
+                 torch.einsum('...j,...ik->...ijk', dxi_4,
+                              vel_basis_bc_multi_dofs)
         # Reshape: [*add_dim, num_dof, num_times, num_dof * num_basis_g]
         #       -> [*add_dim, num_dof * num_times, num_dof * num_basis_g]
-        pos_vary_ = \
-            torch.reshape(pos_vary_,
-                          [*self.add_dim, -1, self._num_local_params])
-        vel_vary_ = \
-            torch.reshape(vel_vary_,
-                          [*self.add_dim, -1, self._num_local_params])
+        pos_H_ = \
+            torch.reshape(pos_H_, [*self.add_dim, -1, self._num_local_params])
+        vel_H_ = \
+            torch.reshape(vel_H_, [*self.add_dim, -1, self._num_local_params])
 
-        self.pos_vary_ = pos_vary_ + self.basis_multi_dofs
-        self.vel_vary_ = vel_vary_ + self.vel_basis_multi_dofs
+        self.pos_H_multi = \
+            pos_H_ + self.basis_gn.basis_multi_dofs(self.times, self.num_dof)
+        self.vel_H_multi = \
+            vel_H_ + self.basis_gn.vel_basis_multi_dofs(self.times,
+                                                        self.num_dof)
