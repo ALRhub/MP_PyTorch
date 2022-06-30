@@ -150,7 +150,7 @@ def prodmp_quantitative_test(plot=True):
     assert torch.abs(pos[0, 3000, 0] + 0.9576) < 3.9e-5
     assert torch.abs(pos[0, 4000, 0] + 2.0867) < 3.56e-5
     assert torch.abs(pos[0, 5000, 0] + 2.2136) < 3.49e-5
-    assert torch.abs(pos[0, 6000, 0] + 1.8799) < 4.71e-5
+    assert torch.abs(pos[0, 6000, 0] + 1.8799) < 4.73e-5
 
     assert torch.abs(mvn.log_prob(pos_flat)[0] - 774.2725) < 6.11e-5
     return True
