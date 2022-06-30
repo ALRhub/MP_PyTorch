@@ -617,9 +617,14 @@ class ProbabilisticMPInterface(MPInterface):
             params_smp = torch.cat([params_super_smp, params_smp], dim=-1)
 
         # Add additional sample axis to boundary condition
-        bc_time_smp = util.add_expand_dim(bc_time, [num_add_dim], [num_smp])
-        bc_pos_smp = util.add_expand_dim(bc_pos, [num_add_dim], [num_smp])
-        bc_vel_smp = util.add_expand_dim(bc_vel, [num_add_dim], [num_smp])
+        if bc_time is not None:
+            bc_time_smp = util.add_expand_dim(bc_time, [num_add_dim], [num_smp])
+            bc_pos_smp = util.add_expand_dim(bc_pos, [num_add_dim], [num_smp])
+            bc_vel_smp = util.add_expand_dim(bc_vel, [num_add_dim], [num_smp])
+        else:
+            bc_time_smp = None
+            bc_pos_smp = None
+            bc_vel_smp = None
 
         # Update inputs
         self.update_mp_inputs(times_smp, params_smp, None,
