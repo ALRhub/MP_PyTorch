@@ -31,6 +31,9 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
 
         self.alpha = alpha
         self.scaled_dt = dt / self.phase_generator.tau
+
+        assert pre_compute_length_factor <= 5, \
+            "For numerical stability, please use a length factor <= 5."
         self.pre_compute_length_factor = pre_compute_length_factor
 
         self.y_1_value = None
