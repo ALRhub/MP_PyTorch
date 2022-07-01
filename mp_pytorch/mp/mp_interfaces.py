@@ -137,7 +137,7 @@ class MPInterface(ABC):
         # [*add_dim, 1]
 
         if duration is None:
-            duration = self.tau
+            duration = [self.tau]
 
         # TODO add BC time
 
