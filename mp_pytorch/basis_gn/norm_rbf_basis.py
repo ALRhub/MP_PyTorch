@@ -9,7 +9,7 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
     def __init__(self,
                  phase_generator: PhaseGenerator,
                  num_basis: int = 10,
-                 basis_bandwidth_factor: int = 3,
+                 basis_bandwidth_factor: float = 3,
                  num_basis_outside: int = 0):
         """
         Constructor of class RBF
@@ -101,7 +101,7 @@ class ZeroPaddingNormalizedRBFBasisGenerator(NormalizedRBFBasisGenerator):
                  num_basis: int = 10,
                  num_basis_zero_start: int = 2,
                  num_basis_zero_goal: int = 0,
-                 basis_bandwidth_factor: int = 3):
+                 basis_bandwidth_factor: float = 3):
         """
         Constructor of class RBF with zero padding basis functions
         Args:

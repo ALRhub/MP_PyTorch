@@ -21,6 +21,12 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
     config.mp_args.dt = 0.01
     config.mp_type = mp_type
 
+    if mp_type == "zero_padding_promp":
+        config.mp_args.num_basis_zero_start = int(
+            0.4 * config.mp_args.num_basis)
+        config.mp_args.num_basis_zero_goal = 0
+        # config.mp_args.basis_wandwitdh_factor = 0
+
     # Generate parameters
     num_param = config.num_dof * config.mp_args.num_basis
     params_scale_factor = 100
@@ -61,8 +67,8 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
 
     lct = torch.distributions.transforms.LowerCholeskyTransform(cache_size=0)
     torch.manual_seed(0)
-    params_L = lct(torch.randn([num_traj, num_param, num_param]))\
-               *params_L_scale_factor
+    params_L = lct(torch.randn([num_traj, num_param, num_param])) \
+               * params_L_scale_factor
 
     bc_time = times[:, 0]
     bc_pos = 5 * torch.ones([num_traj, config.num_dof])
