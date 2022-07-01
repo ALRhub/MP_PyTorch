@@ -15,8 +15,16 @@ class BasisGenerator(ABC):
             phase_generator: phase generator
             num_basis: number of basis functions
         """
-        self.num_basis = num_basis
+        # Internal number of basis
+        self._num_basis = num_basis
         self.phase_generator = phase_generator
+
+    @property
+    def num_basis(self) -> int:
+        """
+        Returns: the number of basis with learnable weights
+        """
+        return self._num_basis
 
     @property
     def _num_local_params(self) -> int:
