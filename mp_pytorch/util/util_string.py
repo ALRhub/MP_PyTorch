@@ -82,3 +82,42 @@ def print_wrap_title(title: str = "", char: str = "*", length: int = 60,
         print(char, " " * (length - 2), char, sep="")
     print_line(char=char, length=length, after=after)
     # End of function print_wrap_title
+
+
+class BColors:
+    """
+    Colors
+    """
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
+def warn(warn_str: str):
+    """
+    Print a warning string in console
+    Args:
+        warn_str: string to be printed
+
+    Returns:
+        None
+    """
+    print(f"{BColors.WARNING}Warning: " + warn_str + f"{BColors.ENDC}")
+
+
+def error(error_str: str):
+    """
+    Print an error string in console
+    Args:
+        error_str: string to be printed
+
+    Returns:
+        None
+    """
+    print(f"{BColors.FAIL}Error: " + error_str + f"{BColors.ENDC}")
