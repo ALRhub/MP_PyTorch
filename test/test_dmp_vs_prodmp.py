@@ -64,9 +64,9 @@ def test_dmp_vs_prodmp_identical(plot=False):
 
     # Initialize the DMP and ProDMP
     config.mp_type = "dmp"
-    dmp = MPFactory.init_mp(config.to_dict())
+    dmp = MPFactory.init_mp(**config.to_dict())
     config.mp_type = "idmp"
-    prodmp = MPFactory.init_mp(config.to_dict())
+    prodmp = MPFactory.init_mp(**config.to_dict())
 
     # Get trajectory
     dmp.update_mp_inputs(times=times, params=params,

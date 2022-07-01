@@ -16,7 +16,7 @@ def test_promp():
     config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
         get_mp_utils("promp", True, True)
 
-    mp = MPFactory.init_mp(config)
+    mp = MPFactory.init_mp(**config)
     assert isinstance(mp, ProMP)
     mp.update_mp_inputs(times=times, params=params, params_L=params_L,
                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
@@ -73,7 +73,7 @@ def test_promp():
     config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
         get_mp_utils("promp", False, False)
 
-    mp = MPFactory.init_mp(config)
+    mp = MPFactory.init_mp(**config)
     mp.update_mp_inputs(times=times, params=params, params_L=params_L,
                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
     params_dict = mp.learn_mp_params_from_trajs(times, demos)
