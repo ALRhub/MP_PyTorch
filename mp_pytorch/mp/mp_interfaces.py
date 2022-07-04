@@ -137,11 +137,12 @@ class MPInterface(ABC):
         # [*add_dim, 1]
 
         if duration is None:
-            duration = [self.tau]
+            duration = self.tau
 
         # TODO add BC time
-
-        duration = torch.Tensor(duration) if not isinstance(duration, torch.Tensor) else duration
+        duration = torch.tensor(duration) if not isinstance(duration, torch.Tensor) else duration
+        dt = torch.tensor(dt) if not isinstance(dt, torch.Tensor) else dt
+        duration = torch.atleast_1d(duration)
         # self.times = torch.linspace(0, duration, int(duration / dt))
         N = int(duration / dt)
         times = duration[..., None] / (N - duration) * np.arange(N)
