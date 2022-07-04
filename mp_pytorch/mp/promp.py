@@ -5,6 +5,7 @@ from typing import Union
 
 import torch
 
+from mp_pytorch import util
 from mp_pytorch import BasisGenerator
 from .mp_interfaces import ProbabilisticMPInterface
 
@@ -25,6 +26,18 @@ class ProMP(ProbabilisticMPInterface):
         """
 
         super().__init__(basis_gn, num_dof, **kwargs)
+
+        # Some legacy code for a smooth start from 0
+        self.has_zero_padding = hasattr(self.basis_gn, 'num_basis_zero_start')
+        if self.has_zero_padding:
+            self.padding = torch.nn.ConstantPad2d(
+                (self.basis_gn.num_basis_zero_start,
+                 self.basis_gn.num_basis_zero_goal, 0, 0), 0)
+            util.warn("Zero Padding ProMP is being used. Only the traj position"
+                      " and velocity can be computed correctly. The other "
+                      "entities are not guaranteed.")
+        else:
+            self.padding = lambda x: x
 
     def set_mp_times(self, times: torch.Tensor):
         """
@@ -99,10 +112,18 @@ class ProMP(ProbabilisticMPInterface):
         # [*add_dim, num_dof * num_basis] -> [*add_dim, num_dof, num_basis]
         params = self.params.reshape(*self.add_dim, self.num_dof, -1)
 
+        # Padding if necessary, this is a legacy case
+        # [*add_dim, num_dof, num_basis]
+        # -> [*add_dim, num_dof, num_basis + num_padding]
+        params = self.padding(params)
+
         # Einsum shape: [*add_dim, num_times, num_basis],
         #               [*add_dim, num_dof, num_basis]
-        #            -> [*add_dim, num_times, num_dof,]
+        #            -> [*add_dim, num_times, num_dof]
         pos = torch.einsum('...ik,...jk->...ij', basis_single_dof, params)
+
+        # Padding if necessary, this is a legacy case
+        pos += self.bc_pos[..., None, :] if self.has_zero_padding else 0
 
         if flat_shape:
             # Switch axes to [*add_dim, num_dof, num_times]
@@ -260,7 +281,7 @@ class ProMP(ProbabilisticMPInterface):
 
         vel = torch.zeros_like(pos)
         vel[..., :-1, :] = torch.diff(pos, dim=-2) \
-                        / torch.diff(self.times)[..., None]
+                           / torch.diff(self.times)[..., None]
         vel[..., -1, :] = vel[..., -2, :]
 
         self.vel = vel
