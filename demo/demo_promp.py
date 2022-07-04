@@ -90,7 +90,7 @@ def test_zero_padding_promp():
     config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
         get_mp_utils("zero_padding_promp", True, True)
 
-    mp = MPFactory.init_mp(config)
+    mp = MPFactory.init_mp(**config)
     assert isinstance(mp, ProMP)
     mp.update_mp_inputs(times=times, params=params, params_L=params_L,
                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
@@ -99,13 +99,13 @@ def test_zero_padding_promp():
     util.print_line_title("zero padding pos")
     pos = mp.get_traj_pos()
     print("traj_dict[pos].shape", pos.shape)
-    util.debug_plot(times[0], [pos[0, :, 0]], title="promp_mean")
+    util.debug_plot(times[0], [pos[0, :, 0]], title="zero_promp_mean")
 
     # Vel
     util.print_line_title("zero padding vel")
     vel = mp.get_traj_vel()
     print("traj_dict[vel].shape", vel.shape)
-    util.debug_plot(times[0], [vel[0, :, 0]], title="promp_vel_mean")
+    util.debug_plot(times[0], [vel[0, :, 0]], title="zero_promp_vel_mean")
 
 
 def main():

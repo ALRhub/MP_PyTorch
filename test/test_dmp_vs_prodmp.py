@@ -94,9 +94,5 @@ def test_dmp_vs_prodmp_identical(plot=False):
     assert error.max() < 4.1e-3
 
 
-def test_dmp_vs_prodmp_speed():
-    pass  # TODO
-
-
 if __name__ == "__main__":
     test_dmp_vs_prodmp_identical(True)

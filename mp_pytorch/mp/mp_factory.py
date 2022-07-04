@@ -56,12 +56,12 @@ class MPFactory:
                                             learn_delay=learn_delay)
             basis_gn = ZeroPaddingNormalizedRBFBasisGenerator(
                 phase_generator=phase_gn,
-                num_basis=mp_config["num_basis"],
-                num_basis_zero_start=mp_config['num_basis_zero_start'],
-                num_basis_zero_goal=mp_config['num_basis_zero_goal'],
-                basis_bandwidth_factor=mp_config["basis_bandwidth_factor"]
+                num_basis=mp_args["num_basis"],
+                num_basis_zero_start=mp_args['num_basis_zero_start'],
+                num_basis_zero_goal=mp_args['num_basis_zero_goal'],
+                basis_bandwidth_factor=mp_args["basis_bandwidth_factor"]
             )
-            mp = ProMP(basis_gn=basis_gn, num_dof=num_dof, **mp_config)
+            mp = ProMP(basis_gn=basis_gn, num_dof=num_dof, **mp_args)
 
         elif mp_type == "dmp":
             phase_gn = ExpDecayPhaseGenerator(tau=tau, delay=delay,
