@@ -6,25 +6,25 @@ from matplotlib import pyplot as plt
 
 import mp_pytorch.util as util
 from demo_mp_config import get_mp_utils
-from mp_pytorch import IDMP
+from mp_pytorch import ProDMP
 from mp_pytorch import MPFactory
 
 
-def test_idmp():
-    util.print_wrap_title("test_idmp")
+def test_prodmp():
+    util.print_wrap_title("test_prodmp")
     config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
-        get_mp_utils("idmp", True, True)
+        get_mp_utils("prodmp", True, True)
     mp = MPFactory.init_mp(**config)
     mp.update_mp_inputs(times=times, params=params, params_L=params_L,
                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
-    assert isinstance(mp, IDMP)
+    assert isinstance(mp, ProDMP)
     traj_dict = mp.get_mp_trajs(get_pos=True, get_pos_cov=True,
                                 get_pos_std=True, get_vel=True,
                                 get_vel_cov=True, get_vel_std=True)
     # Pos
     util.print_line_title("pos")
     print(traj_dict["pos"].shape)
-    util.debug_plot(times[0], [traj_dict["pos"][0, :, 0]], title="idmp_pos")
+    util.debug_plot(times[0], [traj_dict["pos"][0, :, 0]], title="prodmp_pos")
 
     # Pos_cov
     util.print_line_title("pos_cov")
@@ -35,12 +35,12 @@ def test_idmp():
     plt.figure()
     util.fill_between(times[0], traj_dict["pos"][0, :, 0],
                       traj_dict["pos_std"][0, :, 0], draw_mean=True)
-    plt.title("idmp pos std")
+    plt.title("prodmp pos std")
     plt.show()
 
     # Vel
     util.print_line_title("vel")
-    util.debug_plot(times[0], [traj_dict["vel"][0, :, 0]], title="idmp_vel")
+    util.debug_plot(times[0], [traj_dict["vel"][0, :, 0]], title="prodmp_vel")
 
     # Vel_cov
     util.print_line_title("vel_cov")
@@ -52,7 +52,7 @@ def test_idmp():
     print("traj_dict[vel_std].shape", traj_dict["vel_std"].shape)
     util.fill_between(times[0], traj_dict["vel"][0, :, 0],
                       traj_dict["vel_std"][0, :, 0], draw_mean=True)
-    plt.title("idmp vel std")
+    plt.title("prodmp vel std")
     plt.show()
 
     # Sample trajectories
@@ -61,7 +61,7 @@ def test_idmp():
     samples, samples_vel = mp.sample_trajectories(num_smp=num_smp)
     print("samples.shape", samples.shape)
     util.debug_plot(times[0], [samples[0, i, :, 0] for i in range(num_smp)],
-                    title="idmp_samples")
+                    title="prodmp_samples")
 
     # Parameters demo
     util.print_line_title("params_bounds")
@@ -71,7 +71,7 @@ def test_idmp():
     # Learn weights
     util.print_line_title("learn weights")
     config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
-        get_mp_utils("idmp", False, False)
+        get_mp_utils("prodmp", False, False)
 
     mp = MPFactory.init_mp(**config)
     mp.update_mp_inputs(times=times, params=params, params_L=params_L,
@@ -82,11 +82,11 @@ def test_idmp():
     rec_demo = mp.get_traj_pos(times, **params_dict)
     util.debug_plot(times[0], [demos[0, :, 0], rec_demo[0, :, 0]],
                     labels=["demos", "rec_demos"],
-                    title="IDMP demos vs. rec_demos")
+                    title="ProDMP demos vs. rec_demos")
 
 
 def main():
-    test_idmp()
+    test_prodmp()
 
 
 if __name__ == "__main__":

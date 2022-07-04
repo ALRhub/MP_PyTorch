@@ -1,18 +1,18 @@
 import torch
 
-from mp_pytorch import IDMPBasisGenerator
+from mp_pytorch import ProDMPBasisGenerator
 from .promp import ProMP
 
 
-class IDMP(ProMP):
+class ProDMP(ProMP):
     """Integral form of DMPs"""
 
     def __init__(self,
-                 basis_gn: IDMPBasisGenerator,
+                 basis_gn: ProDMPBasisGenerator,
                  num_dof: int,
                  **kwargs):
         """
-        Constructor of IDMP
+        Constructor of ProDMP
         Args:
             basis_gn: basis function value generator
             num_dof: number of Degrees of Freedoms

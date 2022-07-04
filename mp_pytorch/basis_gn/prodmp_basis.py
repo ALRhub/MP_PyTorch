@@ -5,7 +5,7 @@ from mp_pytorch.phase_gn import ExpDecayPhaseGenerator
 from .norm_rbf_basis import NormalizedRBFBasisGenerator
 
 
-class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
+class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
     def __init__(self, phase_generator: ExpDecayPhaseGenerator,
                  num_basis: int = 10,
                  basis_bandwidth_factor: int = 3,
@@ -24,10 +24,10 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
             alpha: alpha value of DMP
             pre_compute_length_factor: (n x tau) time length in pre-computation
         """
-        super(IDMPBasisGenerator, self).__init__(phase_generator,
-                                                 num_basis,
-                                                 basis_bandwidth_factor,
-                                                 num_basis_outside)
+        super(ProDMPBasisGenerator, self).__init__(phase_generator,
+                                                   num_basis,
+                                                   basis_bandwidth_factor,
+                                                   num_basis_outside)
 
         self.alpha = alpha
         self.scaled_dt = dt / self.phase_generator.tau
