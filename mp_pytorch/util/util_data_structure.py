@@ -93,12 +93,12 @@ def to_ts(data: Union[int, float, np.ndarray, torch.Tensor],
         raise NotImplementedError
 
     if isinstance(data, float) or isinstance(data, int):
-        return torch.tensor(data, dtype=data_type, device=device)
+        return torch.as_tensor(data, dtype=data_type, device=device)
     elif is_ts(data):
         return data.clone().detach().to(device).type(data_type)
 
     elif is_np(data):
-        return torch.tensor(data, dtype=data_type, device=device)
+        return torch.as_tensor(data, dtype=data_type, device=device)
     else:
         raise NotImplementedError
 
