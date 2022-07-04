@@ -127,7 +127,7 @@ def promp_quantitative_test(plot=False):
 
 def prodmp_quantitative_test(plot=True):
     config, params, params_L, times, bc_time, bc_pos, bc_vel = get_mp_config()
-    config.mp_type = "idmp"
+    config.mp_type = "prodmp"
     prodmp = MPFactory.init_mp(**config.to_dict())
     prodmp.update_mp_inputs(times=times, params=params, params_L=params_L,
                             bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)

@@ -27,7 +27,7 @@ def get_mp_scale_and_delay_util(mp_type: str, tau: float, delay: float):
 def test_static_delay_and_scale():
     tau_list = [1.0, 2.0, 3.0]
     delay_list = [0.0, 1.0, 2.0]
-    mp_list = ["promp", "dmp", "idmp"]
+    mp_list = ["promp", "dmp", "prodmp"]
     time_max = tau_list[-1] + delay_list[-1]
 
     for mp_type in mp_list:
@@ -77,7 +77,7 @@ def test_static_delay_and_scale():
 def test_learnable_delay_and_scale():
     tau_list = [1.0, 2.0, 3.0]
     delay_list = [0.0, 1.0, 2.0]
-    mp_list = ["promp", "dmp", "idmp"]
+    mp_list = ["promp", "dmp", "prodmp"]
     for mp_type in mp_list:
         config = get_mp_utils(mp_type, learn_tau=True, learn_delay=True)[0]
         config = Dict(config)
