@@ -96,13 +96,13 @@ def test_zero_padding_promp():
                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
 
     # Pos
-    util.print_line_title("pos")
+    util.print_line_title("zero padding pos")
     pos = mp.get_traj_pos()
     print("traj_dict[pos].shape", pos.shape)
     util.debug_plot(times[0], [pos[0, :, 0]], title="promp_mean")
 
     # Vel
-    util.print_line_title("vel")
+    util.print_line_title("zero padding vel")
     vel = mp.get_traj_vel()
     print("traj_dict[vel].shape", vel.shape)
     util.debug_plot(times[0], [vel[0, :, 0]], title="promp_vel_mean")
