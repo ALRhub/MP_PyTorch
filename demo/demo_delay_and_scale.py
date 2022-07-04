@@ -46,7 +46,7 @@ def test_static_delay_and_scale():
                 times = util.tensor_linspace(0, torch.ones(
                     [num_traj, 1]) * time_max, num_t).squeeze(-1)
 
-                mp = MPFactory.init_mp(config)
+                mp = MPFactory.init_mp(**config)
 
                 bc_time = times[:, 0]
                 mp.update_mp_inputs(times=times, params=params,
@@ -120,7 +120,7 @@ def test_learnable_delay_and_scale():
         bc_pos = 5 * torch.ones([num_traj, config.num_dof])
         bc_vel = torch.zeros_like(bc_pos)
 
-        mp = MPFactory.init_mp(config)
+        mp = MPFactory.init_mp(**config)
         mp.update_mp_inputs(times=times, params=params,
                             params_L=params_L,
                             bc_time=bc_time, bc_pos=bc_pos,

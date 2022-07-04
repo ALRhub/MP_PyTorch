@@ -5,7 +5,7 @@ from typing import Union
 
 import torch
 
-import util
+from mp_pytorch import util
 from mp_pytorch import BasisGenerator
 from .mp_interfaces import ProbabilisticMPInterface
 

@@ -12,7 +12,7 @@ def test_dmp():
     config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
         get_mp_utils("dmp", True, True)
 
-    mp = MPFactory.init_mp(config)
+    mp = MPFactory.init_mp(**config)
 
     # params_L here is redundant, but it will not fail the update func
     mp.update_mp_inputs(times=times, params=params, params_L=params_L,

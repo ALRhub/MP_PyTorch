@@ -1,7 +1,7 @@
 import torch
 from addict import Dict
 
-import util
+from mp_pytorch import util
 from mp_pytorch import MPFactory
 
 
@@ -64,9 +64,9 @@ def test_dmp_vs_prodmp_identical(plot=False):
 
     # Initialize the DMP and ProDMP
     config.mp_type = "dmp"
-    dmp = MPFactory.init_mp(config.to_dict())
+    dmp = MPFactory.init_mp(**config.to_dict())
     config.mp_type = "idmp"
-    prodmp = MPFactory.init_mp(config.to_dict())
+    prodmp = MPFactory.init_mp(**config.to_dict())
 
     # Get trajectory
     dmp.update_mp_inputs(times=times, params=params,
@@ -92,10 +92,6 @@ def test_dmp_vs_prodmp_identical(plot=False):
     print(f"Desired_max_error: {0.000406}, "
           f"Actual_error: {error.max()}")
     assert error.max() < 4.1e-3
-
-
-def test_dmp_vs_prodmp_speed():
-    pass  # TODO
 
 
 if __name__ == "__main__":
