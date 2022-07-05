@@ -5,7 +5,6 @@
 import torch
 
 from mp_pytorch import BasisGenerator
-from mp_pytorch import LinearPhaseGenerator
 from .mp_interfaces import MPInterface
 
 
@@ -128,7 +127,7 @@ class DMP(MPInterface):
         vel[..., 0, :] = self.bc_vel * self.phase_gn.tau[..., None]
 
         # Get scaled time increment steps
-        scaled_times = LinearPhaseGenerator.phase(self.phase_gn, self.times)
+        scaled_times = self.phase_gn.left_bound_linear_phase(self.times)
         scaled_dt = torch.diff(scaled_times, dim=-1)
 
         # Apply Euler Integral

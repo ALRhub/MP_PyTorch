@@ -199,6 +199,22 @@ class MPInterface(ABC):
         params = torch.cat([params, self.params], dim=-1)
         return params
 
+    def get_params_bounds(self) -> torch.Tensor:
+        """
+        Return all learnable parameters' bounds
+        Returns:
+            parameters bounds
+        """
+        # Shape of params_bounds
+        # [num_params, 2]
+
+        params_bounds = self.basis_gn.get_params_bounds()
+        local_params_bound = torch.zeros([self._num_local_params, 2])
+        local_params_bound[:, 0] = -torch.inf
+        local_params_bound[:, 1] = torch.inf
+        params_bounds = torch.cat([params_bounds, local_params_bound], dim=0)
+        return params_bounds
+
     def set_boundary_conditions(self, bc_time: Union[torch.Tensor, np.ndarray],
                                 bc_pos: Union[torch.Tensor, np.ndarray],
                                 bc_vel: Union[torch.Tensor, np.ndarray]):
@@ -657,7 +673,7 @@ class ProbabilisticMPInterface(MPInterface):
 
         # Add additional sample axis to time
         # Shape [*add_dim, num_smp, num_times]
-        times = util.add_expand_dim(times, [num_add_dim], [num_smp])
+        times_smp = util.add_expand_dim(times, [num_add_dim], [num_smp])
 
         # Sample parameters, shape [num_smp, *add_dim, num_mp_params]
         params_smp = MultivariateNormal(loc=params,
@@ -669,19 +685,26 @@ class ProbabilisticMPInterface(MPInterface):
 
         params_super = self.basis_gn.get_params()
         if params_super.nelement() != 0:
-            params_super = util.add_expand_dim(params_super,
-                                               [-2], [num_smp])
-            params_smp = torch.cat([params_super, params_smp], dim=-1)
+            params_super_smp = util.add_expand_dim(params_super, [-2],
+                                                   [num_smp])
+            params_smp = torch.cat([params_super_smp, params_smp], dim=-1)
 
         # Add additional sample axis to boundary condition
-        bc_time = util.add_expand_dim(bc_time, [num_add_dim], [num_smp])
-        bc_pos = util.add_expand_dim(bc_pos, [num_add_dim], [num_smp])
-        bc_vel = util.add_expand_dim(bc_vel, [num_add_dim], [num_smp])
+        bc_time_smp = util.add_expand_dim(bc_time, [num_add_dim], [num_smp])
+        bc_pos_smp = util.add_expand_dim(bc_pos, [num_add_dim], [num_smp])
+        bc_vel_smp = util.add_expand_dim(bc_vel, [num_add_dim], [num_smp])
 
         # Update inputs
-        self.update_inputs(times, params_smp, None, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times_smp, params_smp, None,
+                              bc_time_smp, bc_pos_smp, bc_vel_smp)
 
         # Get sample trajectories
         pos_smp = self.get_traj_pos(flat_shape=flat_shape)
+        vel_smp = self.get_traj_vel(flat_shape=flat_shape)
 
-        return pos_smp
+        # Recover old inputs
+        if params_super.nelement() != 0:
+            params = torch.cat([params_super, params], dim=-1)
+        self.update_mp_inputs(times, params, None, bc_time, bc_pos, bc_vel)
+
+        return pos_smp, vel_smp

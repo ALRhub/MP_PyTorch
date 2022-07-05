@@ -1,8 +1,9 @@
 import torch
-from .linear_phase import LinearPhaseGenerator
+
+from .phase_generator import PhaseGenerator
 
 
-class ExpDecayPhaseGenerator(LinearPhaseGenerator):
+class ExpDecayPhaseGenerator(PhaseGenerator):
     def __init__(self,
                  tau: float = 1.0,
                  delay: float = 0.0,
@@ -68,6 +69,34 @@ class ExpDecayPhaseGenerator(LinearPhaseGenerator):
             params = torch.cat([params, self.alpha_phase[..., None]], dim=-1)
         return params
 
+    def get_params_bounds(self) -> torch.Tensor:
+        """
+        Return all learnable parameters' bounds
+        Returns:
+            parameters bounds
+        """
+        # Shape of params_bounds
+        # [num_params, 2]
+
+        params_bounds = super().get_params_bounds()
+        if self.learn_alpha_phase:
+            alpha_phase_bound = torch.Tensor([1e-5, torch.inf])[None]
+            params_bounds = torch.cat([params_bounds, alpha_phase_bound], dim=0)
+        return params_bounds
+
+    def left_bound_linear_phase(self, times):
+        """
+        Compute left bounded linear phase in [0, +inf]
+        Returns:
+            linear phase in Tensor
+        """
+        # Shape of time
+        # [*add_dim, num_times]
+
+        left_bound_Linear_phase = torch.clip((times - self.delay[..., None])
+                                             / self.tau[..., None], min=0)
+        return left_bound_Linear_phase
+
     def phase(self, times: torch.Tensor):
         """
         Compute phase
@@ -81,7 +110,8 @@ class ExpDecayPhaseGenerator(LinearPhaseGenerator):
         # Shape of time
         # [*add_dim, num_times]
 
-        phase = torch.exp(-self.alpha_phase[..., None] * super().phase(times))
+        phase = torch.exp(-self.alpha_phase[..., None]
+                          * self.left_bound_linear_phase(times))
         return phase
 
     def phase_to_time(self, phases: torch.Tensor) -> torch.Tensor:
@@ -93,7 +123,51 @@ class ExpDecayPhaseGenerator(LinearPhaseGenerator):
         Returns:
             times in Tensor
         """
-        times = super().phase_to_time(torch.log(phases) /
-                                      (-self.alpha_phase[..., None]))
+        l_phases = torch.log(phases) / (-self.alpha_phase[..., None])
+        times = l_phases * self.tau[..., None] + self.delay[..., None]
 
         return times
+
+    def linear_phase_to_time(self, phases: torch.Tensor) -> torch.Tensor:
+        """
+        Inverse operation, linearly compute times given phase
+        Args:
+            phases: phases in Tensor
+
+        Returns:
+            times in Tensor
+        """
+        times = phases * self.tau[..., None] + self.delay[..., None]
+        return times
+
+    def unbound_linear_phase(self, times):
+        """
+        Compute unbounded linear phase [-inf, +inf]
+        Args:
+            times: times in Tensor
+
+        Returns:
+            phase in Tensor
+
+        """
+        # Shape of time
+        # [*add_dim, num_times]
+
+        linear_phase = (times - self.delay[..., None]) / self.tau[..., None]
+        return linear_phase
+
+    def unbound_phase(self, times: torch.Tensor) -> torch.Tensor:
+        """
+        Compute unbounded phase
+        Args:
+            times: times in Tensor
+
+        Returns:
+            phase in Tensor
+
+        """
+        # Shape of time
+        # [*add_dim, num_times]
+        phase = torch.exp(-self.alpha_phase[..., None]
+                          * self.unbound_linear_phase(times))
+        return phase

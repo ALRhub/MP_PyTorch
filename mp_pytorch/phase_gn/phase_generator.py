@@ -1,7 +1,7 @@
 """
 @brief:     Phase generators in PyTorch
 """
-
+import sys
 from abc import ABC
 from abc import abstractmethod
 import torch
@@ -25,8 +25,8 @@ class PhaseGenerator(ABC):
             *args: other arguments list
             **kwargs: other keyword arguments
         """
-        self.tau = torch.tensor(tau).float()
-        self.delay = torch.tensor(delay).float()
+        self.tau = torch.tensor(tau)
+        self.delay = torch.tensor(delay)
         self.learn_tau = learn_tau
         self.learn_delay = learn_delay
 
@@ -38,6 +38,18 @@ class PhaseGenerator(ABC):
     def phase(self, times: torch.Tensor) -> torch.Tensor:
         """
         Basis class phase interface
+        Args:
+            times: times in Tensor
+
+        Returns: phases in Tensor
+
+        """
+        pass
+
+    @abstractmethod
+    def unbound_phase(self, times: torch.Tensor) -> torch.Tensor:
+        """
+        Basis class unbound phase interface
         Args:
             times: times in Tensor
 
@@ -95,7 +107,7 @@ class PhaseGenerator(ABC):
             iterator += 1
         if self.learn_delay:
             delay = params[..., iterator]
-            assert delay.min() > 0
+            assert delay.min() >= 0
             self.delay = delay
             iterator += 1
         remaining_params = params[..., iterator:]
@@ -117,4 +129,20 @@ class PhaseGenerator(ABC):
             params = torch.cat([params, self.delay[..., None]], dim=-1)
         return params
 
+    def get_params_bounds(self) -> torch.Tensor:
+        """
+        Return all learnable parameters' bounds
+        Returns:
+            parameters bounds
+        """
+        # Shape of params_bounds
+        # [num_params, 2]
 
+        params_bounds = torch.zeros([0, 2])
+        if self.learn_tau:
+            tau_bound = torch.Tensor([1e-5, torch.inf])[None]
+            params_bounds = torch.cat([params_bounds, tau_bound], dim=0)
+        if self.learn_delay:
+            delay_bound = torch.Tensor([0, torch.inf])[None]
+            params_bounds = torch.cat([params_bounds, delay_bound], dim=0)
+        return params_bounds

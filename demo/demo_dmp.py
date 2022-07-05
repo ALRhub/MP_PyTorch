@@ -3,8 +3,8 @@
 """
 
 import mp_pytorch.util as util
+from demo_mp_config import get_mp_utils
 from mp_pytorch import MPFactory
-from data_for_demo import get_mp_utils
 
 
 def test_dmp():
@@ -28,6 +28,11 @@ def test_dmp():
     # Vel
     util.print_line_title("vel")
     util.debug_plot(times[0], [traj_dict["vel"][0, :, 0]], title="dmp_vel")
+
+    # Parameters demo
+    util.print_line_title("params_bounds")
+    print(mp.get_params_bounds())
+    print(mp.get_params_bounds().shape)
 
 
 def main():
