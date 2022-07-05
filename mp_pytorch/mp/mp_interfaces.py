@@ -15,8 +15,14 @@ import mp_pytorch.util as util
 
 class MPInterface(ABC):
     @abstractmethod
-    def __init__(self, basis_gn: BasisGenerator, num_dof: int, weight_scale: float = 1.,
-                 pad_zero_actions: bool = True, **kwargs):
+    def __init__(self,
+                 basis_gn: BasisGenerator,
+                 num_dof: int,
+                 weight_scale: float = 1.,
+                 pad_zero_actions: bool = True,
+                 dtype: torch.dtype = torch.float32,
+                 device: torch.device = torch.get_device('cpu'),
+                 **kwargs):
         """
         Constructor interface
         Args:
@@ -25,6 +31,9 @@ class MPInterface(ABC):
             weight_scale: scaling for the parameters weights
             **kwargs: keyword arguments
         """
+        self.dtype = dtype
+        self.device = device
+
         # Additional batch dimension
         self.add_dim = list()
 
@@ -120,7 +129,8 @@ class MPInterface(ABC):
         # Shape of times
         # [*add_dim, num_times]
 
-        self.times = torch.Tensor(times) if not isinstance(times, torch.Tensor) else times
+        self.times = torch.Tensor(times, dtype=self.dtype, device=self.device) if not isinstance(times,
+                                                                                                 torch.Tensor) else times
         self.clear_computation_result()
 
     def set_duration(self, duration: Union[None, torch.Tensor, np.ndarray], dt: Union[torch.Tensor, np.ndarray]):
@@ -140,9 +150,9 @@ class MPInterface(ABC):
             duration = self.tau
 
         # TODO add BC time
-        duration = torch.tensor(duration) if not isinstance(duration, torch.Tensor) else duration
-        dt = torch.tensor(dt) if not isinstance(dt, torch.Tensor) else dt
-        duration = torch.atleast_1d(duration)
+        duration = torch.atleast_1d(torch.as_tensor(duration, dtype=self.dtype, device=self.device))
+        dt = torch.atleast_1d(
+            torch.tensor(dt, dtype=self.dtype, device=self.device) if not isinstance(dt, torch.Tensor) else dt)
         # self.times = torch.linspace(0, duration, int(duration / dt))
         N = int(duration / dt)
         times = duration[..., None] / (N - duration) * np.arange(N)
@@ -217,9 +227,9 @@ class MPInterface(ABC):
             # bc_time = torch.from_numpy(bc_time)
             # bc_pos = torch.from_numpy(bc_pos)
             # bc_vel = torch.from_numpy(bc_vel)
-            bc_time = torch.Tensor(bc_time)
-            bc_pos = torch.Tensor(bc_pos)
-            bc_vel = torch.Tensor(bc_vel)
+            bc_time = torch.tensor(bc_time)
+            bc_pos = torch.tensor(bc_pos)
+            bc_vel = torch.tensor(bc_vel)
 
         self.bc_time = bc_time
         self.bc_pos = bc_pos

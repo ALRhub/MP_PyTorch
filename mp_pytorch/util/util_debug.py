@@ -3,14 +3,15 @@
 """
 
 import time
+from typing import Callable
 from typing import Optional
 from typing import Union
 
+import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from typing import Callable
-import matplotlib.pyplot as plt
-import mp_pytorch.util as util
+
+from mp_pytorch import util
 
 
 def how_fast(repeat: int, func: Callable, *args):
@@ -90,7 +91,7 @@ def run_time_test(lock: bool) -> Optional[float]:
 
 
 def debug_plot(x: Union[np.ndarray, torch.Tensor],
-               y: [], labels: []=None, title="debug_plot", grid=True) -> \
+               y: [], labels: [] = None, title="debug_plot", grid=True) -> \
         plt.Figure:
     """
     One line to plot some variable for debugging, numpy + torch
