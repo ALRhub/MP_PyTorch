@@ -100,30 +100,33 @@ class ProMP(ProbabilisticMPInterface):
 
         # Reuse result if existing
         if self.pos is not None:
-            return self.pos
+            pos = self.pos
 
-        assert self.params is not None
+        else:
+            assert self.params is not None
 
-        # Get basis
-        # Shape: [*add_dim, num_times, num_basis]
-        basis_single_dof = self.basis_gn.basis(self.times)
+            # Get basis
+            # Shape: [*add_dim, num_times, num_basis]
+            basis_single_dof = self.basis_gn.basis(self.times)
 
-        # Reshape params
-        # [*add_dim, num_dof * num_basis] -> [*add_dim, num_dof, num_basis]
-        params = self.params.reshape(*self.add_dim, self.num_dof, -1)
+            # Reshape params
+            # [*add_dim, num_dof * num_basis] -> [*add_dim, num_dof, num_basis]
+            params = self.params.reshape(*self.add_dim, self.num_dof, -1)
 
-        # Padding if necessary, this is a legacy case
-        # [*add_dim, num_dof, num_basis]
-        # -> [*add_dim, num_dof, num_basis + num_padding]
-        params = self.padding(params)
+            # Padding if necessary, this is a legacy case
+            # [*add_dim, num_dof, num_basis]
+            # -> [*add_dim, num_dof, num_basis + num_padding]
+            params = self.padding(params)
 
-        # Einsum shape: [*add_dim, num_times, num_basis],
-        #               [*add_dim, num_dof, num_basis]
-        #            -> [*add_dim, num_times, num_dof]
-        pos = torch.einsum('...ik,...jk->...ij', basis_single_dof, params)
+            # Einsum shape: [*add_dim, num_times, num_basis],
+            #               [*add_dim, num_dof, num_basis]
+            #            -> [*add_dim, num_times, num_dof]
+            pos = torch.einsum('...ik,...jk->...ij', basis_single_dof, params)
 
-        # Padding if necessary, this is a legacy case
-        pos += self.bc_pos[..., None, :] if self.has_zero_padding else 0
+            # Padding if necessary, this is a legacy case
+            pos += self.bc_pos[..., None, :] if self.has_zero_padding else 0
+
+            self.pos = pos
 
         if flat_shape:
             # Switch axes to [*add_dim, num_dof, num_times]
@@ -132,13 +135,11 @@ class ProMP(ProbabilisticMPInterface):
             # Reshape to [*add_dim, num_dof * num_times]
             pos = pos.reshape(*self.add_dim, -1)
 
-        self.pos = pos
+        return pos
 
-        return self.pos
-
-    def get_traj_pos_cov(self, times=None, params_L=None, bc_time=None,
-                         bc_pos=None,
-                         bc_vel=None, reg: float = 1e-4):
+    def get_traj_pos_cov(self, times=None, params_L=None,
+                         bc_time=None, bc_pos=None, bc_vel=None,
+                         reg: float = 1e-4):
         """
         Compute position covariance
 
@@ -222,29 +223,31 @@ class ProMP(ProbabilisticMPInterface):
 
         # Reuse result if existing
         if self.pos_std is not None:
-            return self.pos_std
+            pos_std = self.pos_std
 
-        # Otherwise recompute
-        if self.pos_cov is not None:
-            pos_cov = self.pos_cov
         else:
-            pos_cov = self.get_traj_pos_cov()
+            # Otherwise recompute
+            if self.pos_cov is not None:
+                pos_cov = self.pos_cov
+            else:
+                pos_cov = self.get_traj_pos_cov()
 
-        if pos_cov is None:
-            pos_std = None
-        else:
-            # Shape [*add_dim, num_dof * num_times]
-            pos_std = torch.sqrt(torch.einsum('...ii->...i', pos_cov))
+            if pos_cov is None:
+                pos_std = None
+            else:
+                # Shape [*add_dim, num_dof * num_times]
+                pos_std = torch.sqrt(torch.einsum('...ii->...i', pos_cov))
 
-            if not flat_shape:
-                # Reshape to [*add_dim, num_dof, num_times]
-                pos_std = pos_std.reshape(*self.add_dim, self.num_dof, -1)
+            self.pos_std = pos_std
 
-                # Switch axes to [*add_dim, num_times, num_dof]
-                pos_std = torch.einsum('...ji->...ij', pos_std)
+        if pos_std is not None and not flat_shape:
+            # Reshape to [*add_dim, num_dof, num_times]
+            pos_std = pos_std.reshape(*self.add_dim, self.num_dof, -1)
 
-        self.pos_std = pos_std
-        return self.pos_std
+            # Switch axes to [*add_dim, num_times, num_dof]
+            pos_std = torch.einsum('...ji->...ij', pos_std)
+
+        return pos_std
 
     def get_traj_vel(self, times=None, params=None,
                      bc_time=None, bc_pos=None, bc_vel=None,
@@ -274,18 +277,27 @@ class ProMP(ProbabilisticMPInterface):
 
         # Reuse result if existing
         if self.vel is not None:
-            return self.vel
+            vel = self.vel
 
-        # Recompute otherwise
-        pos = self.get_traj_pos()
+        else:
+            # Recompute otherwise
+            pos = self.get_traj_pos()
 
-        vel = torch.zeros_like(pos)
-        vel[..., :-1, :] = torch.diff(pos, dim=-2) \
-                           / torch.diff(self.times)[..., None]
-        vel[..., -1, :] = vel[..., -2, :]
+            vel = torch.zeros_like(pos)
+            vel[..., :-1, :] = torch.diff(pos, dim=-2) \
+                               / torch.diff(self.times)[..., None]
+            vel[..., -1, :] = vel[..., -2, :]
 
-        self.vel = vel
-        return self.vel
+            self.vel = vel
+
+        if flat_shape:
+            # Switch axes to [*add_dim, num_dof, num_times]
+            vel = torch.einsum('...ji->...ij', vel)
+
+            # Reshape to [*add_dim, num_dof * num_times]
+            vel = vel.reshape(*self.add_dim, -1)
+
+        return vel
 
     def get_traj_vel_cov(self, times=None, params_L=None, bc_time=None,
                          bc_pos=None,

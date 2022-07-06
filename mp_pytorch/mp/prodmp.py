@@ -132,33 +132,36 @@ class ProDMP(ProMP):
 
         # Reuse result if existing
         if self.pos is not None:
-            return self.pos
+            pos = self.pos
 
-        # Recompute otherwise
-        self.compute_intermediate_terms_single()
+        else:
 
-        # Reshape params from [*add_dim, num_dof * num_basis_g]
-        # to [*add_dim, num_dof, num_basis_g]
-        params = self.params.reshape([*self.add_dim, self.num_dof, -1])
+            # Recompute otherwise
+            self.compute_intermediate_terms_single()
 
-        # Position and velocity variant (part 3)
-        # Einsum shape: [*add_dim, num_times, num_basis_g],
-        #               [*add_dim, num_dof, num_basis_g]
-        #            -> [*add_dim, num_dof, num_times]
-        # Reshape to -> [*add_dim, num_dof * num_times]
-        pos_linear = \
-            torch.einsum('...jk,...ik->...ij', self.pos_H_single, params)
-        pos_linear = torch.reshape(pos_linear, [*self.add_dim, -1])
-        self.pos = self.pos_bc + pos_linear
+            # Reshape params from [*add_dim, num_dof * num_basis_g]
+            # to [*add_dim, num_dof, num_basis_g]
+            params = self.params.reshape([*self.add_dim, self.num_dof, -1])
+
+            # Position and velocity variant (part 3)
+            # Einsum shape: [*add_dim, num_times, num_basis_g],
+            #               [*add_dim, num_dof, num_basis_g]
+            #            -> [*add_dim, num_dof, num_times]
+            # Reshape to -> [*add_dim, num_dof * num_times]
+            pos_linear = \
+                torch.einsum('...jk,...ik->...ij', self.pos_H_single, params)
+            pos_linear = torch.reshape(pos_linear, [*self.add_dim, -1])
+            pos = self.pos_bc + pos_linear
+            self.pos = pos
 
         if not flat_shape:
             # Reshape to [*add_dim, num_dof, num_times]
-            self.pos = self.pos.reshape(*self.add_dim, self.num_dof, -1)
+            pos = pos.reshape(*self.add_dim, self.num_dof, -1)
 
             # Switch axes to [*add_dim, num_times, num_dof]
-            self.pos = torch.einsum('...ji->...ij', self.pos)
+            pos = torch.einsum('...ji->...ij', pos)
 
-        return self.pos
+        return pos
 
     def get_traj_pos_cov(self, times=None, params_L=None, bc_time=None,
                          bc_pos=None,
@@ -244,25 +247,27 @@ class ProDMP(ProMP):
 
         # Reuse result if existing
         if self.pos_std is not None:
-            return self.pos_std
+            pos_std = self.pos_std
 
-        # Recompute otherwise
-        pos_cov = self.get_traj_pos_cov(reg=reg)
-        if pos_cov is None:
-            pos_std = None
         else:
-            # Shape [*add_dim, num_dof * num_times]
-            pos_std = torch.sqrt(torch.einsum('...ii->...i', pos_cov))
+            # Recompute otherwise
+            pos_cov = self.get_traj_pos_cov(reg=reg)
+            if pos_cov is None:
+                pos_std = None
+            else:
+                # Shape [*add_dim, num_dof * num_times]
+                pos_std = torch.sqrt(torch.einsum('...ii->...i', pos_cov))
 
-            if not flat_shape:
-                # Reshape to [*add_dim, num_dof, num_times]
-                pos_std = pos_std.reshape(*self.add_dim, self.num_dof, -1)
+            self.pos_std = pos_std
 
-                # Switch axes to [*add_dim, num_times, num_dof]
-                pos_std = torch.einsum('...ji->...ij', pos_std)
+        if pos_std is not None and not flat_shape:
+            # Reshape to [*add_dim, num_dof, num_times]
+            pos_std = pos_std.reshape(*self.add_dim, self.num_dof, -1)
 
-        self.pos_std = pos_std
-        return self.pos_std
+            # Switch axes to [*add_dim, num_times, num_dof]
+            pos_std = torch.einsum('...ji->...ij', pos_std)
+
+        return pos_std
 
     def get_traj_vel(self, times=None, params=None,
                      bc_time=None, bc_pos=None, bc_vel=None,
@@ -292,36 +297,37 @@ class ProDMP(ProMP):
 
         # Reuse result if existing
         if self.vel is not None:
-            return self.vel
+            vel = self.vel
+        else:
+            # Recompute otherwise
+            self.compute_intermediate_terms_single()
 
-        # Recompute otherwise
-        self.compute_intermediate_terms_single()
+            # Reshape params from [*add_dim, num_dof * num_basis_g]
+            # to [*add_dim, num_dof, num_basis_g]
+            params = self.params.reshape([*self.add_dim, self.num_dof, -1])
 
-        # Reshape params from [*add_dim, num_dof * num_basis_g]
-        # to [*add_dim, num_dof, num_basis_g]
-        params = self.params.reshape([*self.add_dim, self.num_dof, -1])
+            # Position and velocity variant (part 3)
+            # Einsum shape: [*add_dim, num_times, num_basis_g],
+            #               [*add_dim, num_dof, num_basis_g]
+            #            -> [*add_dim, num_dof, num_times]
+            # Reshape to -> [*add_dim, num_dof * num_times]
+            vel_linear = \
+                torch.einsum('...jk,...ik->...ij', self.vel_H_single, params)
+            vel_linear = torch.reshape(vel_linear, [*self.add_dim, -1])
+            vel = self.vel_bc + vel_linear
 
-        # Position and velocity variant (part 3)
-        # Einsum shape: [*add_dim, num_times, num_basis_g],
-        #               [*add_dim, num_dof, num_basis_g]
-        #            -> [*add_dim, num_dof, num_times]
-        # Reshape to -> [*add_dim, num_dof * num_times]
-        vel_linear = \
-            torch.einsum('...jk,...ik->...ij', self.vel_H_single, params)
-        vel_linear = torch.reshape(vel_linear, [*self.add_dim, -1])
-        vel = self.vel_bc + vel_linear
-
-        # Unscale velocity to original time scale space
-        self.vel = vel / self.phase_gn.tau[..., None]
+            # Unscale velocity to original time scale space
+            vel = vel / self.phase_gn.tau[..., None]
+            self.vel = vel
 
         if not flat_shape:
             # Reshape to [*add_dim, num_dof, num_times]
-            self.vel = self.vel.reshape(*self.add_dim, self.num_dof, -1)
+            vel = vel.reshape(*self.add_dim, self.num_dof, -1)
 
             # Switch axes to [*add_dim, num_times, num_dof]
-            self.vel = torch.einsum('...ji->...ij', self.vel)
+            vel = torch.einsum('...ji->...ij', vel)
 
-        return self.vel
+        return vel
 
     def get_traj_vel_cov(self, times=None, params_L=None, bc_time=None,
                          bc_pos=None,
@@ -411,25 +417,25 @@ class ProDMP(ProMP):
 
         # Reuse result if existing
         if self.vel_std is not None:
-            return self.vel_std
-
-        # Recompute otherwise
-        vel_cov = self.get_traj_vel_cov(reg=reg)
-        if vel_cov is None:
-            vel_std = None
+            vel_std = self.vel_std
         else:
-            # Shape [*add_dim, num_dof * num_times]
-            vel_std = torch.sqrt(torch.einsum('...ii->...i', vel_cov))
+            # Recompute otherwise
+            vel_cov = self.get_traj_vel_cov(reg=reg)
+            if vel_cov is None:
+                vel_std = None
+            else:
+                # Shape [*add_dim, num_dof * num_times]
+                vel_std = torch.sqrt(torch.einsum('...ii->...i', vel_cov))
+            self.vel_std = vel_std
 
-            if not flat_shape:
-                # Reshape to [*add_dim, num_dof, num_times]
-                vel_std = vel_std.reshape(*self.add_dim, self.num_dof, -1)
+        if vel_std is not None and not flat_shape:
+            # Reshape to [*add_dim, num_dof, num_times]
+            vel_std = vel_std.reshape(*self.add_dim, self.num_dof, -1)
 
-                # Switch axes to [*add_dim, num_times, num_dof]
-                vel_std = torch.einsum('...ji->...ij', vel_std)
+            # Switch axes to [*add_dim, num_times, num_dof]
+            vel_std = torch.einsum('...ji->...ij', vel_std)
 
-        self.vel_std = vel_std
-        return self.vel_std
+        return vel_std
 
     def learn_mp_params_from_trajs(self, times: torch.Tensor,
                                    trajs: torch.Tensor,
