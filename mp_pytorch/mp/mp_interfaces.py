@@ -200,7 +200,6 @@ class MPInterface(ABC):
             self.set_mp_times(times)
         if all([data is not None for data in {bc_time, bc_pos, bc_vel}]):
             self.set_boundary_conditions(bc_time, bc_pos, bc_vel)
-        self.clear_computation_result()
 
     def get_mp_trajs(self, get_pos: bool = True, get_vel: bool = True) -> dict:
         """
@@ -367,7 +366,6 @@ class ProbabilisticMPInterface(MPInterface):
         super().update_mp_inputs(times, params, bc_time, bc_pos, bc_vel)
         if params_L is not None:
             self.set_mp_params_variances(params_L)
-        self.clear_computation_result()
 
     @property
     def params_cov(self):
