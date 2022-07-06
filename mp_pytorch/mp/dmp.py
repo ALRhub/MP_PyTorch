@@ -17,6 +17,7 @@ class DMP(MPInterface):
                  basis_gn: BasisGenerator,
                  num_dof: int,
                  weight_scale: float = 1.,
+                 alpha: float = 25,
                  dtype: torch.dtype = torch.float32,
                  device: torch.device = 'cpu',
                  **kwargs):
@@ -37,7 +38,7 @@ class DMP(MPInterface):
         self.num_basis_g = self.num_basis + 1
 
         # Control parameters
-        self.alpha = kwargs["alpha"]
+        self.alpha = alpha
         self.beta = self.alpha / 4
 
     @property
@@ -70,9 +71,12 @@ class DMP(MPInterface):
         # Shape of bc_vel:
         # [*add_dim, num_dof]
 
-        assert list(bc_time.shape) == [*self.add_dim]
+        assert list(bc_time.shape) == [*self.add_dim], f"shape of boundary condition time {list(bc_time.shape)} " \
+                                                       f"does not match batch dimension {[*self.add_dim]}"
         assert list(bc_pos.shape) == list(bc_vel.shape) \
-               and list(bc_vel.shape) == [*self.add_dim, self.num_dof]
+               and list(bc_vel.shape) == [*self.add_dim, self.num_dof], f"shape of boundary condition position " \
+                                                                        f"{list(bc_pos.shape)} and boundary condition" \
+                                                                        f" velocity do not match {list(bc_vel.shape)}"
         super().set_boundary_conditions(bc_time, bc_pos, bc_vel)
 
     def get_traj_pos(self, times=None, params=None,
