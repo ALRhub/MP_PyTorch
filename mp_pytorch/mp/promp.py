@@ -4,6 +4,7 @@
 import copy
 from typing import Union
 
+import numpy as np
 import torch
 
 from mp_pytorch import BasisGenerator
@@ -16,16 +17,22 @@ class ProMP(ProbabilisticMPInterface):
     def __init__(self,
                  basis_gn: BasisGenerator,
                  num_dof: int,
+                 weight_scale: float = 1.,
+                 dtype: torch.dtype = torch.float32,
+                 device: torch.device = 'cpu',
                  **kwargs):
         """
         Constructor of ProMP
         Args:
             basis_gn: basis function value generator
             num_dof: number of Degrees of Freedoms
-            kwargs: keyword arguments
+            weight_scale: scaling for the parameters weights
+            dtype: torch data type
+            device: torch device to run on
+            **kwargs: keyword arguments
         """
 
-        super().__init__(basis_gn, num_dof, **kwargs)
+        super().__init__(basis_gn, num_dof, weight_scale, dtype, device, **kwargs)
 
         # Runtime variables
         self.basis_multi_dofs = None
@@ -36,7 +43,7 @@ class ProMP(ProbabilisticMPInterface):
             self.pad = torch.nn.ConstantPad2d((self.basis_gn.num_basis_zero_start,
                                                self.basis_gn.num_basis_zero_goal, 0, 0), 0)
 
-    def set_times(self, times: torch.Tensor):
+    def set_times(self, times: Union[torch.Tensor, np.ndarray]):
         """
         Set MP time points
         Args:
@@ -98,7 +105,7 @@ class ProMP(ProbabilisticMPInterface):
 
         # Reuse result if existing
         if self.pos is not None:
-            return copy.deepcopy(self.pos)
+            return self.pos
 
         # assert self.params is not None and self.basis_multi_dofs is not None
         assert self.params is not None and self.basis_single_dof is not None
@@ -273,7 +280,7 @@ class ProMP(ProbabilisticMPInterface):
         # Recompute otherwise
         pos = self.get_traj_pos()
 
-        vel = torch.zeros_like(pos)
+        vel = torch.zeros_like(pos, dtype=self.dtype, device=self.device)
         vel[..., :-1, :] = torch.diff(pos, dim=-2) / torch.diff(self.times)[..., None]
         vel[..., -1, :] = vel[..., -2, :]
 
@@ -371,7 +378,7 @@ class ProMP(ProbabilisticMPInterface):
 
         # Reorder axis [*add_dim, num_times, num_dof]
         #           -> [*add_dim, num_dof, num_times]
-        trajs = torch.Tensor(trajs)
+        trajs = torch.as_tensor(trajs, dtype=self.dtype, device=self.device)
         trajs = torch.einsum('...ij->...ji', trajs)
 
         # Reshape: [*add_dim, num_dof, num_times]

@@ -12,7 +12,10 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
                  num_basis_outside: int = 0,
                  dt: float = 0.01,
                  alpha: float = 25,
-                 pre_compute_length_factor=5):
+                 pre_compute_length_factor=5,
+                 dtype: torch.dtype = torch.float32,
+                 device: torch.device = 'cpu',
+                 ):
         """
 
         Args:
@@ -24,10 +27,8 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
             alpha: alpha value of DMP
             pre_compute_length_factor: (n x tau) time length in pre-computation
         """
-        super(IDMPBasisGenerator, self).__init__(phase_generator,
-                                                 num_basis,
-                                                 basis_bandwidth_factor,
-                                                 num_basis_outside)
+        super(IDMPBasisGenerator, self).__init__(phase_generator, num_basis, basis_bandwidth_factor, num_basis_outside,
+                                                 dtype, device)
 
         self.alpha = alpha
         self.scaled_dt = dt / self.phase_generator.tau
@@ -68,10 +69,8 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         # Note: num_basis_g = num_basis + 1
 
         # Pre-compute scaled time steps in [0, 1]
-        num_pre_compute = self.pre_compute_length_factor * \
-                          torch.round(1 / self.scaled_dt).long().item() + 1
-        pc_scaled_times = torch.linspace(0, self.pre_compute_length_factor,
-                                         num_pre_compute)
+        num_pre_compute = self.pre_compute_length_factor * torch.round(1 / self.scaled_dt).long().item() + 1
+        pc_scaled_times = torch.linspace(0, self.pre_compute_length_factor, num_pre_compute)
 
         # y1 and y2
         self.y_1_value = torch.exp(-0.5 * self.alpha * pc_scaled_times)
@@ -92,8 +91,7 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         pc_times = self.phase_generator.linear_phase_to_time(pc_scaled_times)
 
         basis_single_dof = super().basis(pc_times)
-        assert list(basis_single_dof.shape) == [*pc_times.shape,
-                                                self.num_basis]
+        assert list(basis_single_dof.shape) == [*pc_times.shape, self.num_basis]
 
         # Get canonical phase x, shape [num_pc_times]
         canonical_x = self.phase_generator.phase(pc_times)
@@ -116,26 +114,18 @@ class IDMPBasisGenerator(NormalizedRBFBasisGenerator):
         p_2_value = torch.zeros(size=dp_2_value.shape)
 
         for i in range(pc_scaled_times.shape[0]):
-            p_1_value[i] = torch.trapz(dp_1_value[:i + 1],
-                                       pc_scaled_times[:i + 1], dim=0)
-            p_2_value[i] = torch.trapz(dp_2_value[:i + 1],
-                                       pc_scaled_times[:i + 1], dim=0)
+            p_1_value[i] = torch.trapz(dp_1_value[:i + 1], pc_scaled_times[:i + 1], dim=0)
+            p_2_value[i] = torch.trapz(dp_2_value[:i + 1], pc_scaled_times[:i + 1], dim=0)
 
         # Compute integral form basis values
-        pos_basis_w = p_2_value * self.y_2_value[:, None] \
-                      - p_1_value * self.y_1_value[:, None]
-        pos_basis_g = q_2_value * self.y_2_value \
-                      - q_1_value * self.y_1_value
-        vel_basis_w = p_2_value * self.dy_2_value[:, None] \
-                      - p_1_value * self.dy_1_value[:, None]
-        vel_basis_g = q_2_value * self.dy_2_value \
-                      - q_1_value * self.dy_1_value
+        pos_basis_w = p_2_value * self.y_2_value[:, None] - p_1_value * self.y_1_value[:, None]
+        pos_basis_g = q_2_value * self.y_2_value - q_1_value * self.y_1_value
+        vel_basis_w = p_2_value * self.dy_2_value[:, None] - p_1_value * self.dy_1_value[:, None]
+        vel_basis_g = q_2_value * self.dy_2_value - q_1_value * self.dy_1_value
 
         # Pre-computed pos and vel basis
-        self.pc_pos_basis = \
-            torch.cat([pos_basis_w, pos_basis_g[:, None]], dim=-1)
-        self.pc_vel_basis = \
-            torch.cat([vel_basis_w, vel_basis_g[:, None]], dim=-1)
+        self.pc_pos_basis = torch.cat([pos_basis_w, pos_basis_g[:, None]], dim=-1)
+        self.pc_vel_basis = torch.cat([vel_basis_w, vel_basis_g[:, None]], dim=-1)
 
     def times_to_indices(self, times: torch.Tensor, round_int: bool = True):
         """

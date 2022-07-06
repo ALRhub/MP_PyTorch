@@ -10,15 +10,24 @@ class IDMP(ProMP):
     def __init__(self,
                  basis_gn: IDMPBasisGenerator,
                  num_dof: int,
+                 weight_scale: float = 1.,
+                 dtype: torch.dtype = torch.float32,
+                 device: torch.device = 'cpu',
                  **kwargs):
         """
         Constructor of IDMP
         Args:
             basis_gn: basis function value generator
             num_dof: number of Degrees of Freedoms
+            weight_scale: scaling for the parameters weights
+            dtype: torch data type
+            device: torch device to run on
             kwargs: keyword arguments
         """
-        super().__init__(basis_gn, num_dof, **kwargs)
+        if not isinstance(basis_gn, IDMPBasisGenerator):
+            raise ValueError(f'ProDMP requires a ProDMP basis generator, {type(basis_gn)} is not supported.')
+
+        super().__init__(basis_gn, num_dof, weight_scale, dtype, device, **kwargs)
 
         # Number of parameters
         self.num_basis_g = self.num_basis + 1
@@ -433,7 +442,7 @@ class IDMP(ProMP):
         assert trajs.shape[:-1] == times.shape
         assert trajs.shape[-1] == self.num_dof
 
-        trajs = torch.Tensor(trajs)
+        trajs = torch.as_tensor(trajs, dtype=self.dtype, device=self.device)
 
         # Get boundary conditions
         dt = self.basis_gn.scaled_dt * self.phase_gn.tau
