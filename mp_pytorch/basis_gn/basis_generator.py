@@ -8,13 +8,21 @@ class BasisGenerator(ABC):
     @abstractmethod
     def __init__(self,
                  phase_generator: PhaseGenerator,
-                 num_basis: int = 10):
+                 num_basis: int = 10,
+                 dtype: torch.dtype = torch.float32,
+                 device: torch.device = 'cpu',
+                 ):
         """
         Constructor for basis class
         Args:
             phase_generator: phase generator
             num_basis: number of basis functions
+            dtype: torch data type
+            device: torch device to run on
         """
+        self.dtype = dtype
+        self.device = device
+
         # Internal number of basis
         self._num_basis = num_basis
         self.phase_generator = phase_generator
@@ -120,18 +128,14 @@ class BasisGenerator(ABC):
 
         # Multiple Dofs, shape:
         # [*add_dim, num_dof * num_times, num_dof * num_basis]
-        basis_multi_dofs = torch.zeros(*add_dim,
-                                       num_dof * num_times,
-                                       num_dof * num_basis)
+        basis_multi_dofs = torch.zeros(*add_dim, num_dof * num_times,
+                                       num_dof * num_basis, dtype=self.dtype,
+                                       device=self.device)
         # Assemble
         for i in range(num_dof):
-            row_indices = slice(i * num_times,
-                                (i + 1) * num_times)
-            col_indices = slice(i * num_basis,
-                                (i + 1) * num_basis)
+            row_indices = slice(i * num_times, (i + 1) * num_times)
+            col_indices = slice(i * num_basis, (i + 1) * num_basis)
             basis_multi_dofs[..., row_indices, col_indices] = basis_single_dof
 
         # Return
         return basis_multi_dofs
-
-

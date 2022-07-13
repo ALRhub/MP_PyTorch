@@ -48,8 +48,7 @@ def add_expand_dim(data: Union[torch.Tensor, np.ndarray],
     num_data_dim = data.ndim
     num_dim_to_add = len(add_dim_indices)
 
-    add_dim_reverse_indices = [num_data_dim + num_dim_to_add + idx
-                               for idx in add_dim_indices]
+    add_dim_reverse_indices = [num_data_dim + num_dim_to_add + idx for idx in add_dim_indices]
 
     str_add_dim = ""
     str_expand = ""

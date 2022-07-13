@@ -14,32 +14,32 @@ def test_promp():
     util.print_wrap_title("test_promp")
 
     config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
-        get_mp_utils("promp", True, True)
+        get_mp_utils("zero_start_promp", True, True)
 
     mp = MPFactory.init_mp(**config)
     assert isinstance(mp, ProMP)
-    mp.update_mp_inputs(times=times, params=params, params_L=params_L,
-                        bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
-    traj_dict = mp.get_mp_trajs(get_pos=True, get_pos_cov=True,
-                                get_pos_std=True, get_vel=True,
-                                get_vel_cov=True, get_vel_std=True)
+    mp.update_inputs(times=times, params=params, params_L=params_L,
+                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+    traj_dict = mp.get_trajs(get_pos=True, get_pos_cov=False,
+                             get_pos_std=False, get_vel=True,
+                             get_vel_cov=False, get_vel_std=False)
     # Pos
     util.print_line_title("pos")
     print("traj_dict[pos].shape", traj_dict["pos"].shape)
     util.debug_plot(times[0], [traj_dict["pos"][0, :, 0]], title="promp_mean")
 
-    # Pos_cov
-    util.print_line_title("pos_cov")
-    pass
-
-    # Pos_std
-    util.print_line_title("pos_std")
-    plt.figure()
-    print("traj_dict[pos_std].shape", traj_dict["pos_std"].shape)
-    util.fill_between(times[0], traj_dict["pos"][0, :, 0],
-                      traj_dict["pos_std"][0, :, 0], draw_mean=True)
-    plt.title("promp std")
-    plt.show()
+    # # Pos_cov
+    # util.print_line_title("pos_cov")
+    # pass
+    #
+    # # Pos_std
+    # util.print_line_title("pos_std")
+    # plt.figure()
+    # print("traj_dict[pos_std].shape", traj_dict["pos_std"].shape)
+    # util.fill_between(times[0], traj_dict["pos"][0, :, 0],
+    #                   traj_dict["pos_std"][0, :, 0], draw_mean=True)
+    # plt.title("promp std")
+    # plt.show()
 
     # Vel
     util.print_line_title("vel")

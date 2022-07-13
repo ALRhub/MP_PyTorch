@@ -12,7 +12,9 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
                  num_basis_outside: int = 0,
                  dt: float = 0.01,
                  alpha: float = 25,
-                 pre_compute_length_factor=5):
+                 pre_compute_length_factor=5,
+                 dtype: torch.dtype = torch.float32,
+                 device: torch.device = 'cpu'):
         """
 
         Args:
@@ -23,11 +25,14 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
             dt: time step
             alpha: alpha value of DMP
             pre_compute_length_factor: (n x tau) time length in pre-computation
+            dtype: data type
+            device: device of the data
         """
         super(ProDMPBasisGenerator, self).__init__(phase_generator,
-                                                   num_basis,
-                                                   basis_bandwidth_factor,
-                                                   num_basis_outside)
+                                                 num_basis,
+                                                 basis_bandwidth_factor,
+                                                 num_basis_outside,
+                                                 dtype, device)
 
         self.alpha = alpha
         self.scaled_dt = dt / self.phase_generator.tau

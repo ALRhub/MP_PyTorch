@@ -10,27 +10,27 @@ import numpy as np
 import torch
 
 
-def make_iterable(data: any, default: Literal['tuple', 'list'] = 'tuple') \
-        -> Union[Tuple, List]:
-    """
-    Make data a tuple or list, i.e. (data) or [data]
-    Args:
-        data: some data
-        default: default type
-    Returns:
-        (data) if it is not a tuple
-    """
-    if isinstance(data, tuple):
-        return data
-    elif isinstance(data, list):
-        return data
-    else:
-        if default == 'tuple':
-            return (data,)  # Do not use tuple()
-        elif default == 'list':
-            return [data, ]
-        else:
-            raise NotImplementedError
+# def make_iterable(data: any, default: Literal['tuple', 'list'] = 'tuple') \
+#         -> Union[Tuple, List]:
+#     """
+#     Make data a tuple or list, i.e. (data) or [data]
+#     Args:
+#         data: some data
+#         default: default type
+#     Returns:
+#         (data) if it is not a tuple
+#     """
+#     if isinstance(data, tuple):
+#         return data
+#     elif isinstance(data, list):
+#         return data
+#     else:
+#         if default == 'tuple':
+#             return (data,)  # Do not use tuple()
+#         elif default == 'list':
+#             return [data, ]
+#         else:
+#             raise NotImplementedError
 
 
 def to_np(tensor: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
@@ -45,11 +45,9 @@ def to_np(tensor: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
     if is_np(tensor):
         return tensor
     elif is_ts(tensor):
-        if tensor.device.type == "cpu":
-            return tensor.numpy()
-        elif tensor.device.type == "cuda":
-            return tensor.cpu().numpy()
-    raise NotImplementedError
+        return tensor.detach().cpu().numpy()
+    else:
+        np.array(tensor)
 
 
 def to_nps(*tensors: [Union[np.ndarray, torch.Tensor]]) -> [np.ndarray]:

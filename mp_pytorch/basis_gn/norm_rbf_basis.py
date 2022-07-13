@@ -9,8 +9,10 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
     def __init__(self,
                  phase_generator: PhaseGenerator,
                  num_basis: int = 10,
-                 basis_bandwidth_factor: float = 3,
-                 num_basis_outside: int = 0):
+                 basis_bandwidth_factor: int = 3,
+                 num_basis_outside: int = 0,
+                 dtype: torch.dtype = torch.float32,
+                 device: torch.device = 'cpu'):
         """
         Constructor of class RBF
 
@@ -19,6 +21,8 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
             num_basis: number of basis function
             basis_bandwidth_factor: basis bandwidth factor
             num_basis_outside: basis function outside the duration
+            dtype: torch data type
+            device: torch device to run on
         """
         self.basis_bandwidth_factor = basis_bandwidth_factor
         self.num_basis_outside = num_basis_outside
@@ -49,7 +53,7 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
 
         # The Centers should not overlap too much (makes w almost random due
         # to aliasing effect).Empirically chosen
-        self.bandWidth = self.basis_bandwidth_factor / (tmp_bandwidth ** 2)
+        self.bandwidth = self.basis_bandwidth_factor / (tmp_bandwidth ** 2)
 
     def basis(self, times: torch.Tensor) -> torch.Tensor:
         """
@@ -84,7 +88,7 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
 
         # Basis
         tmp = torch.einsum('...ij,...j->...ij', (phase - centers) ** 2,
-                           self.bandWidth)
+                           self.bandwidth)
         basis = torch.exp(-tmp / 2)
 
         # Normalization

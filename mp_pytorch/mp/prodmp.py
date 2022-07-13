@@ -10,15 +10,24 @@ class ProDMP(ProMP):
     def __init__(self,
                  basis_gn: ProDMPBasisGenerator,
                  num_dof: int,
+                 weight_scale: float = 1.,
+                 dtype: torch.dtype = torch.float32,
+                 device: torch.device = 'cpu',
                  **kwargs):
         """
         Constructor of ProDMP
         Args:
             basis_gn: basis function value generator
             num_dof: number of Degrees of Freedoms
+            weight_scale: scaling for the parameters weights
+            dtype: torch data type
+            device: torch device to run on
             kwargs: keyword arguments
         """
-        super().__init__(basis_gn, num_dof, **kwargs)
+        if not isinstance(basis_gn, IDMPBasisGenerator):
+            raise ValueError(f'ProDMP requires a ProDMP basis generator, {type(basis_gn)} is not supported.')
+
+        super().__init__(basis_gn, num_dof, weight_scale, dtype, device, **kwargs)
 
         # Number of parameters
         self.num_basis_g = self.num_basis + 1
@@ -48,7 +57,7 @@ class ProDMP(ProMP):
         """
         return super()._num_local_params + self.num_dof
 
-    def set_mp_times(self, times: torch.Tensor):
+    def set_times(self, times: torch.Tensor):
         """
         Set MP time points
         Args:
@@ -128,7 +137,7 @@ class ProDMP(ProMP):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, params, None, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, None, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.pos is not None:
@@ -164,8 +173,7 @@ class ProDMP(ProMP):
         return pos
 
     def get_traj_pos_cov(self, times=None, params_L=None, bc_time=None,
-                         bc_pos=None,
-                         bc_vel=None, reg: float = 1e-4):
+                         bc_pos=None, bc_vel=None, reg: float = 1e-4):
         """
         Compute and return position covariance
 
@@ -187,7 +195,7 @@ class ProDMP(ProMP):
         # [*add_dim, num_dof * num_times, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.pos_cov is not None:
@@ -243,7 +251,7 @@ class ProDMP(ProMP):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.pos_std is not None:
@@ -293,7 +301,7 @@ class ProDMP(ProMP):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, params, None, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, None, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.vel is not None:
@@ -353,7 +361,7 @@ class ProDMP(ProMP):
         # [*add_dim, num_dof * num_times, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.vel_cov is not None:
@@ -413,7 +421,7 @@ class ProDMP(ProMP):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.vel_std is not None:
@@ -469,7 +477,7 @@ class ProDMP(ProMP):
         assert trajs.shape[:-1] == times.shape
         assert trajs.shape[-1] == self.num_dof
 
-        trajs = torch.Tensor(trajs)
+        trajs = torch.as_tensor(trajs, dtype=self.dtype, device=self.device)
 
         # Get boundary conditions
         dt = self.basis_gn.scaled_dt * self.phase_gn.tau
@@ -479,7 +487,7 @@ class ProDMP(ProMP):
 
         # Setup stuff
         self.set_add_dim(list(trajs.shape[:-2]))
-        self.set_mp_times(times)
+        self.set_times(times)
         self.set_boundary_conditions(bc_time, bc_pos, bc_vel)
 
         self.compute_intermediate_terms_single()
