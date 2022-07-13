@@ -1,9 +1,7 @@
 """
     Utilities of data type and structure
 """
-from typing import List
 # from typing import Literal
-from typing import Tuple
 from typing import Union
 
 import numpy as np
