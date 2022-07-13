@@ -115,7 +115,7 @@ class DMP(MPInterface):
         # [*add_dim, num_dof, num_basis]
         # Shape of g:
         # [*add_dim, num_dof, 1]
-        w, g = self._split_weights_goal(self.params)
+        w, g = self._split_weights_goal(self.params * self.weight_scale)
 
         # Get basis, shape [*add_dim, num_times, num_basis]
         basis = self.basis_gn.basis(self.times)

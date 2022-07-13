@@ -152,7 +152,8 @@ class ProDMP(ProMP):
 
             # Reshape params from [*add_dim, num_dof * num_basis_g]
             # to [*add_dim, num_dof, num_basis_g]
-            params = self.params.reshape([*self.add_dim, self.num_dof, -1])
+            params = self.params.reshape(
+                [*self.add_dim, self.num_dof, -1]) * self.weight_scale
 
             # Position and velocity variant (part 3)
             # Einsum shape: [*add_dim, num_times, num_basis_g],
@@ -216,7 +217,7 @@ class ProDMP(ProMP):
         #            -> [*add_dim, num_dof * num_times, num_dof * num_times]
         pos_cov = torch.einsum('...ik,...kl,...jl->...ij',
                                self.pos_H_multi, self.params_cov,
-                               self.pos_H_multi)
+                               self.pos_H_multi) * pow(self.weight_scale, 2)
 
         # Determine regularization term to make traj_cov positive definite
         traj_cov_reg = reg
@@ -314,7 +315,8 @@ class ProDMP(ProMP):
 
             # Reshape params from [*add_dim, num_dof * num_basis_g]
             # to [*add_dim, num_dof, num_basis_g]
-            params = self.params.reshape([*self.add_dim, self.num_dof, -1])
+            params = self.params.reshape(
+                [*self.add_dim, self.num_dof, -1]) * self.weight_scale
 
             # Position and velocity variant (part 3)
             # Einsum shape: [*add_dim, num_times, num_basis_g],
@@ -382,7 +384,7 @@ class ProDMP(ProMP):
         #            -> [*add_dim, num_dof * num_times, num_dof * num_times]
         vel_cov = torch.einsum('...ik,...kl,...jl->...ij',
                                self.vel_H_multi, self.params_cov,
-                               self.vel_H_multi)
+                               self.vel_H_multi) * pow(self.weight_scale, 2)
 
         # Determine regularization term to make traj_cov positive definite
         traj_cov_reg = reg

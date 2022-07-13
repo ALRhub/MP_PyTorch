@@ -6,8 +6,8 @@ from typing import Union
 import numpy as np
 import torch
 
-from mp_pytorch.basis_gn import BasisGenerator
 from mp_pytorch import util
+from mp_pytorch.basis_gn import BasisGenerator
 from .mp_interfaces import ProbabilisticMPInterface
 
 
@@ -120,7 +120,8 @@ class ProMP(ProbabilisticMPInterface):
 
             # Reshape params
             # [*add_dim, num_dof * num_basis] -> [*add_dim, num_dof, num_basis]
-            params = self.params.reshape(*self.add_dim, self.num_dof, -1)
+            params = self.params.reshape(*self.add_dim, self.num_dof,
+                                         -1) * self.weight_scale
 
             # Padding if necessary, this is a legacy case
             # [*add_dim, num_dof, num_basis]
@@ -192,7 +193,7 @@ class ProMP(ProbabilisticMPInterface):
         pos_cov = torch.einsum('...ik,...kl,...jl->...ij',
                                basis_multi_dofs,
                                self.params_cov,
-                               basis_multi_dofs)
+                               basis_multi_dofs) * pow(self.weight_scale, 2)
 
         # Determine regularization term to make traj_cov positive definite
         traj_cov_reg = reg
