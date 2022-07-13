@@ -25,7 +25,6 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
         config.mp_args.num_basis_zero_start = int(
             0.4 * config.mp_args.num_basis)
         config.mp_args.num_basis_zero_goal = 0
-        # config.mp_args.basis_wandwitdh_factor = 0
 
     # Generate parameters
     num_param = config.num_dof * config.mp_args.num_basis

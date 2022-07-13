@@ -12,7 +12,9 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
                  num_basis_outside: int = 0,
                  dt: float = 0.01,
                  alpha: float = 25,
-                 pre_compute_length_factor=5):
+                 pre_compute_length_factor=5,
+                 dtype: torch.dtype = torch.float32,
+                 device: torch.device = 'cpu'):
         """
 
         Args:
@@ -23,11 +25,14 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
             dt: time step
             alpha: alpha value of DMP
             pre_compute_length_factor: (n x tau) time length in pre-computation
+            dtype: data type
+            device: device of the data
         """
         super(ProDMPBasisGenerator, self).__init__(phase_generator,
                                                    num_basis,
                                                    basis_bandwidth_factor,
-                                                   num_basis_outside)
+                                                   num_basis_outside,
+                                                   dtype, device)
 
         self.alpha = alpha
         self.scaled_dt = dt / self.phase_generator.tau
@@ -115,8 +120,10 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
                          canonical_x,
                          basis_single_dof)
 
-        p_1_value = torch.zeros(size=dp_1_value.shape)
-        p_2_value = torch.zeros(size=dp_2_value.shape)
+        p_1_value = torch.zeros(size=dp_1_value.shape, dtype=self.dtype,
+                                device=self.device)
+        p_2_value = torch.zeros(size=dp_2_value.shape, dtype=self.dtype,
+                                device=self.device)
 
         for i in range(pc_scaled_times.shape[0]):
             p_1_value[i] = torch.trapz(dp_1_value[:i + 1],
@@ -253,7 +260,8 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
         # [*add_dim, num_times, num_dof, num_dof * num_basis]
         vel_basis_multi_dofs = torch.zeros(*add_dim,
                                            num_dof * num_times,
-                                           num_dof * self.num_basis_g)
+                                           num_dof * self.num_basis_g,
+                                           dtype=self.dtype, device=self.device)
         # Assemble
         for i in range(num_dof):
             row_indices = slice(i * num_times,

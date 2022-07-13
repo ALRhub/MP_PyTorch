@@ -1,8 +1,8 @@
 import torch
 from addict import Dict
+from mp_pytorch.mp import MPFactory
 
 from mp_pytorch import util
-from mp_pytorch import MPFactory
 
 
 def get_mp_config():
@@ -69,11 +69,11 @@ def test_dmp_vs_prodmp_identical(plot=False):
     prodmp = MPFactory.init_mp(**config.to_dict())
 
     # Get trajectory
-    dmp.update_mp_inputs(times=times, params=params,
-                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+    dmp.update_inputs(times=times, params=params,
+                      bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
 
-    prodmp.update_mp_inputs(times=times, params=params, params_L=None,
-                            bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+    prodmp.update_inputs(times=times, params=params, params_L=None,
+                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
 
     dmp_pos = dmp.get_traj_pos()
     dmp_vel = dmp.get_traj_vel()

@@ -1,7 +1,5 @@
-from typing import Literal
-
-from mp_pytorch.basis_gn import ProDMPBasisGenerator
 from mp_pytorch.basis_gn import NormalizedRBFBasisGenerator
+from mp_pytorch.basis_gn import ProDMPBasisGenerator
 from mp_pytorch.basis_gn import ZeroPaddingNormalizedRBFBasisGenerator
 from mp_pytorch.phase_gn import ExpDecayPhaseGenerator
 from mp_pytorch.phase_gn import LinearPhaseGenerator
@@ -12,7 +10,7 @@ from .promp import ProMP
 
 class MPFactory:
     @staticmethod
-    def init_mp(mp_type: Literal["promp", "dmp", "prodmp"],
+    def init_mp(mp_type: str,
                 mp_args: dict,
                 num_dof: int = 1,
                 tau: float = 3,

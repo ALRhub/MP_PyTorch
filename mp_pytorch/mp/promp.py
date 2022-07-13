@@ -3,10 +3,11 @@
 """
 from typing import Union
 
+import numpy as np
 import torch
 
 from mp_pytorch import util
-from mp_pytorch import BasisGenerator
+from mp_pytorch.basis_gn import BasisGenerator
 from .mp_interfaces import ProbabilisticMPInterface
 
 
@@ -16,20 +17,28 @@ class ProMP(ProbabilisticMPInterface):
     def __init__(self,
                  basis_gn: BasisGenerator,
                  num_dof: int,
+                 weight_scale: float = 1.,
+                 dtype: torch.dtype = torch.float32,
+                 device: torch.device = 'cpu',
                  **kwargs):
         """
         Constructor of ProMP
         Args:
             basis_gn: basis function value generator
             num_dof: number of Degrees of Freedoms
-            kwargs: keyword arguments
+            weight_scale: scaling for the parameters weights
+            dtype: torch data type
+            device: torch device to run on
+            **kwargs: keyword arguments
         """
 
-        super().__init__(basis_gn, num_dof, **kwargs)
+        super().__init__(basis_gn, num_dof, weight_scale, dtype, device,
+                         **kwargs)
 
         # Some legacy code for a smooth start from 0
         self.has_zero_padding = hasattr(self.basis_gn, 'num_basis_zero_start')
         if self.has_zero_padding:
+            # if no zero start/ zero goal, use weights as it is
             self.padding = torch.nn.ConstantPad2d(
                 (self.basis_gn.num_basis_zero_start,
                  self.basis_gn.num_basis_zero_goal, 0, 0), 0)
@@ -39,7 +48,7 @@ class ProMP(ProbabilisticMPInterface):
         else:
             self.padding = lambda x: x
 
-    def set_mp_times(self, times: torch.Tensor):
+    def set_times(self, times: Union[torch.Tensor, np.ndarray]):
         """
         Set MP time points
         Args:
@@ -51,7 +60,7 @@ class ProMP(ProbabilisticMPInterface):
         # Shape of times
         # [*add_dim, num_times]
 
-        super().set_mp_times(times)
+        super().set_times(times)
 
     def set_mp_params_variances(self, params_L: Union[torch.Tensor, None]):
         """
@@ -96,7 +105,7 @@ class ProMP(ProbabilisticMPInterface):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, params, None, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, None, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.pos is not None:
@@ -111,7 +120,8 @@ class ProMP(ProbabilisticMPInterface):
 
             # Reshape params
             # [*add_dim, num_dof * num_basis] -> [*add_dim, num_dof, num_basis]
-            params = self.params.reshape(*self.add_dim, self.num_dof, -1)
+            params = self.params.reshape(*self.add_dim, self.num_dof,
+                                         -1) * self.weight_scale
 
             # Padding if necessary, this is a legacy case
             # [*add_dim, num_dof, num_basis]
@@ -161,7 +171,7 @@ class ProMP(ProbabilisticMPInterface):
         # [*add_dim, num_dof * num_times, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.pos_cov is not None:
@@ -183,7 +193,7 @@ class ProMP(ProbabilisticMPInterface):
         pos_cov = torch.einsum('...ik,...kl,...jl->...ij',
                                basis_multi_dofs,
                                self.params_cov,
-                               basis_multi_dofs)
+                               basis_multi_dofs) * pow(self.weight_scale, 2)
 
         # Determine regularization term to make traj_cov positive definite
         traj_cov_reg = reg
@@ -219,7 +229,7 @@ class ProMP(ProbabilisticMPInterface):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.pos_std is not None:
@@ -273,7 +283,7 @@ class ProMP(ProbabilisticMPInterface):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_mp_inputs(times, params, None, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, None, bc_time, bc_pos, bc_vel)
 
         # Reuse result if existing
         if self.vel is not None:
@@ -283,7 +293,7 @@ class ProMP(ProbabilisticMPInterface):
             # Recompute otherwise
             pos = self.get_traj_pos()
 
-            vel = torch.zeros_like(pos)
+            vel = torch.zeros_like(pos, dtype=self.dtype, device=self.device)
             vel[..., :-1, :] = torch.diff(pos, dim=-2) \
                                / torch.diff(self.times)[..., None]
             vel[..., -1, :] = vel[..., -2, :]
@@ -372,7 +382,7 @@ class ProMP(ProbabilisticMPInterface):
         assert trajs.shape[-1] == self.num_dof
 
         self.set_add_dim(list(trajs.shape[:-2]))
-        self.set_mp_times(times)
+        self.set_times(times)
 
         # Get multiple dof basis function values
         # Tensor [*add_dim, num_dof * num_times, num_dof * num_basis]
@@ -387,7 +397,7 @@ class ProMP(ProbabilisticMPInterface):
 
         # Reorder axis [*add_dim, num_times, num_dof]
         #           -> [*add_dim, num_dof, num_times]
-        trajs = torch.Tensor(trajs)
+        trajs = torch.as_tensor(trajs, dtype=self.dtype, device=self.device)
         trajs = torch.einsum('...ij->...ji', trajs)
 
         # Reshape: [*add_dim, num_dof, num_times]

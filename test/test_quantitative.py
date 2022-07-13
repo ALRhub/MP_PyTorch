@@ -1,8 +1,8 @@
 import torch
 from addict import Dict
-from mp_pytorch import util
 
-from mp_pytorch import MPFactory
+from mp_pytorch.mp import MPFactory
+from mp_pytorch import util
 
 
 def get_mp_config():
@@ -69,8 +69,8 @@ def dmp_quantitative_test(plot=False):
     config, params, params_L, times, bc_time, bc_pos, bc_vel = get_mp_config()
     config.mp_type = "dmp"
     dmp = MPFactory.init_mp(**config.to_dict())
-    dmp.update_mp_inputs(times=times, params=params,
-                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+    dmp.update_inputs(times=times, params=params,
+                      bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
     pos = dmp.get_traj_pos()
     vel = dmp.get_traj_vel()
 
@@ -98,8 +98,8 @@ def promp_quantitative_test(plot=False):
 
     promp = MPFactory.init_mp(**config.to_dict())
 
-    promp.update_mp_inputs(times=times, params=params, params_L=params_L,
-                            bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+    promp.update_inputs(times=times, params=params, params_L=params_L,
+                        bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
     pos = promp.get_traj_pos()
     vel = promp.get_traj_vel()
     pos_flat = promp.get_traj_pos(flat_shape=True)
@@ -129,8 +129,8 @@ def prodmp_quantitative_test(plot=True):
     config, params, params_L, times, bc_time, bc_pos, bc_vel = get_mp_config()
     config.mp_type = "prodmp"
     prodmp = MPFactory.init_mp(**config.to_dict())
-    prodmp.update_mp_inputs(times=times, params=params, params_L=params_L,
-                            bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+    prodmp.update_inputs(times=times, params=params, params_L=params_L,
+                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
     pos = prodmp.get_traj_pos()
     vel = prodmp.get_traj_vel()
     pos_flat = prodmp.get_traj_pos(flat_shape=True)

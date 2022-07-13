@@ -2,7 +2,6 @@
     Utilities of data type and structure
 """
 from typing import List
-from typing import Literal
 from typing import Tuple
 from typing import Union
 
@@ -10,7 +9,7 @@ import numpy as np
 import torch
 
 
-def make_iterable(data: any, default: Literal['tuple', 'list'] = 'tuple') \
+def make_iterable(data: any, default: str = 'tuple') \
         -> Union[Tuple, List]:
     """
     Make data a tuple or list, i.e. (data) or [data]
@@ -45,11 +44,9 @@ def to_np(tensor: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
     if is_np(tensor):
         return tensor
     elif is_ts(tensor):
-        if tensor.device.type == "cpu":
-            return tensor.numpy()
-        elif tensor.device.type == "cuda":
-            return tensor.cpu().numpy()
-    raise NotImplementedError
+        return tensor.detach().cpu().numpy()
+    else:
+        np.array(tensor)
 
 
 def to_nps(*tensors: [Union[np.ndarray, torch.Tensor]]) -> [np.ndarray]:
@@ -73,7 +70,7 @@ def is_np(data: any) -> bool:
 
 def to_ts(data: Union[int, float, np.ndarray, torch.Tensor],
           dtype: torch.dtype = torch.float32,
-          device: Literal["cpu", "cuda"] = "cpu") -> torch.Tensor:
+          device: str = "cpu") -> torch.Tensor:
     """
     Transfer any numerical input to a torch tensor in default data type + device
 
@@ -86,12 +83,12 @@ def to_ts(data: Union[int, float, np.ndarray, torch.Tensor],
         tensor in torch.Tensor
     """
 
-    return torch.asarray(data, dtype=dtype, device=device)
+    return torch.as_tensor(data, dtype=dtype, device=device)
 
 
 def to_tss(*datas: [Union[int, float, np.ndarray, torch.Tensor]],
            dtype: torch.dtype = torch.float32,
-           device: Literal["cpu", "cuda"] = "cpu") \
+           device: str = "cpu") \
         -> [torch.Tensor]:
     """
     transfer a list of any type of numerical input to a list of tensors in given

@@ -1,9 +1,9 @@
 """
 @brief:     Phase generators in PyTorch
 """
-import sys
 from abc import ABC
 from abc import abstractmethod
+
 import torch
 
 
@@ -12,8 +12,13 @@ import torch
 
 class PhaseGenerator(ABC):
     @abstractmethod
-    def __init__(self, tau: float = 1.0, delay: float = 0.0,
-                 learn_tau: bool = False, learn_delay: bool = False,
+    def __init__(self,
+                 tau: float = 1.0,
+                 delay: float = 0.0,
+                 learn_tau: bool = False,
+                 learn_delay: bool = False,
+                 dtype: torch.dtype = torch.float32,
+                 device: torch.device = 'cpu',
                  *args, **kwargs):
         """
             Basis class constructor
@@ -22,11 +27,17 @@ class PhaseGenerator(ABC):
             delay: time to wait before execute
             learn_tau: if tau is learnable parameter
             learn_delay: if delay is learnable parameter
+            dtype: torch data type
+            device: torch device to run on
             *args: other arguments list
             **kwargs: other keyword arguments
         """
-        self.tau = torch.tensor(tau)
-        self.delay = torch.tensor(delay)
+        self.dtype = dtype
+        self.device = device
+
+        self.tau = torch.as_tensor(tau, dtype=self.dtype, device=self.device)
+        self.delay = torch.as_tensor(delay, dtype=self.dtype,
+                                     device=self.device)
         self.learn_tau = learn_tau
         self.learn_delay = learn_delay
 
@@ -71,12 +82,7 @@ class PhaseGenerator(ABC):
         """
         Returns: number of parameters of current class
         """
-        n_param = 0
-        if self.learn_tau:
-            n_param += 1
-        if self.learn_delay:
-            n_param += 1
-        return n_param
+        return int(self.learn_tau) + int(self.learn_delay)
 
     @property
     def num_params(self) -> int:
@@ -118,7 +124,7 @@ class PhaseGenerator(ABC):
         # Shape of params
         # [*add_dim, num_params]
 
-        params = torch.Tensor([])
+        params = torch.as_tensor([], dtype=self.dtype, device=self.device)
         if self.learn_tau:
             params = torch.cat([params, self.tau[..., None]], dim=-1)
         if self.learn_delay:
@@ -134,11 +140,16 @@ class PhaseGenerator(ABC):
         # Shape of params_bounds
         # [num_params, 2]
 
-        params_bounds = torch.zeros([0, 2])
+        params_bounds = torch.zeros([0, 2], dtype=self.dtype,
+                                    device=self.device)
         if self.learn_tau:
-            tau_bound = torch.Tensor([1e-5, torch.inf])[None]
+            tau_bound = torch.as_tensor([1e-5, torch.inf], dtype=self.dtype,
+                                        device=self.device)[None]
             params_bounds = torch.cat([params_bounds, tau_bound], dim=0)
         if self.learn_delay:
-            delay_bound = torch.Tensor([0, torch.inf])[None]
+            delay_bound = \
+                torch.as_tensor([0, torch.inf], dtype=self.dtype,
+                                device=self.device)[
+                    None]
             params_bounds = torch.cat([params_bounds, delay_bound], dim=0)
         return params_bounds

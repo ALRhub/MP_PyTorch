@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from matplotlib import pyplot as plt
 
-import mp_pytorch.util as util
+from mp_pytorch import util
 
 
 def fill_between(x: Union[np.ndarray, torch.Tensor],
