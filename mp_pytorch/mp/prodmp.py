@@ -24,7 +24,7 @@ class ProDMP(ProMP):
             device: torch device to run on
             kwargs: keyword arguments
         """
-        if not isinstance(basis_gn, IDMPBasisGenerator):
+        if not isinstance(basis_gn, ProDMPBasisGenerator):
             raise ValueError(f'ProDMP requires a ProDMP basis generator, {type(basis_gn)} is not supported.')
 
         super().__init__(basis_gn, num_dof, weight_scale, dtype, device, **kwargs)
@@ -74,7 +74,7 @@ class ProDMP(ProMP):
         self.y1, self.y2, self.dy1, self.dy2 = \
             self.basis_gn.general_solution_values(times)
 
-        super().set_mp_times(times)
+        super().set_times(times)
 
     def set_boundary_conditions(self, bc_time: torch.Tensor,
                                 bc_pos: torch.Tensor,

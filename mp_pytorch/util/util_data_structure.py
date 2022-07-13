@@ -2,7 +2,6 @@
     Utilities of data type and structure
 """
 from typing import List
-from typing import Literal
 from typing import Tuple
 from typing import Union
 
@@ -10,27 +9,27 @@ import numpy as np
 import torch
 
 
-# def make_iterable(data: any, default: Literal['tuple', 'list'] = 'tuple') \
-#         -> Union[Tuple, List]:
-#     """
-#     Make data a tuple or list, i.e. (data) or [data]
-#     Args:
-#         data: some data
-#         default: default type
-#     Returns:
-#         (data) if it is not a tuple
-#     """
-#     if isinstance(data, tuple):
-#         return data
-#     elif isinstance(data, list):
-#         return data
-#     else:
-#         if default == 'tuple':
-#             return (data,)  # Do not use tuple()
-#         elif default == 'list':
-#             return [data, ]
-#         else:
-#             raise NotImplementedError
+def make_iterable(data: any, default: str = 'tuple') \
+        -> Union[Tuple, List]:
+    """
+    Make data a tuple or list, i.e. (data) or [data]
+    Args:
+        data: some data
+        default: default type
+    Returns:
+        (data) if it is not a tuple
+    """
+    if isinstance(data, tuple):
+        return data
+    elif isinstance(data, list):
+        return data
+    else:
+        if default == 'tuple':
+            return (data,)  # Do not use tuple()
+        elif default == 'list':
+            return [data, ]
+        else:
+            raise NotImplementedError
 
 
 def to_np(tensor: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
@@ -71,7 +70,7 @@ def is_np(data: any) -> bool:
 
 def to_ts(data: Union[int, float, np.ndarray, torch.Tensor],
           dtype: torch.dtype = torch.float32,
-          device: Literal["cpu", "cuda"] = "cpu") -> torch.Tensor:
+          device: str = "cpu") -> torch.Tensor:
     """
     Transfer any numerical input to a torch tensor in default data type + device
 
@@ -89,7 +88,7 @@ def to_ts(data: Union[int, float, np.ndarray, torch.Tensor],
 
 def to_tss(*datas: [Union[int, float, np.ndarray, torch.Tensor]],
            dtype: torch.dtype = torch.float32,
-           device: Literal["cpu", "cuda"] = "cpu") \
+           device: str = "cpu") \
         -> [torch.Tensor]:
     """
     transfer a list of any type of numerical input to a list of tensors in given

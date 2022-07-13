@@ -15,10 +15,10 @@ def test_prodmp():
     config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
         get_mp_utils("prodmp", True, True)
     mp = MPFactory.init_mp(**config)
-    mp.update_mp_inputs(times=times, params=params, params_L=params_L,
+    mp.update_inputs(times=times, params=params, params_L=params_L,
                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
     assert isinstance(mp, ProDMP)
-    traj_dict = mp.get_mp_trajs(get_pos=True, get_pos_cov=True,
+    traj_dict = mp.get_trajs(get_pos=True, get_pos_cov=True,
                                 get_pos_std=True, get_vel=True,
                                 get_vel_cov=True, get_vel_std=True)
     # Pos
@@ -74,7 +74,7 @@ def test_prodmp():
         get_mp_utils("prodmp", False, False)
 
     mp = MPFactory.init_mp(**config)
-    mp.update_mp_inputs(times=times, params=params, params_L=params_L,
+    mp.update_inputs(times=times, params=params, params_L=params_L,
                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
     params_dict = mp.learn_mp_params_from_trajs(times, demos)
 

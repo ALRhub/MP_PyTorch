@@ -49,7 +49,7 @@ def test_static_delay_and_scale():
                 mp = MPFactory.init_mp(**config)
 
                 bc_time = times[:, 0]
-                mp.update_mp_inputs(times=times, params=params,
+                mp.update_inputs(times=times, params=params,
                                     params_L=params_L,
                                     bc_time=bc_time, bc_pos=bc_pos,
                                     bc_vel=bc_vel)
@@ -121,7 +121,7 @@ def test_learnable_delay_and_scale():
         bc_vel = torch.zeros_like(bc_pos)
 
         mp = MPFactory.init_mp(**config)
-        mp.update_mp_inputs(times=times, params=params,
+        mp.update_inputs(times=times, params=params,
                             params_L=params_L,
                             bc_time=bc_time, bc_pos=bc_pos,
                             bc_vel=bc_vel)
