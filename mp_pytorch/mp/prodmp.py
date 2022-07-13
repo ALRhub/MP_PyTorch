@@ -1,6 +1,6 @@
 import torch
 
-from mp_pytorch import ProDMPBasisGenerator
+from mp_pytorch.basis_gn import ProDMPBasisGenerator
 from .promp import ProMP
 
 
@@ -25,9 +25,11 @@ class ProDMP(ProMP):
             kwargs: keyword arguments
         """
         if not isinstance(basis_gn, ProDMPBasisGenerator):
-            raise ValueError(f'ProDMP requires a ProDMP basis generator, {type(basis_gn)} is not supported.')
+            raise ValueError(
+                f'ProDMP requires a ProDMP basis generator, {type(basis_gn)} is not supported.')
 
-        super().__init__(basis_gn, num_dof, weight_scale, dtype, device, **kwargs)
+        super().__init__(basis_gn, num_dof, weight_scale, dtype, device,
+                         **kwargs)
 
         # Number of parameters
         self.num_basis_g = self.num_basis + 1

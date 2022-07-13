@@ -4,7 +4,7 @@
 
 import mp_pytorch.util as util
 from demo_mp_config import get_mp_utils
-from mp_pytorch import MPFactory
+from mp_pytorch.mp import MPFactory
 
 
 def test_dmp():

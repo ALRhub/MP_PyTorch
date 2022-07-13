@@ -6,8 +6,8 @@ from typing import Union
 import numpy as np
 import torch
 
+from mp_pytorch.basis_gn import BasisGenerator
 from mp_pytorch import util
-from mp_pytorch import BasisGenerator
 from .mp_interfaces import ProbabilisticMPInterface
 
 
@@ -32,7 +32,8 @@ class ProMP(ProbabilisticMPInterface):
             **kwargs: keyword arguments
         """
 
-        super().__init__(basis_gn, num_dof, weight_scale, dtype, device, **kwargs)
+        super().__init__(basis_gn, num_dof, weight_scale, dtype, device,
+                         **kwargs)
 
         # Some legacy code for a smooth start from 0
         self.has_zero_padding = hasattr(self.basis_gn, 'num_basis_zero_start')

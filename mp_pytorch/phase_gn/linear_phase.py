@@ -1,4 +1,5 @@
 import torch
+
 from .phase_generator import PhaseGenerator
 
 
@@ -19,7 +20,9 @@ class LinearPhaseGenerator(PhaseGenerator):
             dtype: torch data type
             device: torch device to run on
         """
-        super(LinearPhaseGenerator, self).__init__(tau=tau, delay=delay, learn_tau=learn_tau, learn_delay=learn_delay,
+        super(LinearPhaseGenerator, self).__init__(tau=tau, delay=delay,
+                                                   learn_tau=learn_tau,
+                                                   learn_delay=learn_delay,
                                                    dtype=dtype, device=device)
 
     def phase(self, times: torch.Tensor) -> torch.Tensor:
@@ -35,7 +38,8 @@ class LinearPhaseGenerator(PhaseGenerator):
         # Shape of time
         # [*add_dim, num_times]
 
-        phase = torch.clip((times - self.delay[..., None]) / self.tau[..., None], 0, 1)
+        phase = torch.clip(
+            (times - self.delay[..., None]) / self.tau[..., None], 0, 1)
         return phase
 
     def phase_to_time(self, phases: torch.Tensor) -> torch.Tensor:

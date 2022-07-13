@@ -6,8 +6,8 @@ from matplotlib import pyplot as plt
 
 import mp_pytorch.util as util
 from demo_mp_config import get_mp_utils
-from mp_pytorch import MPFactory
-from mp_pytorch import ProMP
+from mp_pytorch.mp import MPFactory
+from mp_pytorch.mp import ProMP
 
 
 def test_promp():
@@ -19,10 +19,10 @@ def test_promp():
     mp = MPFactory.init_mp(**config)
     assert isinstance(mp, ProMP)
     mp.update_inputs(times=times, params=params, params_L=params_L,
-                        bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
     traj_dict = mp.get_trajs(get_pos=True, get_pos_cov=True,
-                                get_pos_std=True, get_vel=True,
-                                get_vel_cov=True, get_vel_std=True)
+                             get_pos_std=True, get_vel=True,
+                             get_vel_cov=True, get_vel_std=True)
     # Pos
     util.print_line_title("pos")
     print("traj_dict[pos].shape", traj_dict["pos"].shape)
@@ -75,7 +75,7 @@ def test_promp():
 
     mp = MPFactory.init_mp(**config)
     mp.update_inputs(times=times, params=params, params_L=params_L,
-                        bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
     params_dict = mp.learn_mp_params_from_trajs(times, demos)
     # Reconstruct demos using learned weights
     rec_demo = mp.get_traj_pos(times, **params_dict)
@@ -93,7 +93,7 @@ def test_zero_padding_promp():
     mp = MPFactory.init_mp(**config)
     assert isinstance(mp, ProMP)
     mp.update_inputs(times=times, params=params, params_L=params_L,
-                        bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
 
     # Pos
     util.print_line_title("zero padding pos")

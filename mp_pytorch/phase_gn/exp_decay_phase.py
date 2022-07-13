@@ -30,7 +30,9 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
         self.alpha_phase = torch.tensor(alpha_phase).float()
         self.learn_alpha_phase = learn_alpha_phase
 
-        super(ExpDecayPhaseGenerator, self).__init__(tau=tau, delay=delay, learn_tau=learn_tau, learn_delay=learn_delay,
+        super(ExpDecayPhaseGenerator, self).__init__(tau=tau, delay=delay,
+                                                     learn_tau=learn_tau,
+                                                     learn_delay=learn_delay,
                                                      dtype=dtype, device=device)
 
     @property
@@ -81,7 +83,9 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
 
         params_bounds = super().get_params_bounds()
         if self.learn_alpha_phase:
-            alpha_phase_bound = torch.as_tensor([1e-5, np.inf], dtype=self.dtype, device=self.device)[None]
+            alpha_phase_bound = \
+            torch.as_tensor([1e-5, np.inf], dtype=self.dtype,
+                            device=self.device)[None]
             params_bounds = torch.cat([params_bounds, alpha_phase_bound], dim=0)
         return params_bounds
 
@@ -94,7 +98,8 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
         # Shape of time
         # [*add_dim, num_times]
 
-        left_bound_Linear_phase = torch.clip((times - self.delay[..., None]) / self.tau[..., None], min=0)
+        left_bound_Linear_phase = torch.clip(
+            (times - self.delay[..., None]) / self.tau[..., None], min=0)
         return left_bound_Linear_phase
 
     def phase(self, times: torch.Tensor):
@@ -110,7 +115,8 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
         # Shape of time
         # [*add_dim, num_times]
 
-        phase = torch.exp(-self.alpha_phase[..., None] * self.left_bound_linear_phase(times))
+        phase = torch.exp(
+            -self.alpha_phase[..., None] * self.left_bound_linear_phase(times))
         return phase
 
     def phase_to_time(self, phases: torch.Tensor) -> torch.Tensor:
@@ -167,5 +173,6 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
         """
         # Shape of time
         # [*add_dim, num_times]
-        phase = torch.exp(-self.alpha_phase[..., None] * self.unbound_linear_phase(times))
+        phase = torch.exp(
+            -self.alpha_phase[..., None] * self.unbound_linear_phase(times))
         return phase

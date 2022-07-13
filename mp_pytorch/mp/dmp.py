@@ -6,7 +6,7 @@ from typing import Union
 import numpy as np
 import torch
 
-from mp_pytorch import BasisGenerator
+from mp_pytorch.basis_gn import BasisGenerator
 from .mp_interfaces import MPInterface
 
 
@@ -32,7 +32,8 @@ class DMP(MPInterface):
             kwargs: keyword arguments
         """
 
-        super().__init__(basis_gn, num_dof, weight_scale, dtype, device, **kwargs)
+        super().__init__(basis_gn, num_dof, weight_scale, dtype, device,
+                         **kwargs)
 
         # Number of parameters
         self.num_basis_g = self.num_basis + 1
@@ -71,12 +72,14 @@ class DMP(MPInterface):
         # Shape of bc_vel:
         # [*add_dim, num_dof]
 
-        assert list(bc_time.shape) == [*self.add_dim], f"shape of boundary condition time {list(bc_time.shape)} " \
-                                                       f"does not match batch dimension {[*self.add_dim]}"
+        assert list(bc_time.shape) == [
+            *self.add_dim], f"shape of boundary condition time {list(bc_time.shape)} " \
+                            f"does not match batch dimension {[*self.add_dim]}"
         assert list(bc_pos.shape) == list(bc_vel.shape) \
-               and list(bc_vel.shape) == [*self.add_dim, self.num_dof], f"shape of boundary condition position " \
-                                                                        f"{list(bc_pos.shape)} and boundary condition" \
-                                                                        f" velocity do not match {list(bc_vel.shape)}"
+               and list(bc_vel.shape) == [*self.add_dim,
+                                          self.num_dof], f"shape of boundary condition position " \
+                                                         f"{list(bc_pos.shape)} and boundary condition" \
+                                                         f" velocity do not match {list(bc_vel.shape)}"
         super().set_boundary_conditions(bc_time, bc_pos, bc_vel)
 
     def get_traj_pos(self, times=None, params=None,
@@ -128,8 +131,10 @@ class DMP(MPInterface):
         f = torch.einsum('...i,...ik,...jk->...ij', canonical_x, basis, w)
 
         # Initialize trajectory position, velocity
-        pos = torch.zeros([*self.add_dim, self.times.shape[-1], self.num_dof], dtype=self.dtype, device=self.device)
-        vel = torch.zeros([*self.add_dim, self.times.shape[-1], self.num_dof], dtype=self.dtype, device=self.device)
+        pos = torch.zeros([*self.add_dim, self.times.shape[-1], self.num_dof],
+                          dtype=self.dtype, device=self.device)
+        vel = torch.zeros([*self.add_dim, self.times.shape[-1], self.num_dof],
+                          dtype=self.dtype, device=self.device)
 
         # Check boundary condition, the desired times should start from
         # boundary condition time steps
@@ -144,9 +149,19 @@ class DMP(MPInterface):
 
         # Apply Euler Integral
         for i in range(scaled_dt.shape[-1]):
-            acc = (self.alpha * (self.beta * (g - pos[..., i, :]) - vel[..., i, :]) + f[..., i, :])
-            vel[..., i + 1, :] = vel[..., i, :] + torch.einsum('...,...i->...i', scaled_dt[..., i], acc)
-            pos[..., i + 1, :] = pos[..., i, :] + torch.einsum('...,...i->...i', scaled_dt[..., i], vel[..., i + 1, :])
+            acc = (self.alpha * (
+                    self.beta * (g - pos[..., i, :]) - vel[..., i, :]) + f[
+                                                                         ...,
+                                                                         i,
+                                                                         :])
+            vel[..., i + 1, :] = vel[..., i, :] + torch.einsum('...,...i->...i',
+                                                               scaled_dt[
+                                                                   ..., i], acc)
+            pos[..., i + 1, :] = pos[..., i, :] + torch.einsum('...,...i->...i',
+                                                               scaled_dt[
+                                                                   ..., i],
+                                                               vel[..., i + 1,
+                                                               :])
 
         # Unscale velocity to original time space
         vel /= self.phase_gn.tau[..., None, None]

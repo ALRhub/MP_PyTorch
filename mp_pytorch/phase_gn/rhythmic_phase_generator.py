@@ -2,6 +2,7 @@ import numpy as np
 
 from mp_pytorch import PhaseGenerator
 
+
 # TODO: Adjust to mp_pytorch
 class RhythmicPhaseGenerator(PhaseGenerator):
 

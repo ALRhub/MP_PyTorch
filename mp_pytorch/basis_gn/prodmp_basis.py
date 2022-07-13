@@ -29,10 +29,10 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
             device: device of the data
         """
         super(ProDMPBasisGenerator, self).__init__(phase_generator,
-                                                 num_basis,
-                                                 basis_bandwidth_factor,
-                                                 num_basis_outside,
-                                                 dtype, device)
+                                                   num_basis,
+                                                   basis_bandwidth_factor,
+                                                   num_basis_outside,
+                                                   dtype, device)
 
         self.alpha = alpha
         self.scaled_dt = dt / self.phase_generator.tau

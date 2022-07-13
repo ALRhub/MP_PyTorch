@@ -2,9 +2,9 @@ import matplotlib.pyplot as plt
 import torch
 from addict import Dict
 
-from demo import get_mp_utils
-from mp_pytorch import MPFactory
-from mp_pytorch import ProMP
+from demo_mp_config import get_mp_utils
+from mp_pytorch.mp import MPFactory
+from mp_pytorch.mp import ProMP
 from mp_pytorch import util
 
 
@@ -50,9 +50,9 @@ def test_static_delay_and_scale():
 
                 bc_time = times[:, 0]
                 mp.update_inputs(times=times, params=params,
-                                    params_L=params_L,
-                                    bc_time=bc_time, bc_pos=bc_pos,
-                                    bc_vel=bc_vel)
+                                 params_L=params_L,
+                                 bc_time=bc_time, bc_pos=bc_pos,
+                                 bc_vel=bc_vel)
                 traj_pos = mp.get_traj_pos()[0, :, 0]
                 traj_pos = util.to_np(traj_pos)
 
@@ -108,7 +108,7 @@ def test_learnable_delay_and_scale():
         lct = torch.distributions.transforms.LowerCholeskyTransform(
             cache_size=0)
         params_L = lct(torch.randn([1, num_param, num_param]).expand(
-            [num_traj, num_param, num_param]))* params_L_scale_factor
+            [num_traj, num_param, num_param])) * params_L_scale_factor
 
         tau_delay = torch.zeros([num_traj, 2])
         for i, tau in enumerate(tau_list):
@@ -122,9 +122,9 @@ def test_learnable_delay_and_scale():
 
         mp = MPFactory.init_mp(**config)
         mp.update_inputs(times=times, params=params,
-                            params_L=params_L,
-                            bc_time=bc_time, bc_pos=bc_pos,
-                            bc_vel=bc_vel)
+                         params_L=params_L,
+                         bc_time=bc_time, bc_pos=bc_pos,
+                         bc_vel=bc_vel)
 
         traj_pos = mp.get_traj_pos()[..., 0]
         traj_pos = util.to_np(traj_pos)

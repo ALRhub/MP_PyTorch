@@ -7,11 +7,11 @@ from typing import Union
 
 import numpy as np
 import torch
+from mp_pytorch.basis_gn import BasisGenerator
 from torch.distributions import MultivariateNormal
 
-from mp_pytorch import BasisGenerator
-from mp_pytorch.util.util_matrix import tensor_linspace
 import mp_pytorch.util as util
+from mp_pytorch.util.util_matrix import tensor_linspace
 
 
 class MPInterface(ABC):
@@ -120,10 +120,12 @@ class MPInterface(ABC):
         # Shape of times
         # [*add_dim, num_times]
 
-        self.times = torch.as_tensor(times, dtype=self.dtype, device=self.device)
+        self.times = torch.as_tensor(times, dtype=self.dtype,
+                                     device=self.device)
         self.clear_computation_result()
 
-    def set_duration(self, duration: Union[None, torch.Tensor, np.ndarray], dt: Union[torch.Tensor, np.ndarray]):
+    def set_duration(self, duration: Union[None, torch.Tensor, np.ndarray],
+                     dt: Union[torch.Tensor, np.ndarray]):
         """
         Set MP time points from duration
         Args:
@@ -140,13 +142,17 @@ class MPInterface(ABC):
             duration = self.tau
 
         # TODO add BC time
-        duration = torch.atleast_1d(torch.as_tensor(duration, dtype=self.dtype, device=self.device))
-        dt = torch.atleast_1d(torch.as_tensor(dt, dtype=self.dtype, device=self.device))
+        duration = torch.atleast_1d(
+            torch.as_tensor(duration, dtype=self.dtype, device=self.device))
+        dt = torch.atleast_1d(
+            torch.as_tensor(dt, dtype=self.dtype, device=self.device))
         # self.times = torch.linspace(0, duration, int(duration / dt))
-        times = tensor_linspace(0, duration, int(duration / dt)).permute(-1, 0).squeeze()
+        times = tensor_linspace(0, duration, int(duration / dt)).permute(-1,
+                                                                         0).squeeze()
         self.set_times(times)
 
-    def set_params(self, params: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
+    def set_params(self,
+                   params: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
         """
         Set MP params
         Args:
@@ -227,7 +233,8 @@ class MPInterface(ABC):
 
         self.bc_time = torch.as_tensor(bc_time, dtype=self.dtype,
                                        device=self.device)
-        self.bc_pos = torch.as_tensor(bc_pos, dtype=self.dtype, device=self.device)
+        self.bc_pos = torch.as_tensor(bc_pos, dtype=self.dtype,
+                                      device=self.device)
         bc_vel = torch.as_tensor(bc_vel, dtype=self.dtype, device=self.device)
 
         # If velocity is non-zero, then cannot wait
@@ -369,7 +376,8 @@ class ProbabilisticMPInterface(MPInterface):
             **kwargs: keyword arguments
         """
 
-        super().__init__(basis_gn, num_dof, weight_scale, dtype, device, **kwargs)
+        super().__init__(basis_gn, num_dof, weight_scale, dtype, device,
+                         **kwargs)
 
         # Learnable parameters variance
         self.params_L = None
@@ -394,7 +402,8 @@ class ProbabilisticMPInterface(MPInterface):
         self.vel_cov = None
         self.vel_std = None
 
-    def set_mp_params_variances(self, params_L: Union[torch.Tensor, None, np.ndarray]):
+    def set_mp_params_variances(self, params_L: Union[
+        torch.Tensor, None, np.ndarray]):
         """
         Set variance of MP params
         Args:
@@ -406,7 +415,8 @@ class ProbabilisticMPInterface(MPInterface):
         # Shape of params_L
         # [*add_dim, num_mp_params, num_mp_params]
 
-        self.params_L = torch.as_tensor(params_L) if params_L is not None else params_L
+        self.params_L = torch.as_tensor(
+            params_L) if params_L is not None else params_L
         self.clear_computation_result()
 
     def update_inputs(self, times=None, params=None, params_L=None,
@@ -443,8 +453,8 @@ class ProbabilisticMPInterface(MPInterface):
         return params_cov
 
     def get_trajs(self, get_pos=True, get_pos_cov=True, get_pos_std=True,
-                     get_vel=True, get_vel_cov=True, get_vel_std=True,
-                     flat_shape=False, reg: float = 1e-4):
+                  get_vel=True, get_vel_cov=True, get_vel_std=True,
+                  flat_shape=False, reg: float = 1e-4):
         """
         Get movement primitives trajectories given flag
         Args:
@@ -464,22 +474,28 @@ class ProbabilisticMPInterface(MPInterface):
         result = dict()
 
         # pos
-        result["pos"] = self.get_traj_pos(flat_shape=flat_shape) if get_pos else None
+        result["pos"] = self.get_traj_pos(
+            flat_shape=flat_shape) if get_pos else None
 
         # vel
-        result["vel"] = self.get_traj_vel(flat_shape=flat_shape) if get_vel else None
+        result["vel"] = self.get_traj_vel(
+            flat_shape=flat_shape) if get_vel else None
 
         # pos_cov
-        result["pos_cov"] = self.get_traj_pos_cov(reg=reg) if get_pos_cov else None
+        result["pos_cov"] = self.get_traj_pos_cov(
+            reg=reg) if get_pos_cov else None
 
         # pos_std
-        result["pos_std"] = self.get_traj_pos_std(flat_shape=flat_shape, reg=reg) if get_pos_std else None
+        result["pos_std"] = self.get_traj_pos_std(flat_shape=flat_shape,
+                                                  reg=reg) if get_pos_std else None
 
         # vel_cov
-        result["vel_cov"] = self.get_traj_vel_cov(reg=reg) if get_vel_cov else None
+        result["vel_cov"] = self.get_traj_vel_cov(
+            reg=reg) if get_vel_cov else None
 
         # vel_std
-        result["vel_std"] = self.get_traj_vel_std(flat_shape=flat_shape, reg=reg) if get_vel_std else None
+        result["vel_std"] = self.get_traj_vel_std(flat_shape=flat_shape,
+                                                  reg=reg) if get_vel_std else None
 
         return result
 

@@ -3,15 +3,17 @@ from typing import Tuple
 
 import numpy as np
 
-from mp_pytorch import BasisGenerator, PhaseGenerator
+from mp_pytorch import BasisGenerator
+from mp_pytorch import PhaseGenerator
 
 
 class RhythmicBasisGenerator(BasisGenerator):
 
     def __init__(
-            self, phase_generator: PhaseGenerator, n_basis: int = 5, duration: float = 1,
+            self, phase_generator: PhaseGenerator, n_basis: int = 5,
+            duration: float = 1,
             basis_bandwidth_factor: float = 3
-            ):
+    ):
         BasisGenerator.__init__(self, phase_generator, n_basis)
 
         self.num_bandwidth_factor = basis_bandwidth_factor

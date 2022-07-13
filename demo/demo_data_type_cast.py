@@ -40,7 +40,8 @@ def test_to_tss():
         print(f"data: {data}")
 
     util.print_line_title("Casted data")
-    a, b, c, d, e = util.to_tss(a, b, c, d, e, dtype=torch.float64, device="cuda")
+    a, b, c, d, e = util.to_tss(a, b, c, d, e, dtype=torch.float64,
+                                device="cuda")
     for data in [a, b, c, d, e]:
         util.print_line()
         print(data)
