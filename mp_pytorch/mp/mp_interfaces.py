@@ -3,14 +3,15 @@
 """
 from abc import ABC
 from abc import abstractmethod
+from typing import Optional
 from typing import Union
 
 import numpy as np
 import torch
-from mp_pytorch.basis_gn import BasisGenerator
 from torch.distributions import MultivariateNormal
 
 import mp_pytorch.util as util
+from mp_pytorch.basis_gn import BasisGenerator
 from mp_pytorch.util.util_matrix import tensor_linspace
 
 
@@ -124,10 +125,10 @@ class MPInterface(ABC):
                                      device=self.device)
         self.clear_computation_result()
 
-    def set_duration(self, duration: Union[None, torch.Tensor, np.ndarray],
-                     dt: Union[torch.Tensor, np.ndarray]):
+    def set_duration(self, duration: Optional[float], dt: float):
         """
-        Set MP time points from duration
+        Set MP time points of a duration. The times start from bc_time or 0
+
         Args:
             duration: desired duration of trajectory
             dt: control frequency
@@ -136,18 +137,20 @@ class MPInterface(ABC):
         """
 
         # Shape of times
-        # [*add_dim, 1]
+        # [*add_dim, num_times]
 
         if duration is None:
-            duration = self.tau
+            duration = self.tau.max()
+        else:
+            duration = torch.as_tensor(duration, dtype=self.dtype,
+                                       device=self.device)
+        dt = torch.as_tensor(dt, dtype=self.dtype, device=self.device)
+        times = torch.linspace(0, duration, int(duration / dt) + 1)
+        times = util.add_expand_dim(times, list(range(len(self.add_dim))),
+                                    self.add_dim)
+        if self.bc_time is not None:
+            times = times + self.bc_time[..., None]
 
-        # TODO add BC time
-        duration = torch.atleast_1d(
-            torch.as_tensor(duration, dtype=self.dtype, device=self.device))
-        dt = torch.atleast_1d(
-            torch.as_tensor(dt, dtype=self.dtype, device=self.device))
-        times = tensor_linspace(0, duration,
-                                int(duration / dt)).permute(-1, 0).squeeze()
         self.set_times(times)
 
     def set_params(self,
