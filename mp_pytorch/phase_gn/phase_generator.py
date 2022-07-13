@@ -4,7 +4,6 @@
 from abc import ABC
 from abc import abstractmethod
 
-import numpy as np
 import torch
 
 
@@ -37,7 +36,8 @@ class PhaseGenerator(ABC):
         self.device = device
 
         self.tau = torch.as_tensor(tau, dtype=self.dtype, device=self.device)
-        self.delay = torch.tensor(delay, dtype=self.dtype, device=self.device)
+        self.delay = torch.as_tensor(delay, dtype=self.dtype,
+                                     device=self.device)
         self.learn_tau = learn_tau
         self.learn_delay = learn_delay
 
@@ -140,14 +140,16 @@ class PhaseGenerator(ABC):
         # Shape of params_bounds
         # [num_params, 2]
 
-        params_bounds = torch.zeros([0, 2])
+        params_bounds = torch.zeros([0, 2], dtype=self.dtype,
+                                    device=self.device)
         if self.learn_tau:
-            tau_bound = torch.as_tensor([1e-5, np.inf], dtype=self.dtype,
+            tau_bound = torch.as_tensor([1e-5, torch.inf], dtype=self.dtype,
                                         device=self.device)[None]
             params_bounds = torch.cat([params_bounds, tau_bound], dim=0)
         if self.learn_delay:
             delay_bound = \
-            torch.as_tensor([0, np.inf], dtype=self.dtype, device=self.device)[
-                None]
+                torch.as_tensor([0, torch.inf], dtype=self.dtype,
+                                device=self.device)[
+                    None]
             params_bounds = torch.cat([params_bounds, delay_bound], dim=0)
         return params_bounds

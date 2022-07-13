@@ -83,7 +83,7 @@ def to_ts(data: Union[int, float, np.ndarray, torch.Tensor],
         tensor in torch.Tensor
     """
 
-    return torch.asarray(data, dtype=dtype, device=device)
+    return torch.as_tensor(data, dtype=dtype, device=device)
 
 
 def to_tss(*datas: [Union[int, float, np.ndarray, torch.Tensor]],

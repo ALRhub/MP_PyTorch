@@ -146,9 +146,8 @@ class MPInterface(ABC):
             torch.as_tensor(duration, dtype=self.dtype, device=self.device))
         dt = torch.atleast_1d(
             torch.as_tensor(dt, dtype=self.dtype, device=self.device))
-        # self.times = torch.linspace(0, duration, int(duration / dt))
-        times = tensor_linspace(0, duration, int(duration / dt)).permute(-1,
-                                                                         0).squeeze()
+        times = tensor_linspace(0, duration,
+                                int(duration / dt)).permute(-1, 0).squeeze()
         self.set_times(times)
 
     def set_params(self,

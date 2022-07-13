@@ -1,4 +1,3 @@
-import numpy as np
 import torch
 
 from .phase_generator import PhaseGenerator
@@ -84,8 +83,8 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
         params_bounds = super().get_params_bounds()
         if self.learn_alpha_phase:
             alpha_phase_bound = \
-            torch.as_tensor([1e-5, np.inf], dtype=self.dtype,
-                            device=self.device)[None]
+                torch.as_tensor([1e-5, torch.inf], dtype=self.dtype,
+                                device=self.device)[None]
             params_bounds = torch.cat([params_bounds, alpha_phase_bound], dim=0)
         return params_bounds
 
