@@ -7,7 +7,6 @@ from typing import Union
 import numpy as np
 import torch
 
-from mp_pytorch import util
 from mp_pytorch.basis_gn import BasisGenerator
 from .mp_interfaces import ProbabilisticMPInterface
 
