@@ -12,7 +12,7 @@ For the installation we recommened you setup a conda environment or venv beforeh
 1. Clone the repository
 
 ```bash 
-git clone git@github.com:ALRhub/mp_pytorch.git
+git clone git@github.com:ALRhub/MP_PyTorch.git
 ```
 
 2. Go to the folder
