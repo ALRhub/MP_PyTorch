@@ -1,12 +1,12 @@
 """
 @brief:     Probabilistic Movement Primitives in PyTorch
 """
+import logging
 from typing import Union
 
 import numpy as np
 import torch
 
-from mp_pytorch import util
 from mp_pytorch.basis_gn import BasisGenerator
 from .mp_interfaces import ProbabilisticMPInterface
 
@@ -42,9 +42,9 @@ class ProMP(ProbabilisticMPInterface):
             self.padding = torch.nn.ConstantPad2d(
                 (self.basis_gn.num_basis_zero_start,
                  self.basis_gn.num_basis_zero_goal, 0, 0), 0)
-            util.warn("Zero Padding ProMP is being used. Only the traj position"
-                      " and velocity can be computed correctly. The other "
-                      "entities are not guaranteed.")
+            logging.warning("Zero Padding ProMP is being used. Only the traj position"
+                            " and velocity can be computed correctly. The other "
+                            "entities are not guaranteed.")
         else:
             self.padding = lambda x: x
 
