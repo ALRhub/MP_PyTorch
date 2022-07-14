@@ -2,12 +2,27 @@
 
 Movement Primitives in PyTorch
 
-Dependencies:
+## Dependencies:
 pytorch, addict, numpy, matplotlib
 
-Install:
+## Installation
 
-1. create a conda env
-2. activate this env
-3. go into the root dir of current repository
-4. call "pip install -e ."
+For the installation we recommened you setup a conda environment or venv beforehand. 
+
+1. Clone the repository
+
+```bash 
+git clone git@github.com:ALRhub/mp_pytorch.git
+```
+
+2. Go to the folder
+
+```bash 
+cd mp_pytorch
+```
+
+3. Install with
+
+```bash 
+pip install -e .
+```
