@@ -80,7 +80,7 @@ class BasisGenerator(ABC):
             parameters bounds
         """
         # Shape of params_bounds
-        # [num_params, 2]
+        # [2, num_params]
 
         params_bounds = self.phase_generator.get_params_bounds()
         return params_bounds
