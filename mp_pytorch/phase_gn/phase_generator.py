@@ -138,18 +138,16 @@ class PhaseGenerator(ABC):
             parameters bounds
         """
         # Shape of params_bounds
-        # [num_params, 2]
+        # [2, num_params]
 
-        params_bounds = torch.zeros([0, 2], dtype=self.dtype,
+        params_bounds = torch.zeros([2, 0], dtype=self.dtype,
                                     device=self.device)
         if self.learn_tau:
             tau_bound = torch.as_tensor([1e-5, torch.inf], dtype=self.dtype,
-                                        device=self.device)[None]
-            params_bounds = torch.cat([params_bounds, tau_bound], dim=0)
+                                        device=self.device)[..., None]
+            params_bounds = torch.cat([params_bounds, tau_bound], dim=1)
         if self.learn_delay:
-            delay_bound = \
-                torch.as_tensor([0, torch.inf], dtype=self.dtype,
-                                device=self.device)[
-                    None]
-            params_bounds = torch.cat([params_bounds, delay_bound], dim=0)
+            delay_bound = torch.as_tensor([0, torch.inf], dtype=self.dtype,
+                                          device=self.device)[..., None]
+            params_bounds = torch.cat([params_bounds, delay_bound], dim=1)
         return params_bounds

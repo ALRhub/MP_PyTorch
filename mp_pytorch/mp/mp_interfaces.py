@@ -199,14 +199,14 @@ class MPInterface(ABC):
             parameters bounds
         """
         # Shape of params_bounds
-        # [num_params, 2]
+        # [2, num_params]
 
         params_bounds = self.basis_gn.get_params_bounds()
-        local_params_bound = torch.zeros([self._num_local_params, 2],
+        local_params_bound = torch.zeros([2, self._num_local_params],
                                          dtype=self.dtype, device=self.device)
-        local_params_bound[:, 0] = -torch.inf
-        local_params_bound[:, 1] = torch.inf
-        params_bounds = torch.cat([params_bounds, local_params_bound], dim=0)
+        local_params_bound[0, :] = -torch.inf
+        local_params_bound[1, :] = torch.inf
+        params_bounds = torch.cat([params_bounds, local_params_bound], dim=1)
         return params_bounds
 
     def set_boundary_conditions(self, bc_time: Union[torch.Tensor, np.ndarray],

@@ -65,7 +65,8 @@ def test_promp():
 
     # Parameters demo
     util.print_line_title("params_bounds")
-    print(mp.get_params_bounds())
+    low, high = mp.get_params_bounds()
+    print(low, high, sep="\n")
     print(mp.get_params_bounds().shape)
 
     # Learn weights
