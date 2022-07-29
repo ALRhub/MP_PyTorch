@@ -41,6 +41,8 @@ class PhaseGenerator(ABC):
         self.learn_tau = learn_tau
         self.learn_delay = learn_delay
 
+        self.is_finalized = False
+
     @abstractmethod
     def phase(self, times: torch.Tensor) -> torch.Tensor:
         """
@@ -102,17 +104,27 @@ class PhaseGenerator(ABC):
             Unused parameters
         """
         iterator = 0
+        is_finalized = self.is_finalized
+
         if self.learn_tau:
             tau = params[..., iterator]
             assert tau.min() > 0
-            self.tau = tau
+            if is_finalized:
+                pass
+            else:
+                self.tau = tau
             iterator += 1
         if self.learn_delay:
             delay = params[..., iterator]
             assert delay.min() >= 0
-            self.delay = delay
+            if is_finalized:
+                pass
+            else:
+                self.delay = delay
             iterator += 1
         remaining_params = params[..., iterator:]
+
+        self.finalize()
         return remaining_params
 
     def get_params(self) -> torch.Tensor:
@@ -151,3 +163,20 @@ class PhaseGenerator(ABC):
                                           device=self.device)[..., None]
             params_bounds = torch.cat([params_bounds, delay_bound], dim=1)
         return params_bounds
+
+    def finalize(self):
+        """
+        Mark the phase generator as finalized so that the parameters cannot be
+        updated any more
+        Returns: None
+
+        """
+        self.is_finalized = True
+
+    def reset(self):
+        """
+        Unmark the finalization
+        Returns: None
+
+        """
+        self.is_finalized = False

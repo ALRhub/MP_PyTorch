@@ -50,12 +50,18 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
         Returns:
             Unused parameters
         """
+        is_finalized = self.is_finalized
+
         remaining_params = super().set_params(params)
 
         iterator = 0
         if self.learn_alpha_phase:
-            self.alpha_phase = remaining_params[..., iterator]
+            if is_finalized:
+                pass
+            else:
+                self.alpha_phase = remaining_params[..., iterator]
             iterator += 1
+        self.finalize()
         return remaining_params[..., iterator:]
 
     def get_params(self) -> torch.Tensor:
