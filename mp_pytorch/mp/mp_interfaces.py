@@ -125,13 +125,15 @@ class MPInterface(ABC):
                                      device=self.device)
         self.clear_computation_result()
 
-    def set_duration(self, duration: Optional[float], dt: float):
+    def set_duration(self, duration: Optional[float], dt: float,
+                     include_bc_time: bool = False):
         """
         Set MP time points of a duration. The times start from bc_time or 0
 
         Args:
             duration: desired duration of trajectory
             dt: control frequency
+            include_bc_time: if the duration includes the bc time step.
         Returns:
             None
         """
@@ -150,8 +152,10 @@ class MPInterface(ABC):
                                     self.add_dim)
         if self.bc_time is not None:
             times = times + self.bc_time[..., None]
-
-        self.set_times(times)
+        if include_bc_time:
+            self.set_times(times)
+        else:
+            self.set_times(times[..., 1:])
 
     def set_params(self,
                    params: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
