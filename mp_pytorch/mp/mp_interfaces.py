@@ -366,7 +366,7 @@ class MPInterface(ABC):
 
     def finalize(self):
         """
-        Mark the phase generator as finalized so that the parameters cannot be
+        Mark the MP as finalized so that the parameters cannot be
         updated any more
         Returns: None
 
