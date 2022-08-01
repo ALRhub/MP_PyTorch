@@ -139,3 +139,12 @@ class BasisGenerator(ABC):
 
         # Return
         return basis_multi_dofs
+
+    @abstractmethod
+    def show_basis(self) -> torch.Tensor:
+        """
+        Compute basis function values for debug usage
+        Returns: basis function values
+
+        """
+        pass

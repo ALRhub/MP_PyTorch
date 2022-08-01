@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 
 from mp_pytorch.phase_gn import PhaseGenerator
@@ -97,6 +99,19 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
 
         # Return
         return basis
+
+    def show_basis(self) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Compute basis function values for debug usage
+        The times are in the range of [delay - tau, delay + 2 * tau]
+
+        Returns: basis function values
+
+        """
+        tau = self.phase_generator.tau
+        delay = self.phase_generator.delay
+        times = torch.linspace(delay - tau, delay + 2 * tau, steps=1000)
+        return times, self.basis(times)
 
 
 class ZeroPaddingNormalizedRBFBasisGenerator(NormalizedRBFBasisGenerator):
