@@ -247,9 +247,9 @@ class MPInterface(ABC):
 
         # If velocity is non-zero, then cannot wait
         if torch.count_nonzero(bc_vel) != 0:
-            assert torch.count_nonzero(self.phase_gn.delay) == 0, \
-                "Cannot set non-zero boundary velocity if there is a " \
-                "non-zero delay ."
+            assert torch.all(self.bc_time - self.phase_gn.delay >= 0), \
+                "Cannot set non-zero boundary velocity if boundary condition " \
+                "value(s) is (are) smaller than delay value(s)"
         self.bc_vel = bc_vel
         self.clear_computation_result()
 
