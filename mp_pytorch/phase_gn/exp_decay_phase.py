@@ -13,7 +13,7 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
                  learn_alpha_phase: bool = False,
                  dtype: torch.dtype = torch.float32,
                  device: torch.device = 'cpu',
-                 ):
+                 *args, **kwargs):
         """
         Constructor for exponential decay phase generator
         Args:
@@ -25,14 +25,22 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
             learn_alpha_phase: if alpha_phase is a learnable parameter
             dtype: torch data type
             device: torch device to run on
+            *args: other arguments list
+            **kwargs: other keyword arguments
         """
         self.alpha_phase = torch.tensor(alpha_phase).float()
         self.learn_alpha_phase = learn_alpha_phase
 
+        if learn_alpha_phase:
+            self.alpha_phase_bound = kwargs.get("alpha_phase_bound",
+                                                [1e-5, torch.inf])
+            assert len(self.alpha_phase_bound) == 2
+
         super(ExpDecayPhaseGenerator, self).__init__(tau=tau, delay=delay,
                                                      learn_tau=learn_tau,
                                                      learn_delay=learn_delay,
-                                                     dtype=dtype, device=device)
+                                                     dtype=dtype, device=device,
+                                                     *args, **kwargs)
 
     @property
     def _num_local_params(self) -> int:
@@ -83,7 +91,7 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
         params_bounds = super().get_params_bounds()
         if self.learn_alpha_phase:
             alpha_phase_bound = \
-                torch.as_tensor([1e-5, torch.inf], dtype=self.dtype,
+                torch.as_tensor(self.alpha_phase_bound, dtype=self.dtype,
                                 device=self.device)[..., None]
             params_bounds = torch.cat([params_bounds, alpha_phase_bound], dim=1)
         return params_bounds

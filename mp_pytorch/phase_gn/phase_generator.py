@@ -41,6 +41,13 @@ class PhaseGenerator(ABC):
         self.learn_tau = learn_tau
         self.learn_delay = learn_delay
 
+        if learn_tau:
+            self.tau_bound = kwargs.get("tau_bound", [1e-5, torch.inf])
+            assert len(self.tau_bound) == 2
+        if learn_delay:
+            self.delay_bound = kwargs.get("delay_bound", [0, torch.inf])
+            assert len(self.delay_bound) == 2
+
     @abstractmethod
     def phase(self, times: torch.Tensor) -> torch.Tensor:
         """
@@ -143,11 +150,11 @@ class PhaseGenerator(ABC):
         params_bounds = torch.zeros([2, 0], dtype=self.dtype,
                                     device=self.device)
         if self.learn_tau:
-            tau_bound = torch.as_tensor([1e-5, torch.inf], dtype=self.dtype,
+            tau_bound = torch.as_tensor(self.tau_bound, dtype=self.dtype,
                                         device=self.device)[..., None]
             params_bounds = torch.cat([params_bounds, tau_bound], dim=1)
         if self.learn_delay:
-            delay_bound = torch.as_tensor([0, torch.inf], dtype=self.dtype,
+            delay_bound = torch.as_tensor(self.delay_bound, dtype=self.dtype,
                                           device=self.device)[..., None]
             params_bounds = torch.cat([params_bounds, delay_bound], dim=1)
         return params_bounds

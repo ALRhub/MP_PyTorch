@@ -65,6 +65,21 @@ class MPInterface(ABC):
         self.pos = None
         self.vel = None
 
+        # Local parameters bound
+        self.local_params_bound = kwargs.get("params_bound", None)
+        if not self.local_params_bound:
+            self.local_params_bound = torch.zeros([2, self._num_local_params],
+                                                  dtype=self.dtype,
+                                                  device=self.device)
+            self.local_params_bound[0, :] = -torch.inf
+            self.local_params_bound[1, :] = torch.inf
+        else:
+            self.local_params_bound = torch.as_tensor(self.local_params_bound,
+                                                      dtype=self.dtype,
+                                                      device=self.device)
+        assert list(self.local_params_bound.shape) == [2,
+                                                       self._num_local_params]
+
     @property
     def learn_tau(self):
         return self.phase_gn.learn_tau
@@ -206,11 +221,8 @@ class MPInterface(ABC):
         # [2, num_params]
 
         params_bounds = self.basis_gn.get_params_bounds()
-        local_params_bound = torch.zeros([2, self._num_local_params],
-                                         dtype=self.dtype, device=self.device)
-        local_params_bound[0, :] = -torch.inf
-        local_params_bound[1, :] = torch.inf
-        params_bounds = torch.cat([params_bounds, local_params_bound], dim=1)
+        params_bounds = torch.cat([params_bounds, self.local_params_bound],
+                                  dim=1)
         return params_bounds
 
     def set_boundary_conditions(self, bc_time: Union[torch.Tensor, np.ndarray],
