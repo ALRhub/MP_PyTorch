@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 
 from mp_pytorch import util
@@ -302,3 +304,35 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
                                                indices=time_indices)
 
         return y_1_value, y_2_value, dy_1_value, dy_2_value
+
+    def show_basis(self, plot=False) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Compute basis function values for debug usage
+        The times are in the range of [delay - tau, delay + 2 * tau]
+
+        Returns: basis function values
+
+        """
+        tau = self.phase_generator.tau
+        delay = self.phase_generator.delay
+        assert tau.ndim == 0 and delay.ndim == 0
+        times = torch.linspace(delay - tau, delay + 2 * tau, steps=1000)
+        basis_values = self.basis(times)
+        if plot:
+            import matplotlib.pyplot as plt
+            fig, axes = plt.subplots(1, 2, sharex=True, squeeze=False)
+            for i in range(basis_values.shape[-1] - 1):
+                axes[0, 0].plot(times, basis_values[:, i], label=f"w_basis_{i}")
+            axes[0, 0].grid()
+            axes[0, 0].legend()
+            axes[0, 0].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
+            axes[0, 0].axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
+
+            axes[0, 1].plot(times, basis_values[:, -1], label=f"goal_basis")
+            axes[0, 1].grid()
+            axes[0, 1].legend()
+            axes[0, 1].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
+            axes[0, 1].axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
+
+            plt.show()
+        return times, basis_values
