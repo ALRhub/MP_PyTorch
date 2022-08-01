@@ -1,6 +1,8 @@
 """
 @brief:     Basis generators in PyTorch
 """
+from typing import Tuple
+
 from mp_pytorch.phase_gn.phase_generator import *
 
 
@@ -140,11 +142,27 @@ class BasisGenerator(ABC):
         # Return
         return basis_multi_dofs
 
-    @abstractmethod
-    def show_basis(self) -> torch.Tensor:
+    def show_basis(self, plot=False) -> Tuple[torch.Tensor, torch.Tensor]:
         """
         Compute basis function values for debug usage
+        The times are in the range of [delay - tau, delay + 2 * tau]
+
         Returns: basis function values
 
         """
-        pass
+        tau = self.phase_generator.tau
+        delay = self.phase_generator.delay
+        assert tau.ndim == 0 and delay.ndim == 0
+        times = torch.linspace(delay - tau, delay + 2 * tau, steps=1000)
+        basis_values = self.basis(times)
+        if plot:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            for i in range(basis_values.shape[-1]):
+                plt.plot(times, basis_values[:, i], label=f"basis_{i}")
+            plt.grid()
+            plt.legend()
+            plt.axvline(x=delay, linestyle='--', color='k', alpha=0.3)
+            plt.axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
+            plt.show()
+        return times, basis_values
