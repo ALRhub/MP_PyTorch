@@ -315,6 +315,7 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
         """
         tau = self.phase_generator.tau
         delay = self.phase_generator.delay
+        assert tau.ndim == 0 and delay.ndim == 0
         times = torch.linspace(delay - tau, delay + 2 * tau, steps=1000)
         basis_values = self.basis(times)
         if plot:
