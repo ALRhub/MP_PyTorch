@@ -29,6 +29,9 @@ class BasisGenerator(ABC):
         self._num_basis = num_basis
         self.phase_generator = phase_generator
 
+        # Flag of finalized basis generator
+        self.is_finalized = False
+
     @property
     def num_basis(self) -> int:
         """
@@ -62,6 +65,7 @@ class BasisGenerator(ABC):
         """
 
         remaining_params = self.phase_generator.set_params(params)
+        self.finalize()
         return remaining_params
 
     def get_params(self) -> torch.Tensor:
@@ -141,6 +145,24 @@ class BasisGenerator(ABC):
 
         # Return
         return basis_multi_dofs
+
+    def finalize(self):
+        """
+        Mark the basis generator as finalized so that the parameters cannot be
+        updated any more
+        Returns: None
+
+        """
+        self.is_finalized = True
+
+    def reset(self):
+        """
+        Unmark the finalization
+        Returns: None
+
+        """
+        self.phase_generator.reset()
+        self.is_finalized = False
 
     def show_basis(self, plot=False) -> Tuple[torch.Tensor, torch.Tensor]:
         """

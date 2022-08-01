@@ -12,7 +12,6 @@ from torch.distributions import MultivariateNormal
 
 import mp_pytorch.util as util
 from mp_pytorch.basis_gn import BasisGenerator
-from mp_pytorch.util.util_matrix import tensor_linspace
 
 
 class MPInterface(ABC):
@@ -64,6 +63,9 @@ class MPInterface(ABC):
         # inputs are reset
         self.pos = None
         self.vel = None
+
+        # Flag of if the MP instance is finalized
+        self.is_finalized = False
 
     @property
     def learn_tau(self):
@@ -361,6 +363,24 @@ class MPInterface(ABC):
             learned parameters
         """
         pass
+
+    def finalize(self):
+        """
+        Mark the MP as finalized so that the parameters cannot be
+        updated any more
+        Returns: None
+
+        """
+        self.is_finalized = True
+
+    def reset(self):
+        """
+        Unmark the finalization
+        Returns: None
+
+        """
+        self.basis_gn.reset()
+        self.is_finalized = False
 
 
 class ProbabilisticMPInterface(MPInterface):
@@ -689,6 +709,7 @@ class ProbabilisticMPInterface(MPInterface):
             bc_vel_smp = None
 
         # Update inputs
+        self.reset()
         self.update_inputs(times_smp, params_smp, None,
                            bc_time_smp, bc_pos_smp, bc_vel_smp)
 
@@ -699,6 +720,7 @@ class ProbabilisticMPInterface(MPInterface):
         # Recover old inputs
         if params_super.nelement() != 0:
             params = torch.cat([params_super, params], dim=-1)
+        self.reset()
         self.update_inputs(times, params, None, bc_time, bc_pos, bc_vel)
 
         return pos_smp, vel_smp
