@@ -440,8 +440,8 @@ class ProbabilisticMPInterface(MPInterface):
         self.vel_cov = None
         self.vel_std = None
 
-    def set_mp_params_variances(self, params_L: Union[
-        torch.Tensor, None, np.ndarray]):
+    def set_mp_params_variances(self,
+                                params_L: Union[torch.Tensor, None, np.ndarray]):
         """
         Set variance of MP params
         Args:
