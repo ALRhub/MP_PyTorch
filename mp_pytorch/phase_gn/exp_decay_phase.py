@@ -1,3 +1,6 @@
+from typing import Union
+
+import numpy as np
 import torch
 
 from .phase_generator import PhaseGenerator
@@ -49,7 +52,8 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
         """
         return super()._num_local_params + int(self.learn_alpha_phase)
 
-    def set_params(self, params: torch.Tensor) -> torch.Tensor:
+    def set_params(self,
+                   params: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
         """
         Set parameters of current object and attributes
         Args:
@@ -58,6 +62,8 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
         Returns:
             Unused parameters
         """
+        params = torch.as_tensor(params, dtype=self.dtype, device=self.device)
+
         is_finalized = self.is_finalized
 
         remaining_params = super().set_params(params)

@@ -3,7 +3,9 @@
 """
 from abc import ABC
 from abc import abstractmethod
+from typing import Union
 
+import numpy as np
 import torch
 
 
@@ -101,7 +103,8 @@ class PhaseGenerator(ABC):
         """
         return self._num_local_params
 
-    def set_params(self, params: torch.Tensor) -> torch.Tensor:
+    def set_params(self,
+                   params: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
         """
         Set parameters of current object and attributes
         Args:
@@ -110,6 +113,8 @@ class PhaseGenerator(ABC):
         Returns:
             Unused parameters
         """
+        params = torch.as_tensor(params, dtype=self.dtype, device=self.device)
+
         iterator = 0
         is_finalized = self.is_finalized
 
