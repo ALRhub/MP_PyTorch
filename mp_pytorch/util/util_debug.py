@@ -3,25 +3,23 @@
 """
 
 import time
-from typing import Callable
 from typing import Optional
 from typing import Union
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
+from typing import Callable
+import matplotlib.pyplot as plt
+import mp_pytorch.util as util
 
-from mp_pytorch import util
 
-
-def how_fast(repeat: int, func: Callable, *args, **kwargs):
+def how_fast(repeat: int, func: Callable, *args):
     """
     Test how fast a given function call is
     Args:
         repeat: number of times to run the function
         func: function to be tested
         *args: list of arguments used in the function call
-        **kwargs: dict of arguments used in the function call
 
     Returns:
         avg duration function call
@@ -32,7 +30,7 @@ def how_fast(repeat: int, func: Callable, *args, **kwargs):
     run_time_test(lock=True)
     try:
         for i in range(repeat):
-            func(*args, **kwargs)
+            func(*args)
         duration = run_time_test(lock=False)
         if duration is not None:
             print(f"total_time of {repeat} runs: {duration} s")
@@ -92,7 +90,7 @@ def run_time_test(lock: bool) -> Optional[float]:
 
 
 def debug_plot(x: Union[np.ndarray, torch.Tensor],
-               y: [], labels: [] = None, title="debug_plot", grid=True) -> \
+               y: [], labels: []=None, title="debug_plot", grid=True) -> \
         plt.Figure:
     """
     One line to plot some variable for debugging, numpy + torch
@@ -113,13 +111,12 @@ def debug_plot(x: Union[np.ndarray, torch.Tensor],
 
     for i, yi in enumerate(y):
         yi = util.to_np(yi)
-        label = labels[i] if labels is not None else None
         if x is not None:
             x = util.to_np(x)
+            label = labels[i] if labels is not None else None
             plt.plot(x, yi, label=label)
         else:
-            plt.plot(yi, label=label)
-
+            plt.plot(yi)
     plt.title(title)
     if labels is not None:
         plt.legend()

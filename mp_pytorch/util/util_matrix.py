@@ -1,35 +1,10 @@
 """
     Utilities of matrix operation
 """
-from typing import Optional
 from typing import Union
 
 import numpy as np
 import torch
-
-
-def build_lower_matrix(param_diag: torch.Tensor,
-                       param_off_diag: Optional[torch.Tensor]) -> torch.Tensor:
-    """
-    Compose the lower triangular matrix L from diag and off-diag elements
-    It seems like faster than using the cholesky transformation from PyTorch
-    Args:
-        param_diag: diagonal parameters
-        param_off_diag: off-diagonal parameters
-
-    Returns:
-        Lower triangular matrix L
-
-    """
-    dim_pred = param_diag.shape[-1]
-    # Fill diagonal terms
-    L = param_diag.diag_embed()
-    if param_off_diag is not None:
-        # Fill off-diagonal terms
-        [row, col] = torch.tril_indices(dim_pred, dim_pred, -1)
-        L[..., row, col] = param_off_diag[..., :]
-
-    return L
 
 
 def add_expand_dim(data: Union[torch.Tensor, np.ndarray],
@@ -48,7 +23,8 @@ def add_expand_dim(data: Union[torch.Tensor, np.ndarray],
     num_data_dim = data.ndim
     num_dim_to_add = len(add_dim_indices)
 
-    add_dim_reverse_indices = [num_data_dim + num_dim_to_add + idx for idx in add_dim_indices]
+    add_dim_reverse_indices = [num_data_dim + num_dim_to_add + idx
+                               for idx in add_dim_indices]
 
     str_add_dim = ""
     str_expand = ""

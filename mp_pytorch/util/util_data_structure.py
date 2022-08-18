@@ -1,34 +1,36 @@
 """
     Utilities of data type and structure
 """
-# from typing import Literal
+from typing import List
+from typing import Literal
+from typing import Tuple
 from typing import Union
 
 import numpy as np
 import torch
 
 
-# def make_iterable(data: any, default: Literal['tuple', 'list'] = 'tuple') \
-#         -> Union[Tuple, List]:
-#     """
-#     Make data a tuple or list, i.e. (data) or [data]
-#     Args:
-#         data: some data
-#         default: default type
-#     Returns:
-#         (data) if it is not a tuple
-#     """
-#     if isinstance(data, tuple):
-#         return data
-#     elif isinstance(data, list):
-#         return data
-#     else:
-#         if default == 'tuple':
-#             return (data,)  # Do not use tuple()
-#         elif default == 'list':
-#             return [data, ]
-#         else:
-#             raise NotImplementedError
+def make_iterable(data: any, default: Literal['tuple', 'list'] = 'tuple') \
+        -> Union[Tuple, List]:
+    """
+    Make data a tuple or list, i.e. (data) or [data]
+    Args:
+        data: some data
+        default: default type
+    Returns:
+        (data) if it is not a tuple
+    """
+    if isinstance(data, tuple):
+        return data
+    elif isinstance(data, list):
+        return data
+    else:
+        if default == 'tuple':
+            return (data,)  # Do not use tuple()
+        elif default == 'list':
+            return [data, ]
+        else:
+            raise NotImplementedError
 
 
 def to_np(tensor: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
@@ -43,9 +45,11 @@ def to_np(tensor: Union[np.ndarray, torch.Tensor]) -> np.ndarray:
     if is_np(tensor):
         return tensor
     elif is_ts(tensor):
-        return tensor.detach().cpu().numpy()
-    else:
-        np.array(tensor)
+        if tensor.device.type == "cpu":
+            return tensor.numpy()
+        elif tensor.device.type == "cuda":
+            return tensor.cpu().numpy()
+    raise NotImplementedError
 
 
 def to_nps(*tensors: [Union[np.ndarray, torch.Tensor]]) -> [np.ndarray]:
@@ -65,63 +69,6 @@ def is_np(data: any) -> bool:
     is data a numpy array?
     """
     return isinstance(data, np.ndarray)
-
-
-def to_ts(data: Union[int, float, np.ndarray, torch.Tensor],
-          # dtype: Literal["float32", "float64"] = "float32",
-          # device: Literal["cpu", "cuda"] = "cpu"
-          dtype: torch.dtype = torch.float32,
-          device: str = 'cpu'
-          ) -> torch.Tensor:
-    """
-    Transfer any numerical input to a torch tensor in default data type + device
-
-    Args:
-        device: device of the tensor, default: cpu
-        dtype: data type of tensor, float 32 or float 64 (double)
-        data: float, np.ndarray, torch.Tensor
-
-    Returns:
-        tensor in torch.Tensor
-    """
-    if dtype == "float32":
-        data_type = torch.float32
-    elif dtype == "float64":
-        data_type = torch.float64
-    else:
-        raise NotImplementedError
-
-    # if isinstance(data, float) or isinstance(data, int):
-    #     return torch.tensor(data, dtype=data_type, device=device)
-    # elif is_ts(data):
-    #     return data.clone().detach().to(device).type(data_type)
-    #
-    # elif is_np(data):
-    #     return torch.tensor(data, dtype=data_type, device=device)
-    # else:
-    #     raise NotImplementedError
-    return torch.as_tensor(data, dtype=data_type, device=device)
-
-
-def to_tss(*datas: [Union[int, float, np.ndarray, torch.Tensor]],
-           # dtype: Literal["float32", "float64"] = "float32",
-           # device: Literal["cpu", "cuda"] = "cpu")
-           dtype: torch.dtype = torch.float32,
-           device: str = 'cpu'
-           ) -> [torch.Tensor]:
-    """
-    transfer a list of any type of numerical input to a list of tensors in given
-    data type and device
-
-    Args:
-        datas: a list of data
-        dtype: data type of tensor, float 32 or float 64 (double)
-        device: device of the tensor, default: cpu
-
-    Returns:
-        a list of np.ndarray
-    """
-    return [to_ts(data, dtype, device) for data in datas]
 
 
 def is_ts(data: any) -> bool:

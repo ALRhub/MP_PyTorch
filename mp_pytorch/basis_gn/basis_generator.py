@@ -8,21 +8,13 @@ class BasisGenerator(ABC):
     @abstractmethod
     def __init__(self,
                  phase_generator: PhaseGenerator,
-                 num_basis: int = 10,
-                 dtype: torch.dtype = torch.float32,
-                 device: torch.device = 'cpu',
-                 ):
+                 num_basis: int = 10):
         """
         Constructor for basis class
         Args:
             phase_generator: phase generator
             num_basis: number of basis functions
-            dtype: torch data type
-            device: torch device to run on
         """
-        self.dtype = dtype
-        self.device = device
-
         self._num_basis = num_basis
         self.phase_generator = phase_generator
 
@@ -69,18 +61,6 @@ class BasisGenerator(ABC):
         params = self.phase_generator.get_params()
         return params
 
-    def get_params_bounds(self) -> torch.Tensor:
-        """
-        Return all learnable parameters' bounds
-        Returns:
-            parameters bounds
-        """
-        # Shape of params_bounds
-        # [num_params, 2]
-
-        params_bounds = self.phase_generator.get_params_bounds()
-        return params_bounds
-
     @abstractmethod
     def basis(self, times: torch.Tensor) -> torch.Tensor:
         """
@@ -124,12 +104,18 @@ class BasisGenerator(ABC):
 
         # Multiple Dofs, shape:
         # [*add_dim, num_dof * num_times, num_dof * num_basis]
-        basis_multi_dofs = torch.zeros(*add_dim, num_dof * num_times, num_dof * num_basis,
-                                       dtype=self.dtype, device=self.device)
+        basis_multi_dofs = torch.zeros(*add_dim,
+                                       num_dof * num_times,
+                                       num_dof * num_basis)
         # Assemble
         for i in range(num_dof):
-            row_indices = slice(i * num_times, (i + 1) * num_times)
-            col_indices = slice(i * num_basis, (i + 1) * num_basis)
+            row_indices = slice(i * num_times,
+                                (i + 1) * num_times)
+            col_indices = slice(i * num_basis,
+                                (i + 1) * num_basis)
             basis_multi_dofs[..., row_indices, col_indices] = basis_single_dof
 
+        # Return
         return basis_multi_dofs
+
+
