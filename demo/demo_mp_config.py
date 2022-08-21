@@ -80,5 +80,7 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
     for i in range(config.num_dof):
         demos[..., i] = torch.sin(2 * times + i)
 
-    return config.to_dict(), times, params, params_L, bc_time, bc_pos, \
-           bc_vel, demos
+    params[:, 10] =5
+    params[:, 21] =5
+    return config.to_dict(), times, params, params_L, bc_time, bc_pos*0, \
+           bc_vel*0, demos
