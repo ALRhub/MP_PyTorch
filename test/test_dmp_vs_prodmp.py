@@ -1,5 +1,7 @@
 import torch
 from addict import Dict
+from matplotlib import pyplot as plt
+
 from mp_pytorch.mp import MPFactory
 
 from mp_pytorch import util
@@ -21,8 +23,8 @@ def get_mp_config():
     config = Dict()
     config.num_dof = 2
     config.tau = 3
-    config.learn_tau = True
-    config.learn_delay = True
+    config.learn_tau = False
+    config.learn_delay = False
 
     config.mp_args.num_basis = 9
     config.mp_args.basis_bandwidth_factor = 2
@@ -43,7 +45,7 @@ def get_mp_config():
     params = torch.Tensor([100, 200, 300, -100, -200, -300,
                            100, 200, 300, -2] * config.num_dof)
     params = util.add_expand_dim(params, [0], [num_traj])
-    params = torch.cat([scale_delay, params], dim=-1)
+    # params = torch.cat([scale_delay, params], dim=-1)
 
     # Get times
     num_t = int(config.tau / config.mp_args.dt) * 2 + 1
@@ -81,11 +83,28 @@ def test_dmp_vs_prodmp_identical(plot=False):
     prodmp_vel = prodmp.get_traj_vel()
 
     if plot:
-        util.debug_plot(x=None, y=[dmp_pos[0, :, 0], prodmp_pos[0, :, 0]],
-                        labels=["dmp", "prodmp"], title="DMP vs. ProDMP")
+        # util.debug_plot(x=None, y=[dmp_pos[0, :, 0], prodmp_pos[0, :, 0]],
+        #                 labels=["dmp", "prodmp"], title="DMP vs. ProDMP")
+        #
+        fig1 = plt.figure()
+        plt.plot(times[0].numpy(), dmp_pos[0, :, 0].numpy(), label="DMPs",
+                 linewidth=3)
+        plt.plot(times[0].numpy(), prodmp_pos[0, :, 0].numpy(),
+                 label="ProDMPs", linestyle="--", linewidth=3)
+        plt.legend()
+        # plt.show()
+        fig1.savefig("/tmp/pos1.pdf", dpi=200, bbox_inches="tight")
+        # util.debug_plot(x=None, y=[dmp_vel[0, :, 0], prodmp_vel[0, :, 0]],
+        #                 labels=["dmp", "prodmp"], title="DMP vs. ProDMP")
 
-        util.debug_plot(x=None, y=[dmp_vel[0, :, 0], prodmp_vel[0, :, 0]],
-                        labels=["dmp", "prodmp"], title="DMP vs. ProDMP")
+        fig2 = plt.figure()
+        plt.plot(times[0].numpy(), dmp_vel[0, :, 0].numpy(), label="DMPs",
+                 linewidth=3)
+        plt.plot(times[0].numpy(), prodmp_vel[0, :, 0].numpy(),
+                 label="ProDMPs", linestyle="--", linewidth=3)
+        plt.legend()
+        # plt.show()
+        fig2.savefig("/tmp/vel1.pdf", dpi=200, bbox_inches="tight")
 
     # Compute error
     error = dmp_pos - prodmp_pos
