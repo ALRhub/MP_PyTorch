@@ -101,7 +101,11 @@ def blending(mean1, L1, mean2, L2):
     pass
 
 
-def combination(mean1, L1, mean2, L2):
+def sigmoid(x, delay):
+    return np.tanh(5 * (x - delay)) * 0.5 + 0.5
+
+
+def combination(mean1, L1, mean2, L2, combine: True):
     config = get_mp_config()
     mp = MPFactory.init_mp(**config)
     bc_time = torch.tensor(0)
@@ -115,10 +119,14 @@ def combination(mean1, L1, mean2, L2):
     traj_mean1 = mp.get_traj_pos().squeeze()
     traj_cov1 = mp.get_traj_pos_cov()
     std1 = torch.sqrt(torch.einsum('...ii->...i', traj_cov1))
-
-    plt.figure()
-    util.fill_between(x=times, y_mean=traj_mean1, y_std=std1, axis=None,
-                      draw_mean=True, color='b')
+    fig, axes = plt.subplots(2, 1, squeeze=True,
+                             gridspec_kw={'height_ratios': [3, 1]},
+                             figsize=(7, 5))
+    util.fill_between(x=times, y_mean=traj_mean1, y_std=std1, axis=axes[0],
+                      draw_mean=True, color='b',
+                      alpha=0.2)
+    axes[0].plot(times, traj_mean1, color='b', linewidth=1, linestyle='--',
+                 label="Demo1")
 
     ############################################################################
     # Group 2
@@ -128,35 +136,71 @@ def combination(mean1, L1, mean2, L2):
     traj_cov2 = mp.get_traj_pos_cov()
 
     std2 = torch.sqrt(torch.einsum('...ii->...i', traj_cov2))
-    util.fill_between(x=times, y_mean=traj_mean2, y_std=std2, axis=None,
-                      draw_mean=True, color='r')
+    util.fill_between(x=times, y_mean=traj_mean2, y_std=std2, axis=axes[0],
+                      draw_mean=True, color='r',
+                      alpha=0.2)
+    axes[0].plot(times, traj_mean2, color='r', linewidth=1, linestyle='--',
+                 label="Demo2")
 
     # plt.show()
 
     ############################################################################
-    inv_cov1 = torch.inverse(traj_cov1)
-    inv_cov2 = torch.inverse(traj_cov2)
-    cov_combine = (inv_cov1 + inv_cov2).inverse()
+    # inv_cov1 = torch.inverse(traj_cov1)
+    # inv_cov2 = torch.inverse(traj_cov2)
+    # cov_combine = (inv_cov1 + inv_cov2).inverse()
+    #
+    # mean_combine = cov_combine @ (inv_cov1 @ traj_mean1 + inv_cov2 @ traj_mean2)
+    # combine_std = torch.sqrt(torch.einsum('...ii->...i', cov_combine))
 
-    mean_combine = cov_combine @ (inv_cov1 @ traj_mean1 + inv_cov2 @ traj_mean2)
-    combine_std = torch.sqrt(torch.einsum('...ii->...i', cov_combine))
+    #
+    if combine:
+        alpha_1 = alpha_2 = np.ones([times.shape[0]])
+    else:
+        alpha_1 = sigmoid(times, 1.5)
+        alpha_2 = -sigmoid(times, 1.5) + 1
+    axes[1].plot(times, alpha_1, label='a1')
+    axes[1].plot(times, alpha_2, label='a2', linestyle='--')
+    axes[1].set_ylim([-0.1, 1.1])
+    axes[1].set_xlim([0, 3])
+    axes[1].legend()
+    # util.debug_plot(times, [alpha_1, alpha_2])
 
+    var_1 = torch.einsum('...ii->...i', traj_cov1)
+    var_2 = torch.einsum('...ii->...i', traj_cov2)
+    inv_var_1 = alpha_1 / var_1
+    inv_var_2 = alpha_2 / var_2
+    var_combine = 1 / (inv_var_1 + inv_var_2)
+    combine_std = torch.sqrt(var_combine)
+    mean_combine = var_combine * (
+            inv_var_1 * traj_mean1 + inv_var_2 * traj_mean2)
+    ############################################################################
     # plt.figure()
     util.fill_between(x=times, y_mean=mean_combine,
-                      y_std=combine_std, axis=None, draw_mean=True, color='g')
-    plt.ylim([-5, 5])
-    plt.xlim([-0, 3])
-    plt.show()
+                      y_std=combine_std, axis=axes[0], draw_mean=True,
+                      color='limegreen',
+                      alpha=0.8)
+    label = "Combination" if combine else "Blending"
+    axes[0].plot(times, mean_combine, color='green', linewidth=3, label=label)
+    axes[0].set_ylim([-4, 4])
+    axes[0].set_xlim([-0, 3])
+    axes[0].scatter(x=[0.8, 2.1], y=[0, 0], s=100, marker='x', color='b',
+                    linewidths=3, zorder=200)
+    axes[0].scatter(x=[1.35, 3], y=[-1, -1], s=100, marker='x', color='r',
+                    linewidths=3, zorder=200)
+    axes[0].legend()
+    fig.savefig(f"/tmp/{label}.pdf", dpi=200, bbox_inches="tight")
+    # plt.show()
+    return traj_mean1, std1, traj_mean2, std2, mean_combine, combine_std
 
 
 if __name__ == "__main__":
     plot = False
 
-    traj_group1 = get_group_traj(np.array([-0.01, 0, 0.9, 2.1, 3]),
+    traj_group1 = get_group_traj(np.array([-0.01, 0, 0.8, 2.1, 3]),
                                  np.array([0, 0, 0, 0, 0]), -6, 7,
                                  plot=plot)
-    traj_group2 = get_group_traj(np.array([-0.001, 0, 1.35, 3, 4]),
-                                 np.array([0, 0, -1, 1, 0]), -12, 9,
+    traj_group2 = get_group_traj(np.array([-0.001, 0, 1.35, 3.01, 4]),
+                                 np.array([0, 0, -1, -1, 0]), -12, 9,
                                  plot=plot)
     params1 = fit_mp(traj_group1, plot=plot)
     params2 = fit_mp(traj_group2, plot=plot)
@@ -164,4 +208,34 @@ if __name__ == "__main__":
     mean1, L1 = compute_cov(params1, plot)
     mean2, L2 = compute_cov(params2, plot)
 
-    combination(mean1, L1, mean2, L2)
+    traj_mean1, std1, traj_mean2, std2, mean_combine, combine_std = combination(
+        mean1, L1, mean2, L2, True)
+    mean_blending, std_blending = combination(mean1, L1, mean2, L2, False)[-2:]
+
+    times = get_times()
+    plt.figure(figsize=(7, 4.9))
+    util.fill_between(x=times, y_mean=traj_mean1, y_std=std1, axis=None,
+                      draw_mean=True, color='b',
+                      alpha=0.2)
+    plt.plot(times, traj_mean1, color='b', linewidth=1,
+                 label="Demo1")
+    util.fill_between(x=times, y_mean=traj_mean2, y_std=std2, axis=None,
+                      draw_mean=True, color='r',
+                      alpha=0.2)
+    plt.plot(times, traj_mean2, color='r', linewidth=1,
+                 label="Demo2")
+    plt.ylim([-4, 4])
+    plt.xlim([-0, 3])
+    plt.scatter(x=[0.8, 2.1], y=[0, 0], s=100, marker='x', color='b',
+                    linewidths=3, zorder=200)
+    plt.scatter(x=[1.35, 3], y=[-1, -1], s=100, marker='x', color='r',
+                    linewidths=3, zorder=200)
+    plt.legend()
+    plt.savefig(f"/tmp/demo.pdf", dpi=200, bbox_inches="tight")
+    # plt.show()
+    #
+    # plt.figure()
+    # util.fill_between(x=times, y_mean=mean_combine,
+    #                   y_std=combine_std, axis=None, draw_mean=True, color='limegreen',
+    #                   alpha=0.8)
+    # plt.show()
