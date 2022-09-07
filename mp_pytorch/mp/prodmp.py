@@ -1,3 +1,6 @@
+from typing import Iterable
+from typing import Union
+
 import torch
 
 from mp_pytorch.basis_gn import ProDMPBasisGenerator
@@ -10,7 +13,8 @@ class ProDMP(ProMP):
     def __init__(self,
                  basis_gn: ProDMPBasisGenerator,
                  num_dof: int,
-                 weight_scale: float = 1.,
+                 weights_scale: Union[float, Iterable] = 1.,
+                 goal_scale: float = 1.,
                  dtype: torch.dtype = torch.float32,
                  device: torch.device = 'cpu',
                  **kwargs):
@@ -19,7 +23,8 @@ class ProDMP(ProMP):
         Args:
             basis_gn: basis function value generator
             num_dof: number of Degrees of Freedoms
-            weight_scale: scaling for the parameters weights
+            weights_scale: scaling for the parameters weights
+            goal_scale: scaling for the goal
             dtype: torch data type
             device: torch device to run on
             kwargs: keyword arguments
@@ -28,11 +33,15 @@ class ProDMP(ProMP):
             raise ValueError(
                 f'ProDMP requires a ProDMP basis generator, {type(basis_gn)} is not supported.')
 
-        super().__init__(basis_gn, num_dof, weight_scale, dtype, device,
+        super().__init__(basis_gn, num_dof, weights_scale, dtype, device,
                          **kwargs)
 
         # Number of parameters
         self.num_basis_g = self.num_basis + 1
+
+        # Goal scale
+        self.goal_scale = goal_scale
+        self.weights_goal_scale = self.get_weights_goal_scale()
 
         # Runtime intermediate variables shared by different getting functions
         self.y1 = None
@@ -58,6 +67,15 @@ class ProDMP(ProMP):
         Returns: number of parameters of current class
         """
         return super()._num_local_params + self.num_dof
+
+    def get_weights_goal_scale(self) -> torch.Tensor:
+        """
+        Returns: the weights and goal scaling vector
+        """
+        w_g_scale = torch.zeros(self.num_basis_g)
+        w_g_scale[:-1] = self.weights_scale
+        w_g_scale[-1] = self.goal_scale
+        return w_g_scale
 
     def set_times(self, times: torch.Tensor):
         """
@@ -153,7 +171,10 @@ class ProDMP(ProMP):
             # Reshape params from [*add_dim, num_dof * num_basis_g]
             # to [*add_dim, num_dof, num_basis_g]
             params = self.params.reshape(
-                [*self.add_dim, self.num_dof, -1]) * self.weight_scale
+                [*self.add_dim, self.num_dof, -1])
+
+            # Scale basis functions
+            pos_H_single = self.pos_H_single * self.weights_goal_scale
 
             # Position and velocity variant (part 3)
             # Einsum shape: [*add_dim, num_times, num_basis_g],
@@ -161,7 +182,7 @@ class ProDMP(ProMP):
             #            -> [*add_dim, num_dof, num_times]
             # Reshape to -> [*add_dim, num_dof * num_times]
             pos_linear = \
-                torch.einsum('...jk,...ik->...ij', self.pos_H_single, params)
+                torch.einsum('...jk,...ik->...ij', pos_H_single, params)
             pos_linear = torch.reshape(pos_linear, [*self.add_dim, -1])
             pos = self.pos_bc + pos_linear
             self.pos = pos
@@ -208,7 +229,12 @@ class ProDMP(ProMP):
         if self.params_L is None:
             return None
 
+        # Get multi dof basis
         self.compute_intermediate_terms_multi_dof()
+
+        # Scale basis functions
+        weights_goal_scale = self.weights_goal_scale.repeat(self.num_dof)
+        pos_H_multi = self.pos_H_multi * weights_goal_scale
 
         # Uncertainty of position
         # Einsum shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g],
@@ -216,8 +242,7 @@ class ProDMP(ProMP):
         #               [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #            -> [*add_dim, num_dof * num_times, num_dof * num_times]
         pos_cov = torch.einsum('...ik,...kl,...jl->...ij',
-                               self.pos_H_multi, self.params_cov,
-                               self.pos_H_multi) * pow(self.weight_scale, 2)
+                               pos_H_multi, self.params_cov, pos_H_multi)
 
         # Determine regularization term to make traj_cov positive definite
         traj_cov_reg = reg
@@ -315,8 +340,10 @@ class ProDMP(ProMP):
 
             # Reshape params from [*add_dim, num_dof * num_basis_g]
             # to [*add_dim, num_dof, num_basis_g]
-            params = self.params.reshape(
-                [*self.add_dim, self.num_dof, -1]) * self.weight_scale
+            params = self.params.reshape([*self.add_dim, self.num_dof, -1])
+
+            # Scale basis functions
+            vel_H_single = self.vel_H_single * self.weights_goal_scale
 
             # Position and velocity variant (part 3)
             # Einsum shape: [*add_dim, num_times, num_basis_g],
@@ -324,7 +351,7 @@ class ProDMP(ProMP):
             #            -> [*add_dim, num_dof, num_times]
             # Reshape to -> [*add_dim, num_dof * num_times]
             vel_linear = \
-                torch.einsum('...jk,...ik->...ij', self.vel_H_single, params)
+                torch.einsum('...jk,...ik->...ij', vel_H_single, params)
             vel_linear = torch.reshape(vel_linear, [*self.add_dim, -1])
             vel = self.vel_bc + vel_linear
 
@@ -375,7 +402,12 @@ class ProDMP(ProMP):
         if self.params_L is None:
             return None
 
+        # Get multi dof basis
         self.compute_intermediate_terms_multi_dof()
+
+        # Scale basis functions
+        weights_goal_scale = self.weights_goal_scale.repeat(self.num_dof)
+        vel_H_multi = self.vel_H_multi * weights_goal_scale
 
         # Uncertainty of velocity
         # Einsum shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g],
@@ -383,8 +415,8 @@ class ProDMP(ProMP):
         #               [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #            -> [*add_dim, num_dof * num_times, num_dof * num_times]
         vel_cov = torch.einsum('...ik,...kl,...jl->...ij',
-                               self.vel_H_multi, self.params_cov,
-                               self.vel_H_multi) * pow(self.weight_scale, 2)
+                               vel_H_multi, self.params_cov,
+                               vel_H_multi)
 
         # Determine regularization term to make traj_cov positive definite
         traj_cov_reg = reg
@@ -497,12 +529,14 @@ class ProDMP(ProMP):
         self.compute_intermediate_terms_single()
         self.compute_intermediate_terms_multi_dof()
 
+        weights_goal_scale = self.weights_goal_scale.repeat(self.num_dof)
+        pos_H_multi = self.pos_H_multi * weights_goal_scale
+
         # Solve this: Aw = B -> w = A^{-1} B
         # Einsum_shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #               [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #            -> [*add_dim, num_dof * num_basis_g, num_dof * num_basis_g]
-        A = torch.einsum('...ki,...kj->...ij', self.pos_H_multi,
-                         self.pos_H_multi)
+        A = torch.einsum('...ki,...kj->...ij', pos_H_multi, pos_H_multi)
         A += torch.eye(self._num_local_params) * reg
 
         # Swap axis and reshape: [*add_dim, num_times, num_dof]
@@ -519,7 +553,7 @@ class ProDMP(ProMP):
         # Einsum_shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #               [*add_dim, num_dof * num_times]
         #            -> [*add_dim, num_dof * num_basis_g]
-        B = torch.einsum('...ki,...k->...i', self.pos_H_multi, pos_wg)
+        B = torch.einsum('...ki,...k->...i', pos_H_multi, pos_wg)
 
         # Shape of weights: [*add_dim, num_dof * num_basis_g]
         params = torch.linalg.solve(A, B)

@@ -2,6 +2,7 @@
 @brief:     Probabilistic Movement Primitives in PyTorch
 """
 import logging
+from typing import Iterable
 from typing import Union
 
 import numpy as np
@@ -17,7 +18,7 @@ class ProMP(ProbabilisticMPInterface):
     def __init__(self,
                  basis_gn: BasisGenerator,
                  num_dof: int,
-                 weight_scale: float = 1.,
+                 weights_scale: Union[float, Iterable] = 1.,
                  dtype: torch.dtype = torch.float32,
                  device: torch.device = 'cpu',
                  **kwargs):
@@ -26,13 +27,13 @@ class ProMP(ProbabilisticMPInterface):
         Args:
             basis_gn: basis function value generator
             num_dof: number of Degrees of Freedoms
-            weight_scale: scaling for the parameters weights
+            weights_scale: scaling for the parameters weights
             dtype: torch data type
             device: torch device to run on
             **kwargs: keyword arguments
         """
 
-        super().__init__(basis_gn, num_dof, weight_scale, dtype, device,
+        super().__init__(basis_gn, num_dof, weights_scale, dtype, device,
                          **kwargs)
 
         # Some legacy code for a smooth start from 0
@@ -42,9 +43,10 @@ class ProMP(ProbabilisticMPInterface):
             self.padding = torch.nn.ConstantPad2d(
                 (self.basis_gn.num_basis_zero_start,
                  self.basis_gn.num_basis_zero_goal, 0, 0), 0)
-            logging.warning("Zero Padding ProMP is being used. Only the traj position"
-                            " and velocity can be computed correctly. The other "
-                            "entities are not guaranteed.")
+            logging.warning(
+                "Zero Padding ProMP is being used. Only the traj position"
+                " and velocity can be computed correctly. The other "
+                "entities are not guaranteed.")
         else:
             self.padding = lambda x: x
 
@@ -114,19 +116,20 @@ class ProMP(ProbabilisticMPInterface):
         else:
             assert self.params is not None
 
-            # Get basis
-            # Shape: [*add_dim, num_times, num_basis]
-            basis_single_dof = self.basis_gn.basis(self.times)
-
             # Reshape params
             # [*add_dim, num_dof * num_basis] -> [*add_dim, num_dof, num_basis]
-            params = self.params.reshape(*self.add_dim, self.num_dof,
-                                         -1) * self.weight_scale
+            params = self.params.reshape(*self.add_dim, self.num_dof, -1)
 
             # Padding if necessary, this is a legacy case
             # [*add_dim, num_dof, num_basis]
             # -> [*add_dim, num_dof, num_basis + num_padding]
             params = self.padding(params)
+            weights_scale = self.padding(self.weights_scale[None])[0]
+
+            # Get basis
+            # Shape: [*add_dim, num_times, num_basis]
+            basis_single_dof = \
+                self.basis_gn.basis(self.times) * weights_scale
 
             # Einsum shape: [*add_dim, num_times, num_basis],
             #               [*add_dim, num_dof, num_basis]
@@ -181,10 +184,16 @@ class ProMP(ProbabilisticMPInterface):
         if self.params_L is None:
             return None
 
+        # Get weights scale
+        if self.weights_scale.ndim == 0:
+            weights_scale = self.weights_scale
+        else:
+            weights_scale = self.weights_scale.repeat(self.num_dof)
+
         # Get basis of all Dofs
         # Shape: [*add_dim, num_dof * num_times, num_dof * num_basis]
-        basis_multi_dofs = self.basis_gn.basis_multi_dofs(self.times,
-                                                          self.num_dof)
+        basis_multi_dofs = self.basis_gn.basis_multi_dofs(
+            self.times, self.num_dof) * weights_scale
 
         # Einsum shape: [*add_dim, num_dof * num_times, num_dof * num_basis]
         #               [*add_dim, num_dof * num_basis, num_dof * num_basis]
@@ -193,7 +202,7 @@ class ProMP(ProbabilisticMPInterface):
         pos_cov = torch.einsum('...ik,...kl,...jl->...ij',
                                basis_multi_dofs,
                                self.params_cov,
-                               basis_multi_dofs) * pow(self.weight_scale, 2)
+                               basis_multi_dofs)
 
         # Determine regularization term to make traj_cov positive definite
         traj_cov_reg = reg
@@ -384,9 +393,16 @@ class ProMP(ProbabilisticMPInterface):
         self.set_add_dim(list(trajs.shape[:-2]))
         self.set_times(times)
 
+        # Get weights scale
+        if self.weights_scale.ndim == 0:
+            weights_scale = self.weights_scale
+        else:
+            weights_scale = self.weights_scale.repeat(self.num_dof)
+
         # Get multiple dof basis function values
         # Tensor [*add_dim, num_dof * num_times, num_dof * num_basis]
-        basis_multi_dofs = self.basis_gn.basis_multi_dofs(times, self.num_dof)
+        basis_multi_dofs = self.basis_gn.basis_multi_dofs(
+            times, self.num_dof) * weights_scale
 
         # Einsum shape: [*add_dim, num_dof * num_times, num_dof * num_basis],
         #               [*add_dim, num_dof * num_times, num_dof * num_basis],

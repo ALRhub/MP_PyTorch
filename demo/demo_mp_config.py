@@ -19,6 +19,8 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
     config.mp_args.alpha = 25
     config.mp_args.alpha_phase = 2
     config.mp_args.dt = 0.01
+    config.mp_args.weights_scale = torch.ones([config.mp_args.num_basis])
+    config.mp_args.goal_scale = 1
     config.mp_type = mp_type
 
     if mp_type == "zero_padding_promp":
