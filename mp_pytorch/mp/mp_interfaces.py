@@ -3,6 +3,7 @@
 """
 from abc import ABC
 from abc import abstractmethod
+from typing import Iterable
 from typing import Optional
 from typing import Union
 
@@ -19,7 +20,7 @@ class MPInterface(ABC):
     def __init__(self,
                  basis_gn: BasisGenerator,
                  num_dof: int,
-                 weight_scale: float = 1.,
+                 weights_scale: Union[float, Iterable] = 1.,
                  dtype: torch.dtype = torch.float32,
                  device: torch.device = 'cpu',
                  **kwargs):
@@ -28,7 +29,7 @@ class MPInterface(ABC):
         Args:
             basis_gn: basis generator
             num_dof: number of dof
-            weight_scale: scaling for the parameters weights
+            weights_scale: scaling for the parameters weights
             dtype: torch.dtype = torch.float32,
             device: torch.device = 'cpu',
             **kwargs: keyword arguments
@@ -45,7 +46,11 @@ class MPInterface(ABC):
         # Number of DoFs
         self.num_dof = num_dof
 
-        self.weight_scale = weight_scale
+        # Scaling of weights
+        self.weights_scale = \
+            torch.as_tensor(weights_scale, dtype=self.dtype, device=self.device)
+        assert self.weights_scale.ndim <= 1, \
+            "weights_scale should be float or 1-dim vector"
 
         # Value caches
         # Compute values at these time points
@@ -399,7 +404,7 @@ class ProbabilisticMPInterface(MPInterface):
     def __init__(self,
                  basis_gn: BasisGenerator,
                  num_dof: int,
-                 weight_scale: float = 1.,
+                 weights_scale: float = 1.,
                  dtype: torch.dtype = torch.float32,
                  device: torch.device = 'cpu',
                  **kwargs):
@@ -408,13 +413,13 @@ class ProbabilisticMPInterface(MPInterface):
         Args:
             basis_gn: basis generator
             num_dof: number of dof
-            weight_scale: scaling for the parameters weights
+            weights_scale: scaling for the parameters weights
             dtype: torch data type
             device: torch device to run on
             **kwargs: keyword arguments
         """
 
-        super().__init__(basis_gn, num_dof, weight_scale, dtype, device,
+        super().__init__(basis_gn, num_dof, weights_scale, dtype, device,
                          **kwargs)
 
         # Learnable parameters variance
@@ -441,7 +446,8 @@ class ProbabilisticMPInterface(MPInterface):
         self.vel_std = None
 
     def set_mp_params_variances(self,
-                                params_L: Union[torch.Tensor, None, np.ndarray]):
+                                params_L: Union[
+                                    torch.Tensor, None, np.ndarray]):
         """
         Set variance of MP params
         Args:
