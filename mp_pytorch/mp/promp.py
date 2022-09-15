@@ -124,7 +124,10 @@ class ProMP(ProbabilisticMPInterface):
             # [*add_dim, num_dof, num_basis]
             # -> [*add_dim, num_dof, num_basis + num_padding]
             params = self.padding(params)
-            weights_scale = self.padding(self.weights_scale[None])[0]
+            if self.weights_scale.ndim != 0:
+                weights_scale = self.padding(self.weights_scale[None])[0]
+            else:
+                weights_scale = self.weights_scale
 
             # Get basis
             # Shape: [*add_dim, num_times, num_basis]
