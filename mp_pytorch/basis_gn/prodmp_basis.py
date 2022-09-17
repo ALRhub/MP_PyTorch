@@ -188,7 +188,7 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
         time_indices = self.times_to_indices(times, False)
         basis = util.indexing_interpolate(data=self.pc_pos_basis,
                                           indices=time_indices)
-        basis[..., :-1] = basis[..., :-1] * 1000
+        basis[..., :-1] = basis[..., :-1] #* 1000
         return basis
 
     def vel_basis(self, times: torch.Tensor):
