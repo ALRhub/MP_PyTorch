@@ -5,6 +5,7 @@ from matplotlib import pyplot as plt
 from mp_pytorch.mp import MPFactory
 
 from mp_pytorch import util
+from mp_pytorch.mp import ProMP
 
 
 def get_mp_config():
@@ -70,17 +71,27 @@ def test_dmp_vs_prodmp_identical(plot=False):
     config.mp_type = "prodmp"
     prodmp = MPFactory.init_mp(**config.to_dict())
 
+    config.mp_args.num_basis = 5
+    promp = MPFactory.init_mp(**config.to_dict())
+
     # Get trajectory
     dmp.update_inputs(times=times, params=params,
                       bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
 
     prodmp.update_inputs(times=times, params=params, params_L=None,
                          bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
-
+    util.run_time_test(lock=True)
     dmp_pos = dmp.get_traj_pos()
+    util.run_time_test(lock=False)
     dmp_vel = dmp.get_traj_vel()
+
+    util.run_time_test(lock=True)
     prodmp_pos = prodmp.get_traj_pos()
+    util.run_time_test(lock=False)
+
     prodmp_vel = prodmp.get_traj_vel()
+    promp.learn_mp_params_from_trajs(times=times, trajs=dmp_pos)
+    promp_pos = promp.get_traj_pos()
 
     if plot:
         # util.debug_plot(x=None, y=[dmp_pos[0, :, 0], prodmp_pos[0, :, 0]],
@@ -92,11 +103,14 @@ def test_dmp_vs_prodmp_identical(plot=False):
         plt.plot(times[0].numpy(), prodmp_pos[0, :, 0].numpy(),
                  label="ProDMPs", linestyle="--", linewidth=3, dashes=(5, 5),
                  color='gold')
+        plt.plot(times[0].numpy(), promp_pos[0, :, 0].numpy(),
+                 label="ProMPs", linestyle="--", linewidth=3, dashes=(10, 5),
+                 color='red')
         plt.legend(handlelength=5, borderpad=1.2, labelspacing=1.2)
         plt.ylim([-5.3, 5.3])
         plt.grid(True)
-        # plt.show()
-        fig1.savefig("/tmp/pos1.pdf", dpi=200, bbox_inches="tight")
+        plt.show()
+        # fig1.savefig("/tmp/pos1.pdf", dpi=200, bbox_inches="tight")
         # util.debug_plot(x=None, y=[dmp_vel[0, :, 0], prodmp_vel[0, :, 0]],
         #                 labels=["dmp", "prodmp"], title="DMP vs. ProDMP")
 
@@ -109,6 +123,7 @@ def test_dmp_vs_prodmp_identical(plot=False):
         # plt.show()
         # fig2.savefig("/tmp/vel1.pdf", dpi=200, bbox_inches="tight")
 
+    return
     new_bc_pos = dmp_pos[:, 1000]
     new_bc_vel = dmp_vel[:, 1000]
     new_bc_time = times[:, 1000]
@@ -137,7 +152,8 @@ def test_dmp_vs_prodmp_identical(plot=False):
     #                   y_std=prodmp_std[0, :, 0].numpy())
 
     # samples
-    plt.plot(new_times[0].numpy(), prodmp_samples[0, :, :, 0].numpy().T, linewidth=3)
+    plt.plot(new_times[0].numpy(), prodmp_samples[0, :, :, 0].numpy().T,
+             linewidth=3)
     plt.ylim([-5.3, 5.3])
     plt.axvline(x=times[0, 1000].numpy(), alpha=0.7, linewidth=3, color='b',
                 label='Replanning time')
@@ -147,11 +163,80 @@ def test_dmp_vs_prodmp_identical(plot=False):
     plt.legend(handlelength=5, borderpad=1.2, labelspacing=1.2)
     fig3.savefig("/tmp/sample.pdf", dpi=200, bbox_inches="tight")
 
-    # Compute error
-    # error = dmp_pos - prodmp_pos
-    # print(f"Desired_max_error: {0.000406}, "
-    #       f"Actual_error: {error.max()}")
-    # assert error.max() < 4.1e-3
+
+def promp_conditioning(promp: ProMP, params, params_L,
+                       time, des_pos, des_pos_L):
+    # Shape of params:
+    # [*add_dim, num_dof * num_basis]
+    #
+    # Shape of params_L:
+    # [*add_dim, num_dof * num_basis, num_dof * num_basis]
+    #
+    # Shape of time:
+    # [*add_dim, num_times]
+    #
+    # Shape of des_pos:
+    # [*add_dim, num_dof * num_times]
+    #
+    # Shape of des_pos_L:
+    # [*add_dim, num_dof * num_times, num_dof * num_times]
+
+    # Einsum shape:
+    # [*add_dim, num_dof * num_basis, num_dof * num_basis],
+    # [*add_dim, num_dof * num_basis, num_dof * num_basis],
+    # -> [*add_dim, num_dof * num_basis, num_dof * num_basis]
+    params_cov = torch.einsum('...ij,...kj->...ik', params_L, params_L)
+
+    # Einsum shape:
+    # [*add_dim, num_dof * num_times, num_dof * num_times],
+    # [*add_dim, num_dof * num_times, num_dof * num_times],
+    # -> [*add_dim, num_dof * num_times, num_dof * num_times]
+    des_pos_cov = torch.einsum('...ij,...kj->...ik', des_pos_L, des_pos_L)
+
+    # Shape:
+    # [*add_dim, num_dof * num_times, num_dof * num_basis]
+    m_basis = promp.basis_gn.basis_multi_dofs(time, num_dof=promp.num_dof)
+
+    # Einsum shape:
+    # [*add_dim, num_dof * num_times, num_dof * num_basis],
+    # [*add_dim, num_dof * num_basis, num_dof * num_basis],
+    # [*add_dim, num_dof * num_times, num_dof * num_basis],
+    # -> [*add_dim, num_dof * num_times, num_dof * num_times]
+    temp1 = des_pos_cov + torch.einsum('...ik,...kl,...jl->...ij',
+                                       m_basis, params_cov, m_basis)
+
+    # Shape remains:
+    # [*add_dim, num_dof * num_times, num_dof * num_times]
+    temp1 = torch.linalg.inv(temp1)
+
+    # Einsum shape
+    # [*add_dim, num_dof * num_times, num_dof * num_basis],
+    # [*add_dim, num_dof * num_basis]
+    # -> [*add_dim, num_dof * num_times]
+    temp2 = des_pos - torch.einsum('...ij,...j->...i', m_basis, params)
+
+    # Einsum shape:
+    # [*add_dim, num_dof * num_basis, num_dof * num_basis],
+    # [*add_dim, num_dof * num_times, num_dof * num_basis],
+    # [*add_dim, num_dof * num_times, num_dof * num_times],
+    # [*add_dim, num_dof * num_times],
+    # -> [*add_dim, num_dof * num_basis]
+    params_new = params + torch.einsum('...ji,...kj,...kl,...l->...i',
+                                       params_cov, m_basis, temp1, temp2)
+
+    # Einsum shape:
+    # [*add_dim, num_dof * num_basis, num_dof * num_basis],
+    # [*add_dim, num_dof * num_times, num_dof * num_basis],
+    # [*add_dim, num_dof * num_times, num_dof * num_times],
+    # [*add_dim, num_dof * num_times, num_dof * num_basis],
+    # [*add_dim, num_dof * num_basis, num_dof * num_basis],
+    # -> [*add_dim, num_dof * num_basis, num_dof * num_basis]
+    params_new_cov = params_cov - torch.einsum('...ij,...kj,...kl,...lm,...mn'
+                                               '->...in', params_cov, m_basis,
+                                               temp1, m_basis, params_cov)
+    params_new_L = torch.linalg.cholesky(params_new_cov)
+
+    return params_new, params_new_L
 
 
 if __name__ == "__main__":
