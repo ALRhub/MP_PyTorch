@@ -316,8 +316,10 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
         tau = self.phase_generator.tau
         delay = self.phase_generator.delay
         assert tau.ndim == 0 and delay.ndim == 0
-        times = torch.linspace(delay - tau, delay + 2 * tau, steps=1000)
+        # times = torch.linspace(delay - tau, delay + 2 * tau, steps=1000)
+        times = torch.linspace(delay, delay + tau, steps=1000)
         basis_values = self.basis(times)
+        vel_basis_values = self.vel_basis(times)
         if plot:
             import matplotlib.pyplot as plt
             fig, axes = plt.subplots(1, 2, sharex=True, squeeze=False)
@@ -335,4 +337,4 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
             axes[0, 1].axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
 
             plt.show()
-        return times, basis_values
+        return times, basis_values, vel_basis_values
