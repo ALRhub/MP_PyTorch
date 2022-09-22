@@ -1,5 +1,5 @@
 import torch
-from addict import Dict
+# from addict import Dict
 
 from mp_pytorch.mp import MPFactory
 from mp_pytorch import util

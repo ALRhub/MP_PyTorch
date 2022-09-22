@@ -36,8 +36,13 @@ class PhaseGenerator(ABC):
         self.device = device
 
         self.tau = torch.as_tensor(tau, dtype=self.dtype, device=self.device)
-        self.delay = torch.as_tensor(delay, dtype=self.dtype,
-                                     device=self.device)
+        self.delay = torch.as_tensor(delay, dtype=self.dtype, device=self.device)
+
+        if self.tau <= 0 and torch.isnan(self.tau) or torch.isinf(self.tau):
+            raise ValueError(f'Provided tau={tau}. tau has to be finite and larger than 0.')
+        if self.delay < 0 or torch.isnan(self.delay) or torch.isinf(self.delay):
+            raise ValueError(f'Provided delay={delay}. delay has to be finite and larger than 0.')
+
         self.learn_tau = learn_tau
         self.learn_delay = learn_delay
 
