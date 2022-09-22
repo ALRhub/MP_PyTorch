@@ -188,6 +188,7 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
         time_indices = self.times_to_indices(times, False)
         basis = util.indexing_interpolate(data=self.pc_pos_basis,
                                           indices=time_indices)
+        basis[..., :-1] = basis[..., :-1] #* 1000
         return basis
 
     def vel_basis(self, times: torch.Tensor):
@@ -328,13 +329,15 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
             axes[0, 0].grid()
             axes[0, 0].legend()
             axes[0, 0].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
-            axes[0, 0].axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
+            axes[0, 0].axvline(x=delay + tau, linestyle='--', color='k',
+                               alpha=0.3)
 
             axes[0, 1].plot(times, basis_values[:, -1], label=f"goal_basis")
             axes[0, 1].grid()
             axes[0, 1].legend()
             axes[0, 1].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
-            axes[0, 1].axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
+            axes[0, 1].axvline(x=delay + tau, linestyle='--', color='k',
+                               alpha=0.3)
 
             plt.show()
         return times, basis_values, vel_basis_values
