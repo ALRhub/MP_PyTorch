@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import torch
 
 from mp_pytorch.phase_gn import PhaseGenerator
@@ -28,7 +30,8 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
         self.num_basis_outside = num_basis_outside
 
         super(NormalizedRBFBasisGenerator, self).__init__(phase_generator,
-                                                          num_basis)
+                                                          num_basis,
+                                                          dtype, device)
 
         # Compute centers and bandwidth
         # Distance between basis centers
@@ -42,7 +45,8 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
                                    self.num_basis_outside * basis_dist
                                    + self.phase_generator.tau
                                    + self.phase_generator.delay,
-                                   self._num_basis)
+                                   self._num_basis, dtype=self.dtype,
+                                   device=self.device)
 
         # RBF centers in phase scope
         self.centers_p = self.phase_generator.unbound_phase(centers_t)
@@ -105,7 +109,9 @@ class ZeroPaddingNormalizedRBFBasisGenerator(NormalizedRBFBasisGenerator):
                  num_basis: int = 10,
                  num_basis_zero_start: int = 2,
                  num_basis_zero_goal: int = 0,
-                 basis_bandwidth_factor: float = 3):
+                 basis_bandwidth_factor: float = 3,
+                 dtype: torch.dtype = torch.float32,
+                 device: torch.device = 'cpu'):
         """
         Constructor of class RBF with zero padding basis functions
         Args:
@@ -114,6 +120,8 @@ class ZeroPaddingNormalizedRBFBasisGenerator(NormalizedRBFBasisGenerator):
             num_basis_zero_start: number of basis padding in front
             num_basis_zero_goal: number of basis padding afterwards
             basis_bandwidth_factor: basis bandwidth factor
+            dtype: data type
+            device: device of the data
         """
         self.num_basis_zero_start = num_basis_zero_start
         self.num_basis_zero_goal = num_basis_zero_goal
@@ -121,7 +129,8 @@ class ZeroPaddingNormalizedRBFBasisGenerator(NormalizedRBFBasisGenerator):
                          num_basis=num_basis + num_basis_zero_start
                                    + num_basis_zero_goal,
                          basis_bandwidth_factor=basis_bandwidth_factor,
-                         num_basis_outside=0)
+                         num_basis_outside=0,
+                         dtype=dtype, device=device)
 
     @property
     def num_basis(self):

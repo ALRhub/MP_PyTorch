@@ -3,6 +3,7 @@ import torch
 from mp_pytorch.mp import MPFactory
 
 from mp_pytorch import util
+from mp_pytorch.mp import MPFactory
 
 
 def get_mp_config():
@@ -30,6 +31,8 @@ def get_mp_config():
     config.mp_args.alpha = 25
     config.mp_args.alpha_phase = 2
     config.mp_args.dt = 0.001
+    config.mp_args.weights_scale = torch.ones([9]) * 1
+    config.mp_args.goal_scale = 1
 
     # assume we have 3 trajectories in a batch
     num_traj = 3

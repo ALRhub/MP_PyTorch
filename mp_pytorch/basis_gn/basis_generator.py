@@ -1,6 +1,8 @@
 """
 @brief:     Basis generators in PyTorch
 """
+from typing import Tuple
+
 from mp_pytorch.phase_gn.phase_generator import *
 
 
@@ -27,6 +29,9 @@ class BasisGenerator(ABC):
         self._num_basis = num_basis
         self.phase_generator = phase_generator
 
+        # Flag of finalized basis generator
+        self.is_finalized = False
+
     @property
     def num_basis(self) -> int:
         """
@@ -49,7 +54,8 @@ class BasisGenerator(ABC):
         """
         return self._num_local_params + self.phase_generator.num_params
 
-    def set_params(self, params: torch.Tensor) -> torch.Tensor:
+    def set_params(self,
+                   params: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
         """
         Set parameters of current object and attributes
         Args:
@@ -58,8 +64,9 @@ class BasisGenerator(ABC):
         Returns:
             None
         """
-
+        params = torch.as_tensor(params, dtype=self.dtype, device=self.device)
         remaining_params = self.phase_generator.set_params(params)
+        self.finalize()
         return remaining_params
 
     def get_params(self) -> torch.Tensor:
@@ -139,3 +146,46 @@ class BasisGenerator(ABC):
 
         # Return
         return basis_multi_dofs
+
+    def finalize(self):
+        """
+        Mark the basis generator as finalized so that the parameters cannot be
+        updated any more
+        Returns: None
+
+        """
+        self.is_finalized = True
+
+    def reset(self):
+        """
+        Unmark the finalization
+        Returns: None
+
+        """
+        self.phase_generator.reset()
+        self.is_finalized = False
+
+    def show_basis(self, plot=False) -> Tuple[torch.Tensor, torch.Tensor]:
+        """
+        Compute basis function values for debug usage
+        The times are in the range of [delay - tau, delay + 2 * tau]
+
+        Returns: basis function values
+
+        """
+        tau = self.phase_generator.tau
+        delay = self.phase_generator.delay
+        assert tau.ndim == 0 and delay.ndim == 0
+        times = torch.linspace(delay - tau, delay + 2 * tau, steps=1000)
+        basis_values = self.basis(times)
+        if plot:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            for i in range(basis_values.shape[-1]):
+                plt.plot(times, basis_values[:, i], label=f"basis_{i}")
+            plt.grid()
+            plt.legend()
+            plt.axvline(x=delay, linestyle='--', color='k', alpha=0.3)
+            plt.axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
+            plt.show()
+        return times, basis_values

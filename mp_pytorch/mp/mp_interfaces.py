@@ -3,6 +3,7 @@
 """
 from abc import ABC
 from abc import abstractmethod
+from typing import Iterable
 from typing import Optional
 from typing import Union
 
@@ -12,7 +13,6 @@ from torch.distributions import MultivariateNormal
 
 import mp_pytorch.util as util
 from mp_pytorch.basis_gn import BasisGenerator
-from mp_pytorch.util.util_matrix import tensor_linspace
 
 
 class MPInterface(ABC):
@@ -20,7 +20,7 @@ class MPInterface(ABC):
     def __init__(self,
                  basis_gn: BasisGenerator,
                  num_dof: int,
-                 weight_scale: float = 1.,
+                 weights_scale: Union[float, Iterable] = 1.,
                  dtype: torch.dtype = torch.float32,
                  device: torch.device = 'cpu',
                  **kwargs):
@@ -29,7 +29,7 @@ class MPInterface(ABC):
         Args:
             basis_gn: basis generator
             num_dof: number of dof
-            weight_scale: scaling for the parameters weights
+            weights_scale: scaling for the parameters weights
             dtype: torch.dtype = torch.float32,
             device: torch.device = 'cpu',
             **kwargs: keyword arguments
@@ -46,7 +46,11 @@ class MPInterface(ABC):
         # Number of DoFs
         self.num_dof = num_dof
 
-        self.weight_scale = weight_scale
+        # Scaling of weights
+        self.weights_scale = \
+            torch.as_tensor(weights_scale, dtype=self.dtype, device=self.device)
+        assert self.weights_scale.ndim <= 1, \
+            "weights_scale should be float or 1-dim vector"
 
         # Value caches
         # Compute values at these time points
@@ -64,6 +68,24 @@ class MPInterface(ABC):
         # inputs are reset
         self.pos = None
         self.vel = None
+
+        # Flag of if the MP instance is finalized
+        self.is_finalized = False
+
+        # Local parameters bound
+        self.local_params_bound = kwargs.get("params_bound", None)
+        if not self.local_params_bound:
+            self.local_params_bound = torch.zeros([2, self._num_local_params],
+                                                  dtype=self.dtype,
+                                                  device=self.device)
+            self.local_params_bound[0, :] = -torch.inf
+            self.local_params_bound[1, :] = torch.inf
+        else:
+            self.local_params_bound = torch.as_tensor(self.local_params_bound,
+                                                      dtype=self.dtype,
+                                                      device=self.device)
+        assert list(self.local_params_bound.shape) == [2,
+                                                       self._num_local_params]
 
     @property
     def learn_tau(self):
@@ -125,13 +147,15 @@ class MPInterface(ABC):
                                      device=self.device)
         self.clear_computation_result()
 
-    def set_duration(self, duration: Optional[float], dt: float):
+    def set_duration(self, duration: Optional[float], dt: float,
+                     include_bc_time: bool = False):
         """
         Set MP time points of a duration. The times start from bc_time or 0
 
         Args:
             duration: desired duration of trajectory
             dt: control frequency
+            include_bc_time: if the duration includes the bc time step.
         Returns:
             None
         """
@@ -150,8 +174,10 @@ class MPInterface(ABC):
                                     self.add_dim)
         if self.bc_time is not None:
             times = times + self.bc_time[..., None]
-
-        self.set_times(times)
+        if include_bc_time:
+            self.set_times(times)
+        else:
+            self.set_times(times[..., 1:])
 
     def set_params(self,
                    params: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
@@ -202,11 +228,8 @@ class MPInterface(ABC):
         # [2, num_params]
 
         params_bounds = self.basis_gn.get_params_bounds()
-        local_params_bound = torch.zeros([2, self._num_local_params],
-                                         dtype=self.dtype, device=self.device)
-        local_params_bound[0, :] = -torch.inf
-        local_params_bound[1, :] = torch.inf
-        params_bounds = torch.cat([params_bounds, local_params_bound], dim=1)
+        params_bounds = torch.cat([params_bounds, self.local_params_bound],
+                                  dim=1)
         return params_bounds
 
     def set_boundary_conditions(self, bc_time: Union[torch.Tensor, np.ndarray],
@@ -241,9 +264,9 @@ class MPInterface(ABC):
 
         # If velocity is non-zero, then cannot wait
         if torch.count_nonzero(bc_vel) != 0:
-            assert torch.count_nonzero(self.phase_gn.delay) == 0, \
-                "Cannot set non-zero boundary velocity if there is a " \
-                "non-zero delay ."
+            assert torch.all(self.bc_time - self.phase_gn.delay >= 0), \
+                "Cannot set non-zero boundary velocity if boundary condition " \
+                "value(s) is (are) smaller than delay value(s)"
         self.bc_vel = bc_vel
         self.clear_computation_result()
 
@@ -358,12 +381,30 @@ class MPInterface(ABC):
         """
         pass
 
+    def finalize(self):
+        """
+        Mark the MP as finalized so that the parameters cannot be
+        updated any more
+        Returns: None
+
+        """
+        self.is_finalized = True
+
+    def reset(self):
+        """
+        Unmark the finalization
+        Returns: None
+
+        """
+        self.basis_gn.reset()
+        self.is_finalized = False
+
 
 class ProbabilisticMPInterface(MPInterface):
     def __init__(self,
                  basis_gn: BasisGenerator,
                  num_dof: int,
-                 weight_scale: float = 1.,
+                 weights_scale: float = 1.,
                  dtype: torch.dtype = torch.float32,
                  device: torch.device = 'cpu',
                  **kwargs):
@@ -372,13 +413,13 @@ class ProbabilisticMPInterface(MPInterface):
         Args:
             basis_gn: basis generator
             num_dof: number of dof
-            weight_scale: scaling for the parameters weights
+            weights_scale: scaling for the parameters weights
             dtype: torch data type
             device: torch device to run on
             **kwargs: keyword arguments
         """
 
-        super().__init__(basis_gn, num_dof, weight_scale, dtype, device,
+        super().__init__(basis_gn, num_dof, weights_scale, dtype, device,
                          **kwargs)
 
         # Learnable parameters variance
@@ -404,8 +445,9 @@ class ProbabilisticMPInterface(MPInterface):
         self.vel_cov = None
         self.vel_std = None
 
-    def set_mp_params_variances(self, params_L: Union[
-        torch.Tensor, None, np.ndarray]):
+    def set_mp_params_variances(self,
+                                params_L: Union[
+                                    torch.Tensor, None, np.ndarray]):
         """
         Set variance of MP params
         Args:
@@ -685,6 +727,7 @@ class ProbabilisticMPInterface(MPInterface):
             bc_vel_smp = None
 
         # Update inputs
+        self.reset()
         self.update_inputs(times_smp, params_smp, None,
                            bc_time_smp, bc_pos_smp, bc_vel_smp)
 
@@ -695,6 +738,7 @@ class ProbabilisticMPInterface(MPInterface):
         # Recover old inputs
         if params_super.nelement() != 0:
             params = torch.cat([params_super, params], dim=-1)
+        self.reset()
         self.update_inputs(times, params, None, bc_time, bc_pos, bc_vel)
 
         return pos_smp, vel_smp

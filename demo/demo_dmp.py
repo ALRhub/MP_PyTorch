@@ -32,7 +32,8 @@ def test_dmp():
     # Parameters demo
     util.print_line_title("params_bounds")
     low, high = mp.get_params_bounds()
-    print(low, high, sep="\n")
+    print("Lower bound", low, sep="\n")
+    print("Upper bound", high, sep="\n")
     print(mp.get_params_bounds().shape)
 
 

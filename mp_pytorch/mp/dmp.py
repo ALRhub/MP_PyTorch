@@ -1,6 +1,7 @@
 """
 @brief:     Dynamic Movement Primitives in PyTorch
 """
+from typing import Iterable
 from typing import Union
 
 import numpy as np
@@ -16,7 +17,8 @@ class DMP(MPInterface):
     def __init__(self,
                  basis_gn: BasisGenerator,
                  num_dof: int,
-                 weight_scale: float = 1.,
+                 weights_scale: Union[float, Iterable] = 1.,
+                 goal_scale: float = 1.,
                  alpha: float = 25,
                  dtype: torch.dtype = torch.float32,
                  device: torch.device = 'cpu',
@@ -26,13 +28,14 @@ class DMP(MPInterface):
         Args:
             basis_gn: basis function value generator
             num_dof: number of Degrees of Freedoms
-            weight_scale: scaling for the parameters weights
+            weights_scale: scaling for the parameters weights
+            goal_scale: scaling for the goal
             dtype: torch data type
             device: torch device to run on
             kwargs: keyword arguments
         """
 
-        super().__init__(basis_gn, num_dof, weight_scale, dtype, device,
+        super().__init__(basis_gn, num_dof, weights_scale, dtype, device,
                          **kwargs)
 
         # Number of parameters
@@ -42,12 +45,25 @@ class DMP(MPInterface):
         self.alpha = alpha
         self.beta = self.alpha / 4
 
+        # Goal scale
+        self.goal_scale = goal_scale
+        self.weights_goal_scale = self.get_weights_goal_scale()
+
     @property
     def _num_local_params(self) -> int:
         """
         Returns: number of parameters of current class
         """
         return super()._num_local_params + self.num_dof
+
+    def get_weights_goal_scale(self) -> torch.Tensor:
+        """
+        Returns: the weights and goal scaling vector
+        """
+        w_g_scale = torch.zeros(self.num_basis_g)
+        w_g_scale[:-1] = self.weights_scale
+        w_g_scale[-1] = self.goal_scale
+        return w_g_scale
 
     def set_boundary_conditions(self, bc_time: Union[torch.Tensor, np.ndarray],
                                 bc_pos: Union[torch.Tensor, np.ndarray],
@@ -110,12 +126,15 @@ class DMP(MPInterface):
         if self.pos is not None:
             return self.pos
 
+        # Scale basis functions
+        weights_goal_scale = self.weights_goal_scale.repeat(self.num_dof)
+
         # Split weights and goal
         # Shape of w:
         # [*add_dim, num_dof, num_basis]
         # Shape of g:
         # [*add_dim, num_dof, 1]
-        w, g = self._split_weights_goal(self.params * self.weight_scale)
+        w, g = self._split_weights_goal(self.params * weights_goal_scale)
 
         # Get basis, shape [*add_dim, num_times, num_basis]
         basis = self.basis_gn.basis(self.times)
@@ -232,7 +251,7 @@ class DMP(MPInterface):
         # [*add_dim, num_dof, 1]
 
         wg = wg.reshape([*wg.shape[:-1], self.num_dof, self.num_basis_g])
-        w = wg[..., :-1] * self.weight_scale
+        w = wg[..., :-1]
         g = wg[..., -1]
 
         return w, g
