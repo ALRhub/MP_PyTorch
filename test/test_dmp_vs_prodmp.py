@@ -71,7 +71,8 @@ def test_dmp_vs_prodmp_identical(plot=False):
     config.mp_type = "prodmp"
     prodmp = MPFactory.init_mp(**config.to_dict())
 
-    config.mp_args.num_basis = 5
+    config.mp_type = "promp"
+    # config.mp_args.num_basis = 5
     promp = MPFactory.init_mp(**config.to_dict())
 
     # Get trajectory
@@ -123,7 +124,52 @@ def test_dmp_vs_prodmp_identical(plot=False):
         # plt.show()
         # fig2.savefig("/tmp/vel1.pdf", dpi=200, bbox_inches="tight")
 
+    # return
+
+    ############################################################################
+    # Get mean of the traj
+    demo_traj = dmp_pos[0, :]
+
+    # Get params of the traj
+    promp_params = promp.learn_mp_params_from_trajs(times[0], demo_traj)["params"]
+
+    # Get L of the traj
+    params_std = torch.randn(promp_params.shape)
+    promp_params_L = util.build_lower_matrix(params_std, None)
+
+    # Get conditioning time and position
+    cond_time = times[0, 1000:1001]
+    cond_pos = demo_traj[1000]
+    cond_pos_L = util.build_lower_matrix(torch.randn([2]), None)*0.01
+
+    # Apply conditioning
+    params_new, params_L_new = \
+        promp_conditioning(promp, promp_params, promp_params_L, cond_time, cond_pos, cond_pos_L)
+
+    new_times = times[0, 1000:]
+
+    # Plot
+    promp.update_inputs(times=new_times, params=params_new, params_L=params_L_new)
+    promp_samples, _ = promp.sample_trajectories(num_smp=100)
+    fig9 = plt.figure(figsize=(7, 5))
+    # old traj
+    plt.plot(times[0, :1000].numpy(), dmp_pos[0, :1000, 0].numpy(), linewidth=3,
+             color='k', label='Old Trajectory')
+
+    # new traj_mean + std
+    # plt.plot(new_times[0].numpy(), prodmp_pos[0, :, 0].numpy(), linewidth=3)
+    # util.fill_between(x=new_times[0].numpy(),
+    #                   y_mean=prodmp_pos[0, :, 0].numpy(),
+    #                   y_std=prodmp_std[0, :, 0].numpy())
+
+    # samples
+    plt.plot(new_times.numpy(), promp_samples[:, :, 0].numpy().T, linewidth=3, zorder=10)
+    # plt.scatter(x=cond_time.numpy(), y=cond_pos[0].numpy(), zorder=0)
+    plt.show()
+
+
     return
+    ############################################################################
     new_bc_pos = dmp_pos[:, 1000]
     new_bc_vel = dmp_vel[:, 1000]
     new_bc_time = times[:, 1000]

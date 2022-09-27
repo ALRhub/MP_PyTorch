@@ -7,6 +7,10 @@ from addict import Dict
 
 from mp_pytorch.mp import MPFactory
 
+# plt.rcParams["font.family"] = "Times New Roman"
+plt.rcParams.update({'font.size': 14})
+# plt.rcParams.update({'font.weight': "bold"})
+
 
 def get_polynomial_value(coefficients, x):
     return np.polyval(coefficients, x)
@@ -120,13 +124,14 @@ def combination(mean1, L1, mean2, L2, combine: True):
     traj_cov1 = mp.get_traj_pos_cov()
     std1 = torch.sqrt(torch.einsum('...ii->...i', traj_cov1))
     fig, axes = plt.subplots(2, 1, squeeze=True,
-                             gridspec_kw={'height_ratios': [3, 1]},
-                             figsize=(7, 5))
+                             gridspec_kw={'height_ratios': [2.3, 1]},
+                             figsize=(5, 3.5))
     util.fill_between(x=times, y_mean=traj_mean1, y_std=std1, axis=axes[0],
-                      draw_mean=True, color='b',
+                      draw_mean=False, color='b',
                       alpha=0.2)
-    axes[0].plot(times, traj_mean1, color='b', linewidth=1, linestyle='--',
+    axes[0].plot(times, traj_mean1, color='b', linewidth=2, dashes=(5, 5),
                  label="Demo1")
+
 
     ############################################################################
     # Group 2
@@ -137,10 +142,12 @@ def combination(mean1, L1, mean2, L2, combine: True):
 
     std2 = torch.sqrt(torch.einsum('...ii->...i', traj_cov2))
     util.fill_between(x=times, y_mean=traj_mean2, y_std=std2, axis=axes[0],
-                      draw_mean=True, color='r',
+                      draw_mean=False, color='r',
                       alpha=0.2)
-    axes[0].plot(times, traj_mean2, color='r', linewidth=1, linestyle='--',
+    axes[0].plot(times, traj_mean2, color='r', linewidth=2, dashes=(5, 5),
                  label="Demo2")
+    axes[0].grid(True)
+    axes[0].set_xticklabels([])
 
     # plt.show()
 
@@ -159,10 +166,11 @@ def combination(mean1, L1, mean2, L2, combine: True):
         alpha_1 = sigmoid(times, 1.5)
         alpha_2 = -sigmoid(times, 1.5) + 1
     axes[1].plot(times, alpha_1, label='a1')
-    axes[1].plot(times, alpha_2, label='a2', linestyle='--')
+    axes[1].plot(times, alpha_2, label='a2', dashes=(5, 5))
     axes[1].set_ylim([-0.1, 1.1])
     axes[1].set_xlim([0, 3])
     axes[1].legend()
+
     # util.debug_plot(times, [alpha_1, alpha_2])
 
     var_1 = torch.einsum('...ii->...i', traj_cov1)
@@ -181,13 +189,16 @@ def combination(mean1, L1, mean2, L2, combine: True):
                       alpha=0.8)
     label = "Combination" if combine else "Blending"
     axes[0].plot(times, mean_combine, color='green', linewidth=3, label=label)
-    axes[0].set_ylim([-4, 4])
+    axes[0].set_ylim([-2.8, 5.2])
     axes[0].set_xlim([-0, 3])
     axes[0].scatter(x=[0.8, 2.1], y=[0, 0], s=100, marker='x', color='b',
                     linewidths=3, zorder=200)
-    axes[0].scatter(x=[1.35, 3], y=[-1, -1], s=100, marker='x', color='r',
+    axes[0].scatter(x=[1.35, 3], y=[-1, -1], s=100, marker='x', color='gold',
                     linewidths=3, zorder=200)
-    axes[0].legend()
+    axes[0].legend(loc='upper left')
+    axes[0].grid(True, alpha=0.5)
+    axes[1].grid(True, alpha=0.5)
+
     fig.savefig(f"/tmp/{label}.pdf", dpi=200, bbox_inches="tight")
     # plt.show()
     return traj_mean1, std1, traj_mean2, std2, mean_combine, combine_std
@@ -215,20 +226,20 @@ if __name__ == "__main__":
     times = get_times()
     plt.figure(figsize=(7, 4.9))
     util.fill_between(x=times, y_mean=traj_mean1, y_std=std1, axis=None,
-                      draw_mean=True, color='b',
+                      draw_mean=False, color='b',
                       alpha=0.2)
     plt.plot(times, traj_mean1, color='b', linewidth=1,
                  label="Demo1")
     util.fill_between(x=times, y_mean=traj_mean2, y_std=std2, axis=None,
-                      draw_mean=True, color='r',
+                      draw_mean=False, color='r',
                       alpha=0.2)
     plt.plot(times, traj_mean2, color='r', linewidth=1,
                  label="Demo2")
-    plt.ylim([-4, 4])
+    plt.ylim([-3, 5])
     plt.xlim([-0, 3])
     plt.scatter(x=[0.8, 2.1], y=[0, 0], s=100, marker='x', color='b',
                     linewidths=3, zorder=200)
-    plt.scatter(x=[1.35, 3], y=[-1, -1], s=100, marker='x', color='r',
+    plt.scatter(x=[1.35, 3], y=[-1, -1], s=100, marker='x', color='gold',
                     linewidths=3, zorder=200)
     plt.legend()
     plt.savefig(f"/tmp/demo.pdf", dpi=200, bbox_inches="tight")
