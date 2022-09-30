@@ -15,6 +15,10 @@ def test_dmp():
     mp = MPFactory.init_mp(**config)
 
     # params_L here is redundant, but it will not fail the update func
+
+    # Uncomment this line below if you want to exclude bc_time from prediction
+    # times = times[..., 1:]
+
     mp.update_inputs(times=times, params=params, params_L=params_L,
                      bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
 
