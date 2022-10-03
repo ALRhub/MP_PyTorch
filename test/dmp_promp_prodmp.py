@@ -7,6 +7,9 @@ from mp_pytorch.mp import MPFactory
 from mp_pytorch.mp import ProMP
 # plt.rcParams["font.family"] = "Times New Roman"
 plt.rcParams.update({'font.size': 14})
+import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 def promp_conditioning(promp: ProMP, params, params_L,
                        time, des_pos, des_pos_L):
@@ -102,7 +105,7 @@ def get_mp_config():
     config.learn_tau = False
     config.learn_delay = False
 
-    config.mp_args.num_basis = 5
+    config.mp_args.num_basis = 4
     config.mp_args.basis_bandwidth_factor = 2
     config.mp_args.num_basis_outside = 0
     config.mp_args.alpha = 25

@@ -5,6 +5,9 @@ from mp_pytorch.basis_gn import ProDMPBasisGenerator
 from mp_pytorch.phase_gn import ExpDecayPhaseGenerator
 from mp_pytorch.phase_gn import LinearPhaseGenerator
 
+import matplotlib
+matplotlib.rcParams['pdf.fonttype'] = 42
+matplotlib.rcParams['ps.fonttype'] = 42
 
 def demo_norm_rbf_basis():
     phase_gn = LinearPhaseGenerator(tau=3, delay=1,
@@ -17,6 +20,7 @@ def demo_norm_rbf_basis():
 
 
 def demo_prodmp_basis():
+    plt.rcParams.update({'font.size': 14})
     phase_gn = ExpDecayPhaseGenerator(tau=1, delay=0, alpha_phase=3,
                                       learn_tau=False, learn_delay=False,
                                       learn_alpha_phase=False)
@@ -26,6 +30,7 @@ def demo_prodmp_basis():
                                     num_basis_outside=0)
     times, basis_values, vel_basis_values = basis_gn.show_basis(plot=False)
     fig_1 = plt.figure(figsize=[5, 3], dpi=200)
+
     for i in range(basis_values.shape[-1] - 1):
         plt.plot(times, basis_values[:, i], label=f"w_basis_{i}")
     plt.grid(alpha=0.5)
