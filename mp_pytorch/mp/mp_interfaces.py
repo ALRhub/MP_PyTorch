@@ -165,13 +165,14 @@ class MPInterface(ABC):
 
         if duration is None:
             duration = self.tau.max()
+            factor = 1 / dt
+            duration = torch.round(factor * duration) / factor
         else:
-            duration = torch.as_tensor(duration, dtype=self.dtype,
-                                       device=self.device)
+            duration = torch.as_tensor(duration, dtype=self.dtype, device=self.device)
         dt = torch.as_tensor(dt, dtype=self.dtype, device=self.device)
         times = torch.linspace(0, duration, int(duration / dt) + 1)
-        times = util.add_expand_dim(times, list(range(len(self.add_dim))),
-                                    self.add_dim)
+        times = util.add_expand_dim(times, list(range(len(self.add_dim))), self.add_dim)
+
         if self.bc_time is not None:
             times = times + self.bc_time[..., None]
         if include_bc_time:
