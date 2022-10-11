@@ -165,8 +165,7 @@ class MPInterface(ABC):
 
         if duration is None:
             duration = self.tau.max()
-            factor = 1 / dt
-            duration = torch.round(factor * duration) / factor
+            duration = torch.round(duration / dt) * dt
         else:
             duration = torch.as_tensor(duration, dtype=self.dtype, device=self.device)
 
