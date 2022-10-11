@@ -88,14 +88,13 @@ class DMP(MPInterface):
         # Shape of bc_vel:
         # [*add_dim, num_dof]
 
-        assert list(bc_time.shape) == [
-            *self.add_dim], f"shape of boundary condition time {list(bc_time.shape)} " \
-                            f"does not match batch dimension {[*self.add_dim]}"
+        assert list(bc_time.shape) == [*self.add_dim], \
+            f"shape of boundary condition time {list(bc_time.shape)} " \
+            f"does not match batch dimension {[*self.add_dim]}"
         assert list(bc_pos.shape) == list(bc_vel.shape) \
-               and list(bc_vel.shape) == [*self.add_dim,
-                                          self.num_dof], f"shape of boundary condition position " \
-                                                         f"{list(bc_pos.shape)} and boundary condition" \
-                                                         f" velocity do not match {list(bc_vel.shape)}"
+               and list(bc_vel.shape) == [*self.add_dim, self.num_dof], \
+            f"shape of boundary condition position {list(bc_pos.shape)} " \
+            f"and boundary condition velocity do not match {list(bc_vel.shape)}"
         super().set_boundary_conditions(bc_time, bc_pos, bc_vel)
 
     def get_traj_pos(self, times=None, params=None,
@@ -124,6 +123,23 @@ class DMP(MPInterface):
 
         # Reuse result if existing
         if self.pos is not None:
+            return self.pos
+
+        # Check boundary condition, the desired times should start from
+        # boundary condition time steps or plus dt
+        if not torch.all(torch.abs(self.bc_time - self.times[..., 0]) < 1e-8):
+            assert torch.all(self.times[..., 1] + self.bc_time
+                             - 2 * self.times[..., 0] < 1e-8), \
+                "The start time value should be either bc_time or bc_time + dt."
+            times_include_bc = torch.cat([self.bc_time[..., None], self.times], dim=-1)
+
+            # Recursively call itself
+            self.get_traj_pos(times_include_bc)
+
+            # Remove the bc_time from the result
+            self.pos = self.pos[..., 1:, :]
+            self.vel = self.vel[..., 1:, :]
+            self.times = self.times[..., 1:]
             return self.pos
 
         # Scale basis functions
@@ -155,10 +171,6 @@ class DMP(MPInterface):
         vel = torch.zeros([*self.add_dim, self.times.shape[-1], self.num_dof],
                           dtype=self.dtype, device=self.device)
 
-        # Check boundary condition, the desired times should start from
-        # boundary condition time steps
-        assert torch.all(torch.abs(self.bc_time - self.times[..., 0]) < 1e-8), \
-            "The first time step's value should be same to bc_time."
         pos[..., 0, :] = self.bc_pos
         vel[..., 0, :] = self.bc_vel * self.phase_gn.tau[..., None]
 
@@ -168,19 +180,15 @@ class DMP(MPInterface):
 
         # Apply Euler Integral
         for i in range(scaled_dt.shape[-1]):
-            acc = (self.alpha * (
-                    self.beta * (g - pos[..., i, :]) - vel[..., i, :]) + f[
-                                                                         ...,
-                                                                         i,
-                                                                         :])
-            vel[..., i + 1, :] = vel[..., i, :] + torch.einsum('...,...i->...i',
-                                                               scaled_dt[
-                                                                   ..., i], acc)
-            pos[..., i + 1, :] = pos[..., i, :] + torch.einsum('...,...i->...i',
-                                                               scaled_dt[
-                                                                   ..., i],
-                                                               vel[..., i + 1,
-                                                               :])
+            acc = (self.alpha * (self.beta * (g - pos[..., i, :])
+                                 - vel[..., i, :]) + f[..., i, :])
+            vel[..., i + 1, :] = \
+                vel[..., i, :] + torch.einsum('...,...i->...i',
+                                              scaled_dt[..., i], acc)
+            pos[..., i + 1, :] = \
+                pos[..., i, :] + torch.einsum('...,...i->...i',
+                                              scaled_dt[..., i],
+                                              vel[..., i + 1, :])
 
         # Unscale velocity to original time space
         vel /= self.phase_gn.tau[..., None, None]
