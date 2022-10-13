@@ -88,6 +88,10 @@ class DMP(MPInterface):
         # Shape of bc_vel:
         # [*add_dim, num_dof]
 
+        bc_time = torch.as_tensor(bc_time, dtype=self.dtype, device=self.device)
+        bc_pos = torch.as_tensor(bc_pos, dtype=self.dtype, device=self.device)
+        bc_vel = torch.as_tensor(bc_vel, dtype=self.dtype, device=self.device)
+
         assert list(bc_time.shape) == [*self.add_dim], \
             f"shape of boundary condition time {list(bc_time.shape)} " \
             f"does not match batch dimension {[*self.add_dim]}"
@@ -131,7 +135,8 @@ class DMP(MPInterface):
             assert torch.all(self.times[..., 1] + self.bc_time
                              - 2 * self.times[..., 0] < 1e-8), \
                 "The start time value should be either bc_time or bc_time + dt."
-            times_include_bc = torch.cat([self.bc_time[..., None], self.times], dim=-1)
+            times_include_bc = torch.cat([self.bc_time[..., None], self.times],
+                                         dim=-1)
 
             # Recursively call itself
             self.get_traj_pos(times_include_bc)

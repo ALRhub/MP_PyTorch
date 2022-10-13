@@ -1,6 +1,7 @@
 from typing import Iterable
 from typing import Union
 
+import numpy as np
 import torch
 
 from mp_pytorch.basis_gn import ProDMPBasisGenerator
@@ -77,7 +78,7 @@ class ProDMP(ProMP):
         w_g_scale[-1] = self.goal_scale
         return w_g_scale
 
-    def set_times(self, times: torch.Tensor):
+    def set_times(self, times: Union[torch.Tensor, np.ndarray]):
         """
         Set MP time points
         Args:
@@ -89,6 +90,9 @@ class ProDMP(ProMP):
         # Shape of times
         # [*add_dim, num_times]
 
+        self.times = torch.as_tensor(times, dtype=self.dtype,
+                                     device=self.device)
+
         # Get general solution values at desired time points
         # Shape [*add_dim, num_times]
         self.y1, self.y2, self.dy1, self.dy2 = \
@@ -96,9 +100,9 @@ class ProDMP(ProMP):
 
         super().set_times(times)
 
-    def set_boundary_conditions(self, bc_time: torch.Tensor,
-                                bc_pos: torch.Tensor,
-                                bc_vel: torch.Tensor):
+    def set_boundary_conditions(self, bc_time: Union[torch.Tensor, np.ndarray],
+                                bc_pos: Union[torch.Tensor, np.ndarray],
+                                bc_vel: Union[torch.Tensor, np.ndarray]):
         """
         Set boundary conditions in a batched manner
 
@@ -118,6 +122,10 @@ class ProDMP(ProMP):
         #
         # Shape of bc_vel:
         # [*add_dim, num_dof]
+
+        bc_time = torch.as_tensor(bc_time, dtype=self.dtype, device=self.device)
+        bc_pos = torch.as_tensor(bc_pos, dtype=self.dtype, device=self.device)
+        bc_vel = torch.as_tensor(bc_vel, dtype=self.dtype, device=self.device)
 
         assert list(bc_time.shape) == [*self.add_dim]
         assert list(bc_pos.shape) == list(bc_vel.shape) \
