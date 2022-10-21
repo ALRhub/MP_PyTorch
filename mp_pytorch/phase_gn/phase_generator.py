@@ -13,7 +13,7 @@ import torch
 
 
 class PhaseGenerator(ABC):
-    @abstractmethod
+
     def __init__(self,
                  tau: float = 1.0,
                  delay: float = 0.0,
