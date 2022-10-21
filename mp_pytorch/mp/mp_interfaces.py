@@ -164,13 +164,10 @@ class MPInterface(ABC):
         # [*add_dim, num_times]
 
         if duration is None:
-            duration = torch.round(self.tau.max() / dt) * dt
-        else:
-            duration = torch.as_tensor(duration, dtype=self.dtype,
-                                       device=self.device)
+            duration = round(self.tau.max().item() / dt) * dt
 
-        dt = torch.as_tensor(dt, dtype=self.dtype, device=self.device)
-        times = torch.linspace(0, duration, int(duration / dt) + 1)
+        # dt = torch.as_tensor(dt, dtype=self.dtype, device=self.device)
+        times = torch.linspace(0, duration, round(duration / dt) + 1)
         times = util.add_expand_dim(times, list(range(len(self.add_dim))),
                                     self.add_dim)
 
@@ -241,8 +238,8 @@ class MPInterface(ABC):
         # If velocity is non-zero, then cannot wait
         if torch.count_nonzero(bc_vel) != 0:
             assert torch.all(self.bc_time - self.phase_gn.delay >= 0), \
-                "Cannot set non-zero boundary velocity if boundary condition " \
-                "value(s) is (are) smaller than delay value(s)"
+                f"Cannot set non-zero boundary velocity {bc_vel} if boundary condition time" \
+                f"value(s) {self.bc_time} is (are) smaller than delay value(s) {self.phase_gn.delay}"
         self.bc_vel = bc_vel
         self.clear_computation_result()
 

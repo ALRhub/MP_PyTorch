@@ -128,11 +128,10 @@ class ProDMP(ProMP):
         bc_vel = torch.as_tensor(bc_vel, dtype=self.dtype, device=self.device)
 
         assert list(bc_time.shape) == [*self.add_dim]
-        assert list(bc_pos.shape) == list(bc_vel.shape) \
-               and list(bc_vel.shape) == [*self.add_dim, self.num_dof]
+        assert list(bc_pos.shape) == list(bc_vel.shape) and list(bc_vel.shape) == [*self.add_dim, self.num_dof]
 
-        y1_bc, y2_bc, dy1_bc, dy2_bc = \
-            self.basis_gn.general_solution_values(bc_time[..., None])
+        bc_time = torch.as_tensor(bc_time, dtype=self.dtype, device=self.device)
+        y1_bc, y2_bc, dy1_bc, dy2_bc = self.basis_gn.general_solution_values(bc_time[..., None])
 
         self.y1_bc = y1_bc.squeeze(-1)
         self.y2_bc = y2_bc.squeeze(-1)

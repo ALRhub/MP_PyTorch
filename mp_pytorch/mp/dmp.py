@@ -131,12 +131,10 @@ class DMP(MPInterface):
 
         # Check boundary condition, the desired times should start from
         # boundary condition time steps or plus dt
-        if not torch.all(torch.abs(self.bc_time - self.times[..., 0]) < 1e-8):
-            assert torch.all(self.times[..., 1] + self.bc_time
-                             - 2 * self.times[..., 0] < 1e-8), \
-                "The start time value should be either bc_time or bc_time + dt."
-            times_include_bc = torch.cat([self.bc_time[..., None], self.times],
-                                         dim=-1)
+        if not torch.allclose(self.bc_time, self.times[..., 0]):
+            assert torch.allclose(self.times[..., 1] + self.bc_time, 2 * self.times[..., 0]), \
+                f"The start time value {self.times[..., 1]} should be either bc_time {self.bc_time} or bc_time + dt."
+            times_include_bc = torch.cat([self.bc_time[..., None], self.times], dim=-1)
 
             # Recursively call itself
             self.get_traj_pos(times_include_bc)

@@ -4,26 +4,7 @@ from .phase_generator import PhaseGenerator
 
 
 class LinearPhaseGenerator(PhaseGenerator):
-    def __init__(self, tau: float = 1.0, delay: float = 0.0,
-                 learn_tau: bool = False,
-                 learn_delay: bool = False,
-                 dtype: torch.dtype = torch.float32,
-                 device: torch.device = 'cpu',
-                 ):
-        """
-        Constructor for linear phase generator
-        Args:
-            tau: trajectory length scaling factor
-            delay: time to wait before execute
-            learn_tau: if tau is learnable parameter
-            learn_delay: if delay is learnable parameter
-            dtype: torch data type
-            device: torch device to run on
-        """
-        super(LinearPhaseGenerator, self).__init__(tau=tau, delay=delay,
-                                                   learn_tau=learn_tau,
-                                                   learn_delay=learn_delay,
-                                                   dtype=dtype, device=device)
+    """Linear phase generator"""
 
     def phase(self, times: torch.Tensor) -> torch.Tensor:
         """
