@@ -326,13 +326,26 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
             axes[0, 0].grid()
             axes[0, 0].legend()
             axes[0, 0].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
-            axes[0, 0].axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
+            axes[0, 0].axvline(x=delay + tau, linestyle='--', color='k',
+                               alpha=0.3)
 
             axes[0, 1].plot(times, basis_values[:, -1], label=f"goal_basis")
             axes[0, 1].grid()
             axes[0, 1].legend()
             axes[0, 1].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
-            axes[0, 1].axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
+            axes[0, 1].axvline(x=delay + tau, linestyle='--', color='k',
+                               alpha=0.3)
 
             plt.show()
         return times, basis_values
+
+    def get_basis_scale_factors(self):
+        """
+        Compute the scale factors of all basis functions, so that their
+        magnitudes are all equal to 1
+
+        Returns:
+            auto_basis_scale_factors: scale factors
+        """
+        # todo: @Hongyi Zhou
+        raise NotImplementedError

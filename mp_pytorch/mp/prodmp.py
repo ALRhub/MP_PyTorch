@@ -28,6 +28,9 @@ class ProDMP(ProMP):
             dtype: torch data type
             device: torch device to run on
             kwargs: keyword arguments
+
+        Keyword Arguments:
+            auto_scale_basis: apply scale to all basis to make max magnitude = 1
         """
         if not isinstance(basis_gn, ProDMPBasisGenerator):
             raise ValueError(
@@ -40,8 +43,9 @@ class ProDMP(ProMP):
         self.num_basis_g = self.num_basis + 1
 
         # Goal scale
+        auto_scale_basis = kwargs.get("auto_scale_basis", False)
         self.goal_scale = goal_scale
-        self.weights_goal_scale = self.get_weights_goal_scale()
+        self.weights_goal_scale = self.get_weights_goal_scale(auto_scale_basis)
 
         # Runtime intermediate variables shared by different getting functions
         self.y1 = None
@@ -68,13 +72,20 @@ class ProDMP(ProMP):
         """
         return super()._num_local_params + self.num_dof
 
-    def get_weights_goal_scale(self) -> torch.Tensor:
+    def get_weights_goal_scale(self, auto_scale_basis = False) -> torch.Tensor:
         """
+        Compute scaling factors of weights and goal
+        Args:
+            auto_scale_basis: if compute the scaling factors automatically
+
         Returns: the weights and goal scaling vector
         """
-        w_g_scale = torch.zeros(self.num_basis_g)
-        w_g_scale[:-1] = self.weights_scale
-        w_g_scale[-1] = self.goal_scale
+        if auto_scale_basis:
+            w_g_scale = self.basis_gn.get_basis_scale_factors()
+        else:
+            w_g_scale = torch.zeros(self.num_basis_g)
+            w_g_scale[:-1] = self.weights_scale
+            w_g_scale[-1] = self.goal_scale
         return w_g_scale
 
     def set_times(self, times: torch.Tensor):
