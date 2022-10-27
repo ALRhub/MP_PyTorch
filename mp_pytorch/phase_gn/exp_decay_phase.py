@@ -31,7 +31,8 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
             *args: other arguments list
             **kwargs: other keyword arguments
         """
-        self.alpha_phase = torch.tensor(alpha_phase).float()
+        self.alpha_phase = torch.tensor(alpha_phase, dtype=self.dtype,
+                                        device=self.device)
         self.learn_alpha_phase = learn_alpha_phase
 
         if learn_alpha_phase:
