@@ -82,6 +82,8 @@ class ProDMP(ProMP):
         """
         if auto_scale_basis:
             w_g_scale = self.basis_gn.get_basis_scale_factors()
+            w_g_scale[:-1] = w_g_scale[:-1] * self.weights_scale
+            w_g_scale[-1] = w_g_scale[-1] * self.goal_scale
         else:
             w_g_scale = torch.zeros(self.num_basis_g)
             w_g_scale[:-1] = self.weights_scale
