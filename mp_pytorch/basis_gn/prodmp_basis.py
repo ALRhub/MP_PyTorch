@@ -81,7 +81,8 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
         num_pre_compute = self.pre_compute_length_factor * \
                           torch.round(1 / self.scaled_dt).long().item() + 1
         pc_scaled_times = torch.linspace(0, self.pre_compute_length_factor,
-                                         num_pre_compute)
+                                         num_pre_compute, dtype=self.dtype,
+                                         device=self.device)
 
         # y1 and y2
         self.y_1_value = torch.exp(-0.5 * self.alpha * pc_scaled_times)

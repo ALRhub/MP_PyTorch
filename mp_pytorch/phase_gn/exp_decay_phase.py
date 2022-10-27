@@ -31,19 +31,20 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
             *args: other arguments list
             **kwargs: other keyword arguments
         """
-        self.alpha_phase = torch.tensor(alpha_phase).float()
+        super(ExpDecayPhaseGenerator, self).__init__(tau=tau, delay=delay,
+                                                     learn_tau=learn_tau,
+                                                     learn_delay=learn_delay,
+                                                     dtype=dtype, device=device,
+                                                     *args, **kwargs)
+
+        self.alpha_phase = torch.tensor(alpha_phase, dtype=self.dtype,
+                                        device=self.device)
         self.learn_alpha_phase = learn_alpha_phase
 
         if learn_alpha_phase:
             self.alpha_phase_bound = kwargs.get("alpha_phase_bound",
                                                 [1e-5, torch.inf])
             assert len(self.alpha_phase_bound) == 2
-
-        super(ExpDecayPhaseGenerator, self).__init__(tau=tau, delay=delay,
-                                                     learn_tau=learn_tau,
-                                                     learn_delay=learn_delay,
-                                                     dtype=dtype, device=device,
-                                                     *args, **kwargs)
 
     @property
     def _num_local_params(self) -> int:
