@@ -164,14 +164,16 @@ class MPInterface(ABC):
         # [*add_dim, num_times]
 
         if duration is None:
-            duration = self.tau.max()
+            duration = torch.round(self.tau.max() / dt) * dt
         else:
             duration = torch.as_tensor(duration, dtype=self.dtype,
                                        device=self.device)
+
         dt = torch.as_tensor(dt, dtype=self.dtype, device=self.device)
         times = torch.linspace(0, duration, int(duration / dt) + 1)
         times = util.add_expand_dim(times, list(range(len(self.add_dim))),
                                     self.add_dim)
+
         if self.bc_time is not None:
             times = times + self.bc_time[..., None]
         if include_bc_time:
@@ -205,32 +207,6 @@ class MPInterface(ABC):
         self.params = remaining_params[..., :self._num_local_params]
         self.clear_computation_result()
         return remaining_params[..., self._num_local_params:]
-
-    def get_params(self) -> torch.Tensor:
-        """
-        Return all learnable parameters
-        Returns:
-            parameters
-        """
-        # Shape of params
-        # [*add_dim, num_params]
-        params = self.basis_gn.get_params()
-        params = torch.cat([params, self.params], dim=-1)
-        return params
-
-    def get_params_bounds(self) -> torch.Tensor:
-        """
-        Return all learnable parameters' bounds
-        Returns:
-            parameters bounds
-        """
-        # Shape of params_bounds
-        # [2, num_params]
-
-        params_bounds = self.basis_gn.get_params_bounds()
-        params_bounds = torch.cat([params_bounds, self.local_params_bound],
-                                  dim=1)
-        return params_bounds
 
     def set_boundary_conditions(self, bc_time: Union[torch.Tensor, np.ndarray],
                                 bc_pos: Union[torch.Tensor, np.ndarray],
@@ -291,6 +267,32 @@ class MPInterface(ABC):
             self.set_times(times)
         if all([data is not None for data in {bc_time, bc_pos, bc_vel}]):
             self.set_boundary_conditions(bc_time, bc_pos, bc_vel)
+
+    def get_params(self) -> torch.Tensor:
+        """
+        Return all learnable parameters
+        Returns:
+            parameters
+        """
+        # Shape of params
+        # [*add_dim, num_params]
+        params = self.basis_gn.get_params()
+        params = torch.cat([params, self.params], dim=-1)
+        return params
+
+    def get_params_bounds(self) -> torch.Tensor:
+        """
+        Return all learnable parameters' bounds
+        Returns:
+            parameters bounds
+        """
+        # Shape of params_bounds
+        # [2, num_params]
+
+        params_bounds = self.basis_gn.get_params_bounds()
+        params_bounds = torch.cat([params_bounds, self.local_params_bound],
+                                  dim=1)
+        return params_bounds
 
     def get_trajs(self, get_pos: bool = True, get_vel: bool = True) -> dict:
         """

@@ -62,6 +62,7 @@ class ProMP(ProbabilisticMPInterface):
         # Shape of times
         # [*add_dim, num_times]
 
+        times = torch.as_tensor(times, dtype=self.dtype, device=self.device)
         super().set_times(times)
 
     def set_mp_params_variances(self, params_L: Union[torch.Tensor, None]):
