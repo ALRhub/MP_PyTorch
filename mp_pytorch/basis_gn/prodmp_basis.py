@@ -51,6 +51,7 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
         self.pc_vel_basis = None
 
         self.num_basis_g = self.num_basis + 1
+        self.auto_basis_scale_factors = None
         self.pre_compute()
 
     def pre_compute(self):
@@ -149,6 +150,16 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
             torch.cat([pos_basis_w, pos_basis_g[:, None]], dim=-1)
         self.pc_vel_basis = \
             torch.cat([vel_basis_w, vel_basis_g[:, None]], dim=-1)
+
+        self.auto_compute_basis_scale_factors()
+
+    def auto_compute_basis_scale_factors(self):
+        """
+        Compute scale factors for each basis function
+        :return: None
+        """
+        assert self.pc_pos_basis is not None, "Pos basis is not pre-computed."
+        self.auto_basis_scale_factors = 1. / self.pc_pos_basis.max(axis=0).values
 
     def times_to_indices(self, times: torch.Tensor, round_int: bool = True):
         """
@@ -327,13 +338,26 @@ class ProDMPBasisGenerator(NormalizedRBFBasisGenerator):
             axes[0, 0].grid()
             axes[0, 0].legend()
             axes[0, 0].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
-            axes[0, 0].axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
+            axes[0, 0].axvline(x=delay + tau, linestyle='--', color='k',
+                               alpha=0.3)
 
             axes[0, 1].plot(times, basis_values[:, -1], label=f"goal_basis")
             axes[0, 1].grid()
             axes[0, 1].legend()
             axes[0, 1].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
-            axes[0, 1].axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
+            axes[0, 1].axvline(x=delay + tau, linestyle='--', color='k',
+                               alpha=0.3)
 
             plt.show()
         return times, basis_values
+
+    def get_basis_scale_factors(self):
+        """
+        Compute the scale factors of all basis functions, so that their
+        magnitudes are all equal to 1
+
+        Returns:
+            auto_basis_scale_factors: scale factors
+        """
+        assert self.auto_basis_scale_factors is not None, "Basis scale factors is not computed."
+        return self.auto_basis_scale_factors
