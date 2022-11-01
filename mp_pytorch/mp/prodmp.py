@@ -44,9 +44,9 @@ class ProDMP(ProMP):
         self.num_basis_g = self.num_basis + 1
 
         # Goal scale
-        auto_scale_basis = kwargs.get("auto_scale_basis", False)
+        self.auto_scale_basis = kwargs.get("auto_scale_basis", False)
         self.goal_scale = goal_scale
-        self.weights_goal_scale = self.get_weights_goal_scale(auto_scale_basis)
+        self.weights_goal_scale = self.get_weights_goal_scale(self.auto_scale_basis)
 
         # Runtime intermediate variables shared by different getting functions
         self.y1 = None
