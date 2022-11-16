@@ -167,7 +167,7 @@ class MPInterface(ABC):
             duration = round(self.tau.max().item() / dt) * dt
 
         # dt = torch.as_tensor(dt, dtype=self.dtype, device=self.device)
-        times = torch.linspace(0, duration, round(duration / dt) + 1)
+        times = torch.linspace(0, duration, round(duration / dt) + 1, dtype=self.dtype, device=self.device)
         times = util.add_expand_dim(times, list(range(len(self.add_dim))),
                                     self.add_dim)
 
