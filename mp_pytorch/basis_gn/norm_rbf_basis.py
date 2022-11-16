@@ -1,5 +1,3 @@
-from typing import Tuple
-
 import torch
 
 from mp_pytorch.phase_gn import PhaseGenerator
@@ -36,24 +34,38 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
         # Compute centers and bandwidth
         # Distance between basis centers
         assert self.phase_generator.tau.nelement() == 1
-        basis_dist = self.phase_generator.tau / (self._num_basis - 2 *
-                                                 self.num_basis_outside - 1)
 
-        # RBF centers in time scope
-        centers_t = torch.linspace(-self.num_basis_outside * basis_dist
-                                   + self.phase_generator.delay,
-                                   self.num_basis_outside * basis_dist
-                                   + self.phase_generator.tau
-                                   + self.phase_generator.delay,
-                                   self._num_basis, dtype=self.dtype,
-                                   device=self.device)
+        if self._num_basis > 1:
+            basis_dist = self.phase_generator.tau / (self._num_basis - 2 *
+                                                     self.num_basis_outside - 1)
 
-        # RBF centers in phase scope
-        self.centers_p = self.phase_generator.unbound_phase(centers_t)
+            # RBF centers in time scope
+            centers_t = torch.linspace(-self.num_basis_outside * basis_dist
+                                       + self.phase_generator.delay,
+                                       self.num_basis_outside * basis_dist
+                                       + self.phase_generator.tau
+                                       + self.phase_generator.delay,
+                                       self._num_basis, dtype=self.dtype,
+                                       device=self.device)
+            # RBF centers in phase scope
+            self.centers_p = self.phase_generator.unbound_phase(centers_t)
 
-        tmp_bandwidth = torch.cat((self.centers_p[1:] - self.centers_p[:-1],
-                                   self.centers_p[-1:] - self.centers_p[-2:-1]),
-                                  dim=-1)
+            tmp_bandwidth = \
+                torch.cat((self.centers_p[1:] - self.centers_p[:-1],
+                           self.centers_p[-1:] - self.centers_p[-2:-1]), dim=-1)
+
+        elif self._num_basis == 1:
+            # RBF centers in time scope
+            centers_t = torch.tensor([self.phase_generator.delay
+                                      + 0.5 * self.phase_generator.tau],
+                                     dtype=self.dtype, device=self.device)
+            # RBF centers in phase scope
+            self.centers_p = self.phase_generator.unbound_phase(centers_t)
+            tmp_bandwidth = torch.tensor([1], dtype=self.dtype,
+                                         device=self.device)
+
+        else:
+            raise NotImplementedError
 
         # The Centers should not overlap too much (makes w almost random due
         # to aliasing effect).Empirically chosen
@@ -96,8 +108,9 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
         basis = torch.exp(-tmp / 2)
 
         # Normalization
-        sum_basis = torch.sum(basis, dim=-1, keepdim=True)
-        basis = basis / sum_basis
+        if self._num_basis > 1:
+            sum_basis = torch.sum(basis, dim=-1, keepdim=True)
+            basis = basis / sum_basis
 
         # Return
         return basis
