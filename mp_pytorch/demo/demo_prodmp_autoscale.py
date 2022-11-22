@@ -4,7 +4,7 @@
 
 from matplotlib import pyplot as plt
 
-from demo_mp_config import get_mp_utils
+from mp_pytorch.demo import get_mp_utils
 from mp_pytorch.mp import MPFactory
 
 def test_prodmp_scaling(auto_scale=True, manual_w_scale=1., manual_g_scale=1.):
