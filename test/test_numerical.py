@@ -1,7 +1,9 @@
 import torch
+from addict import Dict
 
 from mp_pytorch import util
 from mp_pytorch.mp import MPFactory
+import cpuinfo
 
 def get_mp_config():
     """
@@ -111,6 +113,6 @@ def test_numerical_prodmp(device_name: str):
 
 
 if __name__ == '__main__':
-    device = "Intel_6700K"
+    device = cpuinfo.get_cpu_info()['brand_raw']
     test_numerical_dmp(device)
     test_numerical_prodmp(device)
