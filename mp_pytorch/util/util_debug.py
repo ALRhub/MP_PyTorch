@@ -4,7 +4,9 @@
 
 import time
 from typing import Callable
+from typing import List
 from typing import Optional
+from typing import Tuple
 from typing import Union
 
 import matplotlib.pyplot as plt
@@ -127,3 +129,90 @@ def debug_plot(x: Union[np.ndarray, torch.Tensor],
         plt.grid(alpha=0.5)
     plt.show()
     return fig
+
+
+def generate_stats(data: Union[np.ndarray, torch.Tensor, List],
+                   name: str = None, dim: Union[int, List, Tuple] = None,
+                   to_np: bool = True):
+    """
+    Compute the statistics of the given data array
+
+    Args:
+        data: data array, iterable
+        name: string stored in the key of the returned statistics
+        dim: along which dimensions to compute, None to all dimensions
+        to_np: enforce converting torch.Tensor to np.ndarray in the result
+
+    Returns:
+        statistics containing mean, max, min, std, and median
+    """
+    if isinstance(data, list):
+        data = np.asarray(data)
+
+    if isinstance(data, np.ndarray):
+        data_pkg = np
+        dim = tuple(dim) if isinstance(dim, List) else dim
+        dim_marker = ", axis=dim" if dim else ""
+        bias_marker = ""
+        data = data.astype(np.float) if data.dtype == bool else data
+
+    elif isinstance(data, torch.Tensor):
+        data_pkg = torch
+        dim_marker = ", dim=dim" if dim else ""
+        bias_marker = ", unbiased=False"  # To get the same result as np.std
+        data = data.double() if data.dtype == torch.bool else data
+
+    else:
+        raise NotImplementedError
+
+    mean = eval(f"data_pkg.mean(data{dim_marker})")
+    maxi = eval(f"data_pkg.max(data{dim_marker})")
+    mini = eval(f"data_pkg.min(data{dim_marker})")
+    std = eval(f"data_pkg.std(data{dim_marker}{bias_marker})")
+    med = eval(f"data_pkg.median(data{dim_marker})")
+
+    # Handle the weird behavior in case of pytorch
+    if isinstance(maxi, tuple):
+        maxi = maxi[0]
+    if isinstance(mini, tuple):
+        mini = mini[0]
+    if isinstance(med, tuple):
+        med = med[0]
+
+    if to_np:
+        mean, maxi, mini, std, med = util.to_nps(mean, maxi, mini, std, med)
+
+    # Save in dictionary
+    name = name + "_" if name is not None else ""
+    stats = {f"{name}mean": mean,
+             f"{name}max": maxi,
+             # f"{name}min": mini,
+             f"{name}std": std,
+             # f"{name}median": med
+             }
+
+    # Return
+    return stats
+
+
+def generate_many_stats(data_dict: dict,
+                        name: str = None,
+                        to_np: bool = False):
+    """
+    Compute the statistics of many given data arrays in stored in one dictionary
+    Args:
+        data_dict: data dictionary
+        name: general name in statistics
+        to_np: enforce converting torch.Tensor to np.ndarray in the result
+
+    Returns:
+        a compound statistics dictionary
+    """
+
+    name = name + "_" if name else ""
+
+    many_stats = dict()
+    for key, value in data_dict.items():
+        stats = generate_stats(value, name + key, to_np=to_np)
+        many_stats.update(stats)
+    return many_stats
