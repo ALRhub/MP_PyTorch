@@ -94,13 +94,11 @@ The structure of this package can be seen as follows:
 ## Cite
 If you interest this project and use it in a scientific publication, we would appreciate citations to the following information:
 ```markdown
-@misc{Rofunc2022,
-      author = {Ge Li},
-      title = {MP_PyTorch: The Movement Primitives Package in PyTorch},
-      year = {2022},
-      publisher = {GitHub},
-      journal = {GitHub repository},
-      url = {https://github.com/ALRhub/MP_PyTorch},
+@article{li2022prodmps,
+  title={ProDMPs: A Unified Perspective on Dynamic and Probabilistic Movement Primitives},
+  author={Li, Ge and Jin, Zeqi and Volpp, Michael and Otto, Fabian and Lioutikov, Rudolf and Neumann, Gerhard},
+  journal={arXiv preprint arXiv:2210.01531},
+  year={2022}
 }
 ```
 
