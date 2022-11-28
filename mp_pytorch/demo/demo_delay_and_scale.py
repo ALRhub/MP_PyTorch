@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import torch
 from addict import Dict
 
-from demo_mp_config import get_mp_utils
+from mp_pytorch.demo import get_mp_utils
 from mp_pytorch.mp import MPFactory
 from mp_pytorch.mp import ProMP
 from mp_pytorch import util
