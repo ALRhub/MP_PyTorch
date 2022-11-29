@@ -106,7 +106,14 @@ If you interest this project and use it in a scientific publication, we would ap
 ## Team
 MP_PyTorch is developed and maintained by the [ALR-Lab](https://alr.anthropomatik.kit.edu)(Autonomous Learning Robots Lab), KIT. 
 
-<head>
-<meta name="google-site-verification" content="TBTpxqGVKOpnljA1-tH3WLxVPTqhX4y3d1voyDE_BSE" />
-</head>
+
+<!DOCTYPE html>
+<html>
+  <head>    
+    <meta name="google-site-verification" content="TBTpxqGVKOpnljA1-tH3WLxVPTqhX4y3d1voyDE_BSE" />
+  </head>
+  <body>
+    <p>Welcome to our GitHub Pages!</p>
+  </body>
+</html>
 
