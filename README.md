@@ -109,12 +109,11 @@ MP_PyTorch is developed and maintained by the [ALR-Lab](https://alr.anthropomati
 
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>My GitHub Pages Site</title>
+  <head>    
+    <meta name="google-site-verification" content="TBTpxqGVKOpnljA1-tH3WLxVPTqhX4y3d1voyDE_BSE" />
   </head>
   <body>
-    <h1>Hello world!</h1>
-    <p>Welcome to my GitHub Pages site!</p>
+    <p>Welcome to our GitHub Pages!</p>
   </body>
 </html>
 
