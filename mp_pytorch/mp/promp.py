@@ -450,7 +450,8 @@ class ProMP(ProbabilisticMPInterface):
         tau = self.phase_gn.tau
         delay = self.phase_gn.delay
         assert tau.ndim == 0 and delay.ndim == 0
-        times = torch.linspace(delay - tau, delay + 2 * tau, steps=1000)
+        times = torch.linspace(delay - tau, delay + 2 * tau, steps=1000,
+                               device=self.device, dtype=self.dtype)
 
         if self.weights_scale.ndim != 0:
             weights_scale = self.padding(self.weights_scale[None])[0]
