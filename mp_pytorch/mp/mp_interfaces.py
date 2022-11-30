@@ -6,6 +6,7 @@ from abc import abstractmethod
 from typing import Iterable
 from typing import Optional
 from typing import Union
+import copy
 
 import numpy as np
 import torch
@@ -398,6 +399,24 @@ class MPInterface(ABC):
         """
         self.basis_gn.reset()
         self.is_finalized = False
+
+    @abstractmethod
+    def _show_scaled_basis(self, *args, **kwargs):
+        pass
+
+    def show_scaled_basis(self, plot=False):
+        """
+        External call of show basis
+        Args:
+            plot: if to plot the basis
+
+        Returns:
+
+        """
+        # Make a hard copy to show basis and do not change other settings of the
+        # original mp instance
+        copied_mp = copy.deepcopy(self)
+        return copied_mp._show_scaled_basis(plot)
 
 
 class ProbabilisticMPInterface(MPInterface):

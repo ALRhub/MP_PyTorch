@@ -85,12 +85,15 @@ def test_promp():
                     labels=["demos", "rec_demos"],
                     title="ProMP demos vs. rec_demos")
 
+    # Show scaled basis
+    mp.show_scaled_basis(plot=True)
+
 
 def test_zero_padding_promp():
     util.print_wrap_title("test_zero_padding_promp")
 
     config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
-        get_mp_utils("zero_padding_promp", True, True)
+        get_mp_utils("zero_padding_promp", False, False)
 
     mp = MPFactory.init_mp(**config)
     assert isinstance(mp, ProMP)
@@ -108,6 +111,9 @@ def test_zero_padding_promp():
     vel = mp.get_traj_vel()
     print("traj_dict[vel].shape", vel.shape)
     util.debug_plot(times[0], [vel[0, :, 0]], title="zero_promp_vel_mean")
+
+    # Show scaled basis
+    mp.show_scaled_basis(plot=True)
 
 
 def main():

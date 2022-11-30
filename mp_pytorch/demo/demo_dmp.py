@@ -40,6 +40,13 @@ def test_dmp():
     print("Upper bound", high, sep="\n")
     print(mp.get_params_bounds().shape)
 
+    # Show scaled basis
+    config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
+        get_mp_utils("dmp", False, False)
+
+    mp = MPFactory.init_mp(**config)
+    mp.show_scaled_basis(plot=True)
+
 
 def main():
     test_dmp()

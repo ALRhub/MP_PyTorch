@@ -4,12 +4,14 @@
 import logging
 from typing import Iterable
 from typing import Union
+from typing import Tuple
 
 import numpy as np
 import torch
 
 from mp_pytorch.basis_gn import BasisGenerator
 from .mp_interfaces import ProbabilisticMPInterface
+
 
 
 class ProMP(ProbabilisticMPInterface):
@@ -442,3 +444,31 @@ class ProMP(ProbabilisticMPInterface):
         self.set_mp_params_variances(None)
 
         return {"params": params}
+
+    def _show_scaled_basis(self, plot=False) \
+            -> Tuple[torch.Tensor, torch.Tensor]:
+        tau = self.phase_gn.tau
+        delay = self.phase_gn.delay
+        assert tau.ndim == 0 and delay.ndim == 0
+        times = torch.linspace(delay - tau, delay + 2 * tau, steps=1000)
+
+        if self.weights_scale.ndim != 0:
+            weights_scale = self.padding(self.weights_scale[None])[0]
+        else:
+            weights_scale = self.weights_scale
+
+        # Get basis
+        # Shape: [*add_dim, num_times, num_basis]
+        basis_values = \
+            self.basis_gn.basis(times) * weights_scale
+        if plot:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            for i in range(basis_values.shape[-1]):
+                plt.plot(times, basis_values[:, i], label=f"basis_{i}")
+            plt.grid()
+            plt.legend()
+            plt.axvline(x=delay, linestyle='--', color='k', alpha=0.3)
+            plt.axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
+            plt.show()
+        return times, basis_values
