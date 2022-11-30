@@ -86,6 +86,9 @@ def test_prodmp():
                     labels=["demos", "rec_demos"],
                     title="ProDMP demos vs. rec_demos")
 
+    # Show scaled basis
+    mp.show_scaled_basis(plot=True)
+
 
 def main():
     test_prodmp()

@@ -3,6 +3,7 @@
 """
 from typing import Iterable
 from typing import Union
+from typing import Tuple
 
 import numpy as np
 import torch
@@ -266,3 +267,31 @@ class DMP(MPInterface):
         g = wg[..., -1]
 
         return w, g
+
+    def _show_scaled_basis(self, plot=False) \
+            -> Tuple[torch.Tensor, torch.Tensor]:
+        tau = self.phase_gn.tau
+        delay = self.phase_gn.delay
+        assert tau.ndim == 0 and delay.ndim == 0
+        times = torch.linspace(delay - tau, delay + 2 * tau, steps=1000,
+                               device=self.device, dtype=self.dtype)
+        self.set_add_dim([])
+        self.set_times(times)
+
+        weights_scale = self.weights_scale
+        canonical_x = self.phase_gn.phase(self.times)
+        # Get basis
+        # Shape: [*add_dim, num_times, num_basis]
+        basis_values = self.basis_gn.basis(times) * canonical_x[..., None] * weights_scale
+
+        if plot:
+            import matplotlib.pyplot as plt
+            plt.figure()
+            for i in range(basis_values.shape[-1]):
+                plt.plot(times, basis_values[:, i], label=f"basis_{i}")
+            plt.grid()
+            plt.legend()
+            plt.axvline(x=delay, linestyle='--', color='k', alpha=0.3)
+            plt.axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
+            plt.show()
+        return times, basis_values

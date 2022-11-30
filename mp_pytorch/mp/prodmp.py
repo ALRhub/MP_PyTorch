@@ -1,4 +1,5 @@
 from typing import Iterable
+from typing import Tuple
 from typing import Union
 
 import numpy as np
@@ -46,7 +47,8 @@ class ProDMP(ProMP):
         # Goal scale
         self.auto_scale_basis = kwargs.get("auto_scale_basis", False)
         self.goal_scale = goal_scale
-        self.weights_goal_scale = self.get_weights_goal_scale(self.auto_scale_basis)
+        self.weights_goal_scale = self.get_weights_goal_scale(
+            self.auto_scale_basis)
 
         # Runtime intermediate variables shared by different getting functions
         self.y1 = None
@@ -73,7 +75,7 @@ class ProDMP(ProMP):
         """
         return super()._num_local_params + self.num_dof
 
-    def get_weights_goal_scale(self, auto_scale_basis = False) -> torch.Tensor:
+    def get_weights_goal_scale(self, auto_scale_basis=False) -> torch.Tensor:
         """
         Compute scaling factors of weights and goal
         Args:
@@ -141,10 +143,12 @@ class ProDMP(ProMP):
         bc_vel = torch.as_tensor(bc_vel, dtype=self.dtype, device=self.device)
 
         assert list(bc_time.shape) == [*self.add_dim]
-        assert list(bc_pos.shape) == list(bc_vel.shape) and list(bc_vel.shape) == [*self.add_dim, self.num_dof]
+        assert list(bc_pos.shape) == list(bc_vel.shape) and list(
+            bc_vel.shape) == [*self.add_dim, self.num_dof]
 
         bc_time = torch.as_tensor(bc_time, dtype=self.dtype, device=self.device)
-        y1_bc, y2_bc, dy1_bc, dy2_bc = self.basis_gn.general_solution_values(bc_time[..., None])
+        y1_bc, y2_bc, dy1_bc, dy2_bc = self.basis_gn.general_solution_values(
+            bc_time[..., None])
 
         self.y1_bc = y1_bc.squeeze(-1)
         self.y2_bc = y2_bc.squeeze(-1)
@@ -698,3 +702,49 @@ class ProDMP(ProMP):
         self.vel_H_multi = \
             vel_H_ + self.basis_gn.vel_basis_multi_dofs(self.times,
                                                         self.num_dof)
+
+    def _show_scaled_basis(self, plot=False) \
+            -> Tuple[torch.Tensor, torch.Tensor]:
+        tau = self.phase_gn.tau
+        delay = self.phase_gn.delay
+        assert tau.ndim == 0 and delay.ndim == 0
+        times = torch.linspace(delay - tau, delay + 2 * tau, steps=1000,
+                               device=self.device, dtype=self.dtype)
+        self.set_add_dim([])
+        self.set_times(times)
+        self.set_boundary_conditions(
+            bc_time=torch.zeros([], device=self.device,
+                                dtype=self.dtype) + delay,
+            bc_pos=torch.zeros([self.num_dof], device=self.device,
+                               dtype=self.dtype),
+            bc_vel=torch.zeros([self.num_dof], device=self.device,
+                               dtype=self.dtype),
+        )
+
+        self.compute_intermediate_terms_single()
+
+        weights_goal_scale = self.weights_goal_scale
+
+        # Get basis
+        # Shape: [*add_dim, num_times, num_basis]
+        basis_values = self.pos_H_single * weights_goal_scale
+        if plot:
+            import matplotlib.pyplot as plt
+            fig, axes = plt.subplots(1, 2, sharex=True, squeeze=False)
+            for i in range(basis_values.shape[-1] - 1):
+                axes[0, 0].plot(times, basis_values[:, i], label=f"w_basis_{i}")
+            axes[0, 0].grid()
+            axes[0, 0].legend()
+            axes[0, 0].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
+            axes[0, 0].axvline(x=delay + tau, linestyle='--', color='k',
+                               alpha=0.3)
+
+            axes[0, 1].plot(times, basis_values[:, -1], label=f"goal_basis")
+            axes[0, 1].grid()
+            axes[0, 1].legend()
+            axes[0, 1].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
+            axes[0, 1].axvline(x=delay + tau, linestyle='--', color='k',
+                               alpha=0.3)
+
+            plt.show()
+        return times, basis_values
