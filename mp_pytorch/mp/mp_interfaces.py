@@ -1,12 +1,12 @@
 """
 @brief:     Movement Primitives interfaces in PyTorch
 """
+import copy
 from abc import ABC
 from abc import abstractmethod
 from typing import Iterable
 from typing import Optional
 from typing import Union
-import copy
 
 import numpy as np
 import torch
@@ -406,7 +406,11 @@ class MPInterface(ABC):
 
     def show_scaled_basis(self, plot=False):
         """
-        External call of show basis
+        External call of show basis, it will make a hard copy of the current mp,
+        and feed artificial time sequence.
+
+        The current mp will not get influenced.
+
         Args:
             plot: if to plot the basis
 
@@ -415,8 +419,12 @@ class MPInterface(ABC):
         """
         # Make a hard copy to show basis and do not change other settings of the
         # original mp instance
-        copied_mp = copy.deepcopy(self)
-        return copied_mp._show_scaled_basis(plot)
+        try:
+            copied_mp = copy.deepcopy(self)
+            return copied_mp._show_scaled_basis(plot)
+        except RuntimeError:
+            print("Please do not use this function during NN training. "
+                  "The deepcopy cannot work when there is a computation graph.")
 
 
 class ProbabilisticMPInterface(MPInterface):
