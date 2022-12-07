@@ -421,10 +421,11 @@ class MPInterface(ABC):
         # original mp instance
         try:
             copied_mp = copy.deepcopy(self)
-            return copied_mp._show_scaled_basis(plot)
         except RuntimeError:
             print("Please do not use this function during NN training. "
                   "The deepcopy cannot work when there is a computation graph.")
+            return
+        return copied_mp._show_scaled_basis(plot)
 
 
 class ProbabilisticMPInterface(MPInterface):
