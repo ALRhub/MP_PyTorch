@@ -4,7 +4,7 @@ from typing import Union
 
 import numpy as np
 import torch
-
+import logging
 from mp_pytorch.basis_gn import ProDMPBasisGenerator
 from .promp import ProMP
 
@@ -38,6 +38,13 @@ class ProDMP(ProMP):
             raise ValueError(
                 f'ProDMP requires a ProDMP basis generator, {type(basis_gn)} is not supported.')
 
+        # Disable learning of weights or goal
+        self.disable_weights = kwargs.get("disable_weights", False)
+        self.disable_goal = kwargs.get("disable_goal", False)
+        assert not (self.disable_weights and self.disable_goal), \
+            "Cannot disable both weights and goal learning."
+
+        # Super init
         super().__init__(basis_gn, num_dof, weights_scale, dtype, device,
                          **kwargs)
 
@@ -68,12 +75,33 @@ class ProDMP(ProMP):
         self.pos_H_multi = None
         self.vel_H_multi = None
 
+        # Padding params when weights or goal is disabled
+        padding_basis = self.basis_gn.num_basis if self.disable_weights else 0
+        padding_goal = 1 if self.disable_goal else 0
+        if self.disable_weights or self.disable_goal:
+            self.padding = torch.nn.ConstantPad2d(
+                (padding_basis, padding_goal, 0, 0), 0)
+            logging.warning(
+                "Padding ProDMP is being used. Only the traj position"
+                " and velocity can be computed correctly. The other "
+                "entities are not guaranteed.")
+        else:
+            self.padding = lambda x: x
+
     @property
     def _num_local_params(self) -> int:
         """
         Returns: number of parameters of current class
         """
-        return super()._num_local_params + self.num_dof
+        if self.disable_weights:
+            # Use goal only
+            return self.num_dof
+        if self.disable_goal:
+            # Use basis only
+            return super()._num_local_params
+        else:
+            # Use both basis and goal
+            return super()._num_local_params + self.num_dof
 
     def get_weights_goal_scale(self, auto_scale_basis=False) -> torch.Tensor:
         """
@@ -192,10 +220,9 @@ class ProDMP(ProMP):
             # Recompute otherwise
             self.compute_intermediate_terms_single()
 
-            # Reshape params from [*add_dim, num_dof * num_basis_g]
-            # to [*add_dim, num_dof, num_basis_g]
-            params = self.params.reshape(
-                [*self.add_dim, self.num_dof, -1])
+            # Reshape (and pad) params to [*add_dim, num_dof, num_basis_g]
+            params = self.params.reshape([*self.add_dim, self.num_dof, -1])
+            params = self.padding(params)
 
             # Scale basis functions
             pos_H_single = self.pos_H_single * self.weights_goal_scale
@@ -362,9 +389,9 @@ class ProDMP(ProMP):
             # Recompute otherwise
             self.compute_intermediate_terms_single()
 
-            # Reshape params from [*add_dim, num_dof * num_basis_g]
-            # to [*add_dim, num_dof, num_basis_g]
+            # Reshape (and pad) params to [*add_dim, num_dof, num_basis_g]
             params = self.params.reshape([*self.add_dim, self.num_dof, -1])
+            params = self.padding(params)
 
             # Scale basis functions
             vel_H_single = self.vel_H_single * self.weights_goal_scale
@@ -561,7 +588,8 @@ class ProDMP(ProMP):
         #               [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #            -> [*add_dim, num_dof * num_basis_g, num_dof * num_basis_g]
         A = torch.einsum('...ki,...kj->...ij', pos_H_multi, pos_H_multi)
-        A += torch.eye(self._num_local_params) * reg
+        # todo, check here
+        A += torch.eye(self.num_dof * self.num_basis_g) * reg
 
         # Swap axis and reshape: [*add_dim, num_times, num_dof]
         #                     -> [*add_dim, num_dof, num_times]
@@ -692,10 +720,11 @@ class ProDMP(ProMP):
                               vel_basis_bc_multi_dofs)
         # Reshape: [*add_dim, num_dof, num_times, num_dof * num_basis_g]
         #       -> [*add_dim, num_dof * num_times, num_dof * num_basis_g]
-        pos_H_ = \
-            torch.reshape(pos_H_, [*self.add_dim, -1, self._num_local_params])
-        vel_H_ = \
-            torch.reshape(vel_H_, [*self.add_dim, -1, self._num_local_params])
+        # todo, check here
+        pos_H_ = torch.reshape(pos_H_, [*self.add_dim, -1,
+                                        self.num_dof * self.num_basis_g])
+        vel_H_ = torch.reshape(vel_H_, [*self.add_dim, -1,
+                                        self.num_dof * self.num_basis_g])
 
         self.pos_H_multi = \
             pos_H_ + self.basis_gn.basis_multi_dofs(self.times, self.num_dof)
