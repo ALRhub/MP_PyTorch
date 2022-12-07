@@ -130,7 +130,8 @@ class ProMP(ProbabilisticMPInterface):
             if self.weights_scale.ndim != 0:
                 weights_scale = self.padding(self.weights_scale[None])[0]
             else:
-                weights_scale = self.weights_scale
+                weights_scale = self.padding(torch.ones([1, self.num_basis]) *
+                                             self.weights_scale)[0]
 
             # Get basis
             # Shape: [*add_dim, num_times, num_basis]
@@ -456,7 +457,8 @@ class ProMP(ProbabilisticMPInterface):
         if self.weights_scale.ndim != 0:
             weights_scale = self.padding(self.weights_scale[None])[0]
         else:
-            weights_scale = self.weights_scale
+            weights_scale = self.padding(torch.ones([1, self.num_basis]) *
+                                         self.weights_scale)[0]
 
         # Get basis
         # Shape: [*add_dim, num_times, num_basis]
