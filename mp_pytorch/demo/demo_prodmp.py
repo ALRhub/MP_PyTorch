@@ -2,6 +2,7 @@
 @brief: testing MPs
 """
 
+import torch
 from matplotlib import pyplot as plt
 
 import mp_pytorch.util as util
@@ -76,8 +77,8 @@ def test_prodmp():
         get_mp_utils("prodmp", False, False)
 
     mp = MPFactory.init_mp(**config)
-    mp.update_inputs(times=times, params=params, params_L=params_L,
-                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+    # mp.update_inputs(times=times, params=params, params_L=params_L,
+    #                  bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
     params_dict = mp.learn_mp_params_from_trajs(times, demos)
 
     # Reconstruct demos using learned weights
@@ -90,8 +91,88 @@ def test_prodmp():
     mp.show_scaled_basis(plot=True)
 
 
+def test_prodmp_disable_weights():
+    util.print_wrap_title("test_prodmp_disable_weights")
+    learn_tau = True
+    learn_delay = True
+
+    config, times, params, _, bc_time, bc_pos, bc_vel, demos = \
+        get_mp_utils("prodmp", learn_tau, learn_delay)
+
+    # Disable weights
+    config["mp_args"]["disable_weights"] = True
+    num_dof = config["num_dof"]
+    add_dim = params.shape[:-1]
+    goal = 2
+    params = torch.ones([*add_dim, num_dof]) * goal
+    if learn_delay:
+        params = torch.cat([torch.ones([*add_dim, 1]) * 1, params], dim=-1)
+    if learn_tau:
+        params = torch.cat([torch.ones([*add_dim, 1]) * 3, params], dim=-1)
+
+    mp = MPFactory.init_mp(**config)
+    mp.update_inputs(times=times, params=params, params_L=None,
+                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+    traj_dict = mp.get_trajs(get_pos=True, get_pos_cov=False,
+                             get_pos_std=False, get_vel=True,
+                             get_vel_cov=False, get_vel_std=False)
+
+    # Pos
+    util.print_line_title("pos")
+    print(traj_dict["pos"].shape)
+    util.debug_plot(times[0], [traj_dict["pos"][0, :, 0]],
+                    title="prodmp_pos, disable weights")
+
+    # Vel
+    util.print_line_title("vel")
+    util.debug_plot(times[0], [traj_dict["vel"][0, :, 0]],
+                    title="prodmp_vel, disable weights")
+
+
+def test_prodmp_disable_goal():
+    util.print_wrap_title("test_prodmp_disable_goals")
+    learn_tau = True
+    learn_delay = True
+
+    config, times, params, _, bc_time, bc_pos, bc_vel, demos = \
+        get_mp_utils("prodmp", learn_tau, learn_delay)
+
+    # Disable weights
+    config["mp_args"]["disable_goal"] = True
+    num_dof = config["num_dof"]
+    add_dim = params.shape[:-1]
+    goal = 2
+    params =\
+        torch.ones([*add_dim, num_dof * config['mp_args']['num_basis']]) * 500
+
+    if learn_delay:
+        params = torch.cat([torch.ones([*add_dim, 1]) * 1, params], dim=-1)
+    if learn_tau:
+        params = torch.cat([torch.ones([*add_dim, 1]) * 3, params], dim=-1)
+
+    mp = MPFactory.init_mp(**config)
+    mp.update_inputs(times=times, params=params, params_L=None,
+                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+    traj_dict = mp.get_trajs(get_pos=True, get_pos_cov=False,
+                             get_pos_std=False, get_vel=True,
+                             get_vel_cov=False, get_vel_std=False)
+
+    # Pos
+    util.print_line_title("pos")
+    print(traj_dict["pos"].shape)
+    util.debug_plot(times[0], [traj_dict["pos"][0, :, 0]],
+                    title="prodmp_pos, disable goal")
+
+    # Vel
+    util.print_line_title("vel")
+    util.debug_plot(times[0], [traj_dict["vel"][0, :, 0]],
+                    title="prodmp_vel, disable goal")
+
+
 def main():
     test_prodmp()
+    test_prodmp_disable_weights()
+    test_prodmp_disable_goal()
 
 
 if __name__ == "__main__":
