@@ -372,7 +372,7 @@ class ProMP(ProbabilisticMPInterface):
 
     def learn_mp_params_from_trajs(self, times: torch.Tensor,
                                    trajs: torch.Tensor,
-                                   reg: float = 1e-9) -> dict:
+                                   reg: float = 1e-9, **kwargs) -> dict:
         """
         Learn ProMP weights from demonstration
 
@@ -380,6 +380,7 @@ class ProMP(ProbabilisticMPInterface):
             times: trajectory time points
             trajs: trajectory from which weights should be learned
             reg: regularization term
+            kwargs: keyword arguments
 
         Returns:
             param_dict: dictionary of parameters containing

@@ -1,7 +1,7 @@
 from typing import Iterable
 from typing import Tuple
 from typing import Union
-
+import logging
 import numpy as np
 import torch
 import logging
@@ -534,7 +534,7 @@ class ProDMP(ProMP):
 
     def learn_mp_params_from_trajs(self, times: torch.Tensor,
                                    trajs: torch.Tensor,
-                                   reg: float = 1e-9) -> dict:
+                                   reg: float = 1e-9, **kwargs) -> dict:
         """
         Learn DMP weights and goal given trajectory position
         Use the initial position and velocity as boundary condition
@@ -543,6 +543,7 @@ class ProDMP(ProMP):
             times: trajectory time points
             trajs: trajectory position in batch
             reg: regularization term
+            kwargs: keyword arguments
 
         Returns:
             param_dict: dictionary of parameters containing
@@ -568,9 +569,17 @@ class ProDMP(ProMP):
 
         # Get boundary conditions
         dt = self.basis_gn.scaled_dt * self.phase_gn.tau
-        bc_time = times[..., 0]
-        bc_pos = trajs[..., 0, :]
-        bc_vel = torch.diff(trajs, dim=-2)[..., 0, :] / dt
+
+        if all([key in kwargs.keys() 
+                for key in ["bc_time", "bc_pos", "bc_vel"]]):
+            logging.warning("ProDMP uses the given boundary conditions")
+            bc_time = kwargs["bc_time"]
+            bc_pos = kwargs["bc_pos"]
+            bc_vel = kwargs["bc_vel"]
+        else:
+            bc_time = times[..., 0]
+            bc_pos = trajs[..., 0, :]
+            bc_vel = torch.diff(trajs, dim=-2)[..., 0, :] / dt
 
         # Setup stuff
         self.set_add_dim(list(trajs.shape[:-2]))
