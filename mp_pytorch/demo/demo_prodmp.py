@@ -77,9 +77,20 @@ def test_prodmp():
         get_mp_utils("prodmp", False, False)
 
     mp = MPFactory.init_mp(**config)
-    # mp.update_inputs(times=times, params=params, params_L=params_L,
-    #                  bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
     params_dict = mp.learn_mp_params_from_trajs(times, demos)
+
+    # Reconstruct demos using learned weights
+    rec_demo = mp.get_traj_pos(times, **params_dict)
+    util.debug_plot(times[0], [demos[0, :, 0], rec_demo[0, :, 0]],
+                    labels=["demos", "rec_demos"],
+                    title="ProDMP demos vs. rec_demos")
+
+    des_bc_pos = torch.zeros_like(demos[:, 0]) - 0.25
+    des_bc_vel = torch.zeros_like(demos[:, 0])
+
+    params_dict = \
+        mp.learn_mp_params_from_trajs(times, demos, bc_time=times[:, 0],
+                                      bc_pos=des_bc_pos, bc_vel=des_bc_vel)
 
     # Reconstruct demos using learned weights
     rec_demo = mp.get_traj_pos(times, **params_dict)
@@ -142,7 +153,7 @@ def test_prodmp_disable_goal():
     num_dof = config["num_dof"]
     add_dim = params.shape[:-1]
     goal = 2
-    params =\
+    params = \
         torch.ones([*add_dim, num_dof * config['mp_args']['num_basis']]) * 500
 
     if learn_delay:
