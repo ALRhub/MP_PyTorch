@@ -135,10 +135,10 @@ class DMP(MPInterface):
         if not torch.allclose(self.init_time, self.times[..., 0]):
             assert torch.allclose(self.times[..., 1] + self.init_time, 2 * self.times[..., 0]), \
                 f"The start time value {self.times[..., 1]} should be either init_time {self.init_time} or init_time + dt."
-            times_include_bc = torch.cat([self.init_time[..., None], self.times], dim=-1)
+            times_include_init = torch.cat([self.init_time[..., None], self.times], dim=-1)
 
             # Recursively call itself
-            self.get_traj_pos(times_include_bc)
+            self.get_traj_pos(times_include_init)
 
             # Remove the init_time from the result
             self.pos = self.pos[..., 1:, :]
