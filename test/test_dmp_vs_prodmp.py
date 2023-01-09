@@ -52,7 +52,7 @@ def get_mp_config():
     times = util.tensor_linspace(0, (tau + delay), num_t).squeeze(-1)
     times = util.add_expand_dim(times, [0], [num_traj])
 
-    # Get BC
+    # Get IC
     init_time = times[:, 0]
     init_pos = 5 * torch.ones([num_traj, config.num_dof])
     init_vel = torch.zeros_like(init_pos)
