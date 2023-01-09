@@ -86,7 +86,7 @@ class ProMP(ProbabilisticMPInterface):
         super().set_mp_params_variances(params_L)
 
     def get_traj_pos(self, times=None, params=None,
-                     bc_time=None, bc_pos=None, bc_vel=None,
+                     init_time=None, init_pos=None, init_vel=None,
                      flat_shape=False):
         """
         Get trajectory position
@@ -97,9 +97,9 @@ class ProMP(ProbabilisticMPInterface):
 
             times: time points
             params: learnable parameters
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             flat_shape: if flatten the dimensions of Dof and time
 
         Returns:
@@ -110,7 +110,7 @@ class ProMP(ProbabilisticMPInterface):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_inputs(times, params, None, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, None, init_time, init_pos, init_vel)
 
         # Reuse result if existing
         if self.pos is not None:
@@ -144,7 +144,7 @@ class ProMP(ProbabilisticMPInterface):
             pos = torch.einsum('...ik,...jk->...ij', basis_single_dof, params)
 
             # Padding if necessary, this is a legacy case
-            pos += self.bc_pos[..., None, :] if self.has_zero_padding else 0
+            pos += self.init_pos[..., None, :] if self.has_zero_padding else 0
 
             self.pos = pos
 
@@ -158,7 +158,7 @@ class ProMP(ProbabilisticMPInterface):
         return pos
 
     def get_traj_pos_cov(self, times=None, params_L=None,
-                         bc_time=None, bc_pos=None, bc_vel=None,
+                         init_time=None, init_pos=None, init_vel=None,
                          reg: float = 1e-4):
         """
         Compute position covariance
@@ -168,9 +168,9 @@ class ProMP(ProbabilisticMPInterface):
         Args:
             times: time points
             params_L: learnable parameters' variance
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             reg: regularization term
 
         Returns:
@@ -181,7 +181,7 @@ class ProMP(ProbabilisticMPInterface):
         # [*add_dim, num_dof * num_times, num_dof * num_times]
 
         # Update inputs
-        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, init_time, init_pos, init_vel)
 
         # Reuse result if existing
         if self.pos_cov is not None:
@@ -220,9 +220,9 @@ class ProMP(ProbabilisticMPInterface):
         self.pos_cov = pos_cov + torch.eye(pos_cov.shape[-1]) * reg_term_pos
         return self.pos_cov
 
-    def get_traj_pos_std(self, times=None, params_L=None, bc_time=None,
-                         bc_pos=None,
-                         bc_vel=None, flat_shape=False, reg: float = 1e-4):
+    def get_traj_pos_std(self, times=None, params_L=None, init_time=None,
+                         init_pos=None,
+                         init_vel=None, flat_shape=False, reg: float = 1e-4):
         """
         Compute position standard deviation
 
@@ -231,9 +231,9 @@ class ProMP(ProbabilisticMPInterface):
         Args:
             times: time points
             params_L: learnable parameters' variance
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             flat_shape: if flatten the dimensions of Dof and time
             reg: regularization term
 
@@ -245,7 +245,7 @@ class ProMP(ProbabilisticMPInterface):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, init_time, init_pos, init_vel)
 
         # Reuse result if existing
         if self.pos_std is not None:
@@ -276,7 +276,7 @@ class ProMP(ProbabilisticMPInterface):
         return pos_std
 
     def get_traj_vel(self, times=None, params=None,
-                     bc_time=None, bc_pos=None, bc_vel=None,
+                     init_time=None, init_pos=None, init_vel=None,
                      flat_shape=False):
         """
         Get trajectory velocity
@@ -286,9 +286,9 @@ class ProMP(ProbabilisticMPInterface):
         Args:
             times: time points
             params: learnable parameters
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             flat_shape: if flatten the dimensions of Dof and time
 
         Returns:
@@ -299,7 +299,7 @@ class ProMP(ProbabilisticMPInterface):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_inputs(times, params, None, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, None, init_time, init_pos, init_vel)
 
         # Reuse result if existing
         if self.vel is not None:
@@ -325,9 +325,9 @@ class ProMP(ProbabilisticMPInterface):
 
         return vel
 
-    def get_traj_vel_cov(self, times=None, params_L=None, bc_time=None,
-                         bc_pos=None,
-                         bc_vel=None, reg: float = 1e-4):
+    def get_traj_vel_cov(self, times=None, params_L=None, init_time=None,
+                         init_pos=None,
+                         init_vel=None, reg: float = 1e-4):
         """
         Get velocity covariance
 
@@ -336,9 +336,9 @@ class ProMP(ProbabilisticMPInterface):
         Args:
             times: time points
             params_L: learnable parameters' variance
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             reg: regularization term
 
         Returns:
@@ -347,9 +347,9 @@ class ProMP(ProbabilisticMPInterface):
         self.vel_cov = None
         return self.vel_cov
 
-    def get_traj_vel_std(self, times=None, params_L=None, bc_time=None,
-                         bc_pos=None,
-                         bc_vel=None, flat_shape=False, reg: float = 1e-4):
+    def get_traj_vel_std(self, times=None, params_L=None, init_time=None,
+                         init_pos=None,
+                         init_vel=None, flat_shape=False, reg: float = 1e-4):
         """
         Get trajectory standard deviation
 
@@ -358,9 +358,9 @@ class ProMP(ProbabilisticMPInterface):
         Args:
             times: time points
             params_L: learnable parameters' variance
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             flat_shape: if flatten the dimensions of Dof and time
             reg: regularization term
 

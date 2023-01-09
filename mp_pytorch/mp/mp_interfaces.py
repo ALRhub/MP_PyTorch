@@ -60,10 +60,10 @@ class MPInterface(ABC):
         # Learnable parameters
         self.params = None
 
-        # Boundary conditions
-        self.bc_time = None
-        self.bc_pos = None
-        self.bc_vel = None
+        # Initial conditions
+        self.init_time = None
+        self.init_pos = None
+        self.init_vel = None
 
         # Runtime computation results, shall be reset every time when
         # inputs are reset
@@ -149,14 +149,14 @@ class MPInterface(ABC):
         self.clear_computation_result()
 
     def set_duration(self, duration: Optional[float], dt: float,
-                     include_bc_time: bool = False):
+                     include_init_time: bool = False):
         """
-        Set MP time points of a duration. The times start from bc_time or 0
+        Set MP time points of a duration. The times start from init_time or 0
 
         Args:
             duration: desired duration of trajectory
             dt: control frequency
-            include_bc_time: if the duration includes the bc time step.
+            include_init_time: if the duration includes the bc time step.
         Returns:
             None
         """
@@ -173,9 +173,9 @@ class MPInterface(ABC):
         times = util.add_expand_dim(times, list(range(len(self.add_dim))),
                                     self.add_dim)
 
-        if self.bc_time is not None:
-            times = times + self.bc_time[..., None]
-        if include_bc_time:
+        if self.init_time is not None:
+            times = times + self.init_time[..., None]
+        if include_init_time:
             self.set_times(times)
         else:
             self.set_times(times[..., 1:])
@@ -207,54 +207,54 @@ class MPInterface(ABC):
         self.clear_computation_result()
         return remaining_params[..., self._num_local_params:]
 
-    def set_boundary_conditions(self, bc_time: Union[torch.Tensor, np.ndarray],
-                                bc_pos: Union[torch.Tensor, np.ndarray],
-                                bc_vel: Union[torch.Tensor, np.ndarray]):
+    def set_initial_conditions(self, init_time: Union[torch.Tensor, np.ndarray],
+                                init_pos: Union[torch.Tensor, np.ndarray],
+                                init_vel: Union[torch.Tensor, np.ndarray]):
         """
-        Set boundary conditions in a batched manner
+        Set initial conditions in a batched manner
 
         Args:
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
 
         Returns:
             None
         """
 
-        # Shape of bc_time:
+        # Shape of init_time:
         # [*add_dim]
         #
-        # Shape of bc_pos:
+        # Shape of init_pos:
         # [*add_dim, num_dof]
         #
-        # Shape of bc_vel:
+        # Shape of init_vel:
         # [*add_dim, num_dof]
 
-        self.bc_time = torch.as_tensor(bc_time, dtype=self.dtype,
+        self.init_time = torch.as_tensor(init_time, dtype=self.dtype,
                                        device=self.device)
-        self.bc_pos = torch.as_tensor(bc_pos, dtype=self.dtype,
+        self.init_pos = torch.as_tensor(init_pos, dtype=self.dtype,
                                       device=self.device)
-        bc_vel = torch.as_tensor(bc_vel, dtype=self.dtype, device=self.device)
+        init_vel = torch.as_tensor(init_vel, dtype=self.dtype, device=self.device)
 
         # If velocity is non-zero, then cannot wait
-        if torch.count_nonzero(bc_vel) != 0:
-            assert torch.all(self.bc_time - self.phase_gn.delay >= 0), \
-                f"Cannot set non-zero boundary velocity {bc_vel} if boundary condition time" \
-                f"value(s) {self.bc_time} is (are) smaller than delay value(s) {self.phase_gn.delay}"
-        self.bc_vel = bc_vel
+        if torch.count_nonzero(init_vel) != 0:
+            assert torch.all(self.init_time - self.phase_gn.delay >= 0), \
+                f"Cannot set non-zero initial velocity {init_vel} if initial condition time" \
+                f"value(s) {self.init_time} is (are) smaller than delay value(s) {self.phase_gn.delay}"
+        self.init_vel = init_vel
         self.clear_computation_result()
 
     def update_inputs(self, times=None, params=None,
-                      bc_time=None, bc_pos=None, bc_vel=None, **kwargs):
+                      init_time=None, init_pos=None, init_vel=None, **kwargs):
         """
         Update MP
         Args:
             times: desired time points
             params: parameters
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             kwargs: other keyword arguments
 
         Returns: None
@@ -264,8 +264,8 @@ class MPInterface(ABC):
             self.set_params(params)
         if times is not None:
             self.set_times(times)
-        if all([data is not None for data in {bc_time, bc_pos, bc_vel}]):
-            self.set_boundary_conditions(bc_time, bc_pos, bc_vel)
+        if all([data is not None for data in {init_time, init_pos, init_vel}]):
+            self.set_initial_conditions(init_time, init_pos, init_vel)
 
     def get_params(self) -> torch.Tensor:
         """
@@ -333,15 +333,15 @@ class MPInterface(ABC):
 
     @abstractmethod
     def get_traj_pos(self, times=None, params=None,
-                     bc_time=None, bc_pos=None, bc_vel=None):
+                     init_time=None, init_pos=None, init_vel=None):
         """
         Get trajectory position
         Args:
             times: time points
             params: learnable parameters
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
 
         Returns:
             pos
@@ -350,16 +350,16 @@ class MPInterface(ABC):
 
     @abstractmethod
     def get_traj_vel(self, times=None, params=None,
-                     bc_time=None, bc_pos=None, bc_vel=None):
+                     init_time=None, init_pos=None, init_vel=None):
         """
         Get trajectory velocity
 
         Args:
             times: time points
             params: learnable parameters
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
 
         Returns: vel
         """
@@ -492,22 +492,22 @@ class ProbabilisticMPInterface(MPInterface):
         self.clear_computation_result()
 
     def update_inputs(self, times=None, params=None, params_L=None,
-                      bc_time=None, bc_pos=None, bc_vel=None, **kwargs):
+                      init_time=None, init_pos=None, init_vel=None, **kwargs):
         """
         Set MP
         Args:
             times: desired time points
             params: parameters
             params_L: cholesky of covariance matrix of the MP parameters
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             kwargs: other keyword arguments
 
         Returns: None
 
         """
-        super().update_inputs(times, params, bc_time, bc_pos, bc_vel)
+        super().update_inputs(times, params, init_time, init_pos, init_vel)
         if params_L is not None:
             self.set_mp_params_variances(params_L)
 
@@ -573,16 +573,16 @@ class ProbabilisticMPInterface(MPInterface):
 
     @abstractmethod
     def get_traj_pos(self, times=None, params=None,
-                     bc_time=None, bc_pos=None, bc_vel=None,
+                     init_time=None, init_pos=None, init_vel=None,
                      flat_shape=False):
         """
         Get trajectory position
         Args:
             times: time points
             params: learnable parameters
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             flat_shape: if flatten the dimensions of Dof and time
 
         Returns:
@@ -592,7 +592,7 @@ class ProbabilisticMPInterface(MPInterface):
 
     @abstractmethod
     def get_traj_pos_cov(self, times=None, params_L=None,
-                         bc_time=None, bc_pos=None, bc_vel=None,
+                         init_time=None, init_pos=None, init_vel=None,
                          reg: float = 1e-4):
         """
         Get trajectory covariance
@@ -601,9 +601,9 @@ class ProbabilisticMPInterface(MPInterface):
         Args:
             times: time points
             params_L: learnable parameters' variance
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             reg: regularization term
 
         Returns:
@@ -613,16 +613,16 @@ class ProbabilisticMPInterface(MPInterface):
 
     @abstractmethod
     def get_traj_pos_std(self, times=None, params_L=None,
-                         bc_time=None, bc_pos=None, bc_vel=None,
+                         init_time=None, init_pos=None, init_vel=None,
                          flat_shape=False, reg: float = 1e-4):
         """
         Get trajectory standard deviation
         Args:
             times: time points
             params_L: learnable parameters' variance
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             flat_shape: if flatten the dimensions of Dof and time
             reg: regularization term
 
@@ -633,7 +633,7 @@ class ProbabilisticMPInterface(MPInterface):
 
     @abstractmethod
     def get_traj_vel(self, times=None, params=None,
-                     bc_time=None, bc_pos=None, bc_vel=None,
+                     init_time=None, init_pos=None, init_vel=None,
                      flat_shape=False):
         """
         Get trajectory velocity
@@ -642,9 +642,9 @@ class ProbabilisticMPInterface(MPInterface):
         Args:
             times: time points
             params: learnable parameters
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             flat_shape: if flatten the dimensions of Dof and time
 
         Returns:
@@ -654,16 +654,16 @@ class ProbabilisticMPInterface(MPInterface):
 
     @abstractmethod
     def get_traj_vel_cov(self, times=None, params_L=None,
-                         bc_time=None, bc_pos=None, bc_vel=None,
+                         init_time=None, init_pos=None, init_vel=None,
                          reg: float = 1e-4):
         """
         Get trajectory covariance
         Args:
             times: time points
             params_L: learnable parameters' variance
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             reg: regularization term
 
         Returns:
@@ -673,16 +673,16 @@ class ProbabilisticMPInterface(MPInterface):
 
     @abstractmethod
     def get_traj_vel_std(self, times=None, params_L=None,
-                         bc_time=None, bc_pos=None, bc_vel=None,
+                         init_time=None, init_pos=None, init_vel=None,
                          flat_shape=False, reg: float = 1e-4):
         """
         Get trajectory standard deviation
         Args:
             times: time points
             params_L: learnable parameters' variance
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             flat_shape: if flatten the dimensions of Dof and time
             reg: regularization term
 
@@ -692,7 +692,7 @@ class ProbabilisticMPInterface(MPInterface):
         pass
 
     def sample_trajectories(self, times=None, params=None, params_L=None,
-                            bc_time=None, bc_pos=None, bc_vel=None,
+                            init_time=None, init_pos=None, init_vel=None,
                             num_smp=1, flat_shape=False):
         """
         Sample trajectories from MP
@@ -701,9 +701,9 @@ class ProbabilisticMPInterface(MPInterface):
             times: time points
             params: learnable parameters
             params_L: learnable parameters' variance
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             num_smp: num of trajectories to be sampled
             flat_shape: if flatten the dimensions of Dof and time
 
@@ -715,14 +715,14 @@ class ProbabilisticMPInterface(MPInterface):
         # [*add_dim, num_smp, num_times, num_dof]
         # or [*add_dim, num_smp, num_dof * num_times]
 
-        if all([data is None for data in {times, params, params_L, bc_time,
-                                          bc_pos, bc_vel}]):
+        if all([data is None for data in {times, params, params_L, init_time,
+                                          init_pos, init_vel}]):
             times = self.times
             params = self.params
             params_L = self.params_L
-            bc_time = self.bc_time
-            bc_pos = self.bc_pos
-            bc_vel = self.bc_vel
+            init_time = self.init_time
+            init_pos = self.init_pos
+            init_vel = self.init_vel
 
         num_add_dim = params.ndim - 1
 
@@ -744,20 +744,20 @@ class ProbabilisticMPInterface(MPInterface):
                                                    [num_smp])
             params_smp = torch.cat([params_super_smp, params_smp], dim=-1)
 
-        # Add additional sample axis to boundary condition
-        if bc_time is not None:
-            bc_time_smp = util.add_expand_dim(bc_time, [num_add_dim], [num_smp])
-            bc_pos_smp = util.add_expand_dim(bc_pos, [num_add_dim], [num_smp])
-            bc_vel_smp = util.add_expand_dim(bc_vel, [num_add_dim], [num_smp])
+        # Add additional sample axis to initial condition
+        if init_time is not None:
+            init_time_smp = util.add_expand_dim(init_time, [num_add_dim], [num_smp])
+            init_pos_smp = util.add_expand_dim(init_pos, [num_add_dim], [num_smp])
+            init_vel_smp = util.add_expand_dim(init_vel, [num_add_dim], [num_smp])
         else:
-            bc_time_smp = None
-            bc_pos_smp = None
-            bc_vel_smp = None
+            init_time_smp = None
+            init_pos_smp = None
+            init_vel_smp = None
 
         # Update inputs
         self.reset()
         self.update_inputs(times_smp, params_smp, None,
-                           bc_time_smp, bc_pos_smp, bc_vel_smp)
+                           init_time_smp, init_pos_smp, init_vel_smp)
 
         # Get sample trajectories
         pos_smp = self.get_traj_pos(flat_shape=flat_shape)
@@ -767,6 +767,6 @@ class ProbabilisticMPInterface(MPInterface):
         if params_super.nelement() != 0:
             params = torch.cat([params_super, params], dim=-1)
         self.reset()
-        self.update_inputs(times, params, None, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, None, init_time, init_pos, init_vel)
 
         return pos_smp, vel_smp

@@ -45,14 +45,14 @@ The main steps to create ProDMPs instance and generate trajectories are as follo
 Suppose you have edited the required configuration.
 You can view the demo and check how to edit the configuration in [Edit Configuration](./doc/02_config.md).
 ```python
-# config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = get_mp_utils("prodmp", True, True)
+# config, times, params, params_L, init_time, init_pos, init_vel, demos = get_mp_utils("prodmp", True, True)
 ```
 
 ### 2. Initial prodmp instance and update inputs
 ```python
 mp = MPFactory.init_mp(**config)
 mp.update_inputs(times=times, params=params, params_L=params_L,
-                 bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+                 init_time=init_time, init_pos=init_pos, init_vel=init_vel)
 
 # you can also choose to learn parameters from demonstrations.
 params_dict = mp.learn_mp_params_from_trajs(times, demos)

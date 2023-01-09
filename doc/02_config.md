@@ -10,7 +10,7 @@ You can call this demo as follows:
 
 ```python
 from mp_pytorch import demo
-config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
+config, times, params, params_L, init_time, init_pos, init_vel, demos = \
     demo.get_mp_utils(mp_type="prodmp", learn_tau=True, learn_delay=True)
 ```
 

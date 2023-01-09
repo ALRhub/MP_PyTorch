@@ -13,13 +13,13 @@ from mp_pytorch.mp import ProMP
 def test_promp():
     util.print_wrap_title("test_promp")
 
-    config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
+    config, times, params, params_L, init_time, init_pos, init_vel, demos = \
         get_mp_utils("promp", True, True)
 
     mp = MPFactory.init_mp(**config)
     assert isinstance(mp, ProMP)
     mp.update_inputs(times=times, params=params, params_L=params_L,
-                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+                     init_time=init_time, init_pos=init_pos, init_vel=init_vel)
     traj_dict = mp.get_trajs(get_pos=True, get_pos_cov=True,
                              get_pos_std=True, get_vel=True,
                              get_vel_cov=True, get_vel_std=True)
@@ -72,12 +72,12 @@ def test_promp():
 
     # Learn weights
     util.print_line_title("learn weights")
-    config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
+    config, times, params, params_L, init_time, init_pos, init_vel, demos = \
         get_mp_utils("promp", False, False)
 
     mp = MPFactory.init_mp(**config)
     mp.update_inputs(times=times, params=params, params_L=params_L,
-                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+                     init_time=init_time, init_pos=init_pos, init_vel=init_vel)
     params_dict = mp.learn_mp_params_from_trajs(times, demos)
     # Reconstruct demos using learned weights
     rec_demo = mp.get_traj_pos(times, **params_dict)
@@ -92,13 +92,13 @@ def test_promp():
 def test_zero_padding_promp():
     util.print_wrap_title("test_zero_padding_promp")
 
-    config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
+    config, times, params, params_L, init_time, init_pos, init_vel, demos = \
         get_mp_utils("zero_padding_promp", False, False)
 
     mp = MPFactory.init_mp(**config)
     assert isinstance(mp, ProMP)
     mp.update_inputs(times=times, params=params, params_L=params_L,
-                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+                     init_time=init_time, init_pos=init_pos, init_vel=init_vel)
 
     # Pos
     util.print_line_title("zero padding pos")
