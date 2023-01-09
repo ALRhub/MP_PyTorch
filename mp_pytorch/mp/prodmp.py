@@ -143,50 +143,50 @@ class ProDMP(ProMP):
 
         super().set_times(times)
 
-    def set_boundary_conditions(self, bc_time: Union[torch.Tensor, np.ndarray],
-                                bc_pos: Union[torch.Tensor, np.ndarray],
-                                bc_vel: Union[torch.Tensor, np.ndarray]):
+    def set_initial_conditions(self, init_time: Union[torch.Tensor, np.ndarray],
+                                init_pos: Union[torch.Tensor, np.ndarray],
+                                init_vel: Union[torch.Tensor, np.ndarray]):
         """
-        Set boundary conditions in a batched manner
+        Set initial conditions in a batched manner
 
         Args:
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
 
         Returns:
             None
         """
-        # Shape of bc_time:
+        # Shape of init_time:
         # [*add_dim]
         #
-        # Shape of bc_pos:
+        # Shape of init_pos:
         # [*add_dim, num_dof]
         #
-        # Shape of bc_vel:
+        # Shape of init_vel:
         # [*add_dim, num_dof]
 
-        bc_time = torch.as_tensor(bc_time, dtype=self.dtype, device=self.device)
-        bc_pos = torch.as_tensor(bc_pos, dtype=self.dtype, device=self.device)
-        bc_vel = torch.as_tensor(bc_vel, dtype=self.dtype, device=self.device)
+        init_time = torch.as_tensor(init_time, dtype=self.dtype, device=self.device)
+        init_pos = torch.as_tensor(init_pos, dtype=self.dtype, device=self.device)
+        init_vel = torch.as_tensor(init_vel, dtype=self.dtype, device=self.device)
 
-        assert list(bc_time.shape) == [*self.add_dim]
-        assert list(bc_pos.shape) == list(bc_vel.shape) and list(
-            bc_vel.shape) == [*self.add_dim, self.num_dof]
+        assert list(init_time.shape) == [*self.add_dim]
+        assert list(init_pos.shape) == list(init_vel.shape) and list(
+            init_vel.shape) == [*self.add_dim, self.num_dof]
 
-        bc_time = torch.as_tensor(bc_time, dtype=self.dtype, device=self.device)
+        init_time = torch.as_tensor(init_time, dtype=self.dtype, device=self.device)
         y1_bc, y2_bc, dy1_bc, dy2_bc = self.basis_gn.general_solution_values(
-            bc_time[..., None])
+            init_time[..., None])
 
         self.y1_bc = y1_bc.squeeze(-1)
         self.y2_bc = y2_bc.squeeze(-1)
         self.dy1_bc = dy1_bc.squeeze(-1)
         self.dy2_bc = dy2_bc.squeeze(-1)
 
-        super().set_boundary_conditions(bc_time, bc_pos, bc_vel)
+        super().set_initial_conditions(init_time, init_pos, init_vel)
 
     def get_traj_pos(self, times=None, params=None,
-                     bc_time=None, bc_pos=None, bc_vel=None,
+                     init_time=None, init_pos=None, init_vel=None,
                      flat_shape=False):
         """
         Compute trajectory pos
@@ -196,9 +196,9 @@ class ProDMP(ProMP):
         Args:
             times: time points
             params: learnable parameters
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             flat_shape: if flatten the dimensions of Dof and time
 
         Returns:
@@ -209,7 +209,7 @@ class ProDMP(ProMP):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_inputs(times, params, None, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, None, init_time, init_pos, init_vel)
 
         # Reuse result if existing
         if self.pos is not None:
@@ -247,8 +247,8 @@ class ProDMP(ProMP):
 
         return pos
 
-    def get_traj_pos_cov(self, times=None, params_L=None, bc_time=None,
-                         bc_pos=None, bc_vel=None, reg: float = 1e-4):
+    def get_traj_pos_cov(self, times=None, params_L=None, init_time=None,
+                         init_pos=None, init_vel=None, reg: float = 1e-4):
         """
         Compute and return position covariance
 
@@ -257,9 +257,9 @@ class ProDMP(ProMP):
         Args:
             times: time points
             params_L: learnable parameters' variance
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             reg: regularization term
 
         Returns:
@@ -270,7 +270,7 @@ class ProDMP(ProMP):
         # [*add_dim, num_dof * num_times, num_dof * num_times]
 
         # Update inputs
-        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, init_time, init_pos, init_vel)
 
         # Reuse result if existing
         if self.pos_cov is not None:
@@ -305,9 +305,9 @@ class ProDMP(ProMP):
 
         return self.pos_cov
 
-    def get_traj_pos_std(self, times=None, params_L=None, bc_time=None,
-                         bc_pos=None,
-                         bc_vel=None, flat_shape=False, reg: float = 1e-4):
+    def get_traj_pos_std(self, times=None, params_L=None, init_time=None,
+                         init_pos=None,
+                         init_vel=None, flat_shape=False, reg: float = 1e-4):
         """
         Compute trajectory standard deviation
 
@@ -316,9 +316,9 @@ class ProDMP(ProMP):
         Args:
             times: time points
             params_L: learnable parameters' variance
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             flat_shape: if flatten the dimensions of Dof and time
             reg: regularization term
 
@@ -330,7 +330,7 @@ class ProDMP(ProMP):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, init_time, init_pos, init_vel)
 
         # Reuse result if existing
         if self.pos_std is not None:
@@ -357,7 +357,7 @@ class ProDMP(ProMP):
         return pos_std
 
     def get_traj_vel(self, times=None, params=None,
-                     bc_time=None, bc_pos=None, bc_vel=None,
+                     init_time=None, init_pos=None, init_vel=None,
                      flat_shape=False):
         """
         Compute trajectory velocity
@@ -367,9 +367,9 @@ class ProDMP(ProMP):
         Args:
             times: time points
             params: learnable parameters
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             flat_shape: if flatten the dimensions of Dof and time
 
         Returns:
@@ -380,7 +380,7 @@ class ProDMP(ProMP):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_inputs(times, params, None, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, None, init_time, init_pos, init_vel)
 
         # Reuse result if existing
         if self.vel is not None:
@@ -419,9 +419,9 @@ class ProDMP(ProMP):
 
         return vel
 
-    def get_traj_vel_cov(self, times=None, params_L=None, bc_time=None,
-                         bc_pos=None,
-                         bc_vel=None, reg: float = 1e-4):
+    def get_traj_vel_cov(self, times=None, params_L=None, init_time=None,
+                         init_pos=None,
+                         init_vel=None, reg: float = 1e-4):
         """
         Get trajectory velocity covariance
 
@@ -430,9 +430,9 @@ class ProDMP(ProMP):
         Args:
             times: time points
             params_L: learnable parameters' variance
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             reg: regularization term
 
         Returns:
@@ -443,7 +443,7 @@ class ProDMP(ProMP):
         # [*add_dim, num_dof * num_times, num_dof * num_times]
 
         # Update inputs
-        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, init_time, init_pos, init_vel)
 
         # Reuse result if existing
         if self.vel_cov is not None:
@@ -482,9 +482,9 @@ class ProDMP(ProMP):
 
         return self.vel_cov
 
-    def get_traj_vel_std(self, times=None, params_L=None, bc_time=None,
-                         bc_pos=None,
-                         bc_vel=None, flat_shape=False, reg: float = 1e-4):
+    def get_traj_vel_std(self, times=None, params_L=None, init_time=None,
+                         init_pos=None,
+                         init_vel=None, flat_shape=False, reg: float = 1e-4):
         """
         Compute trajectory velocity standard deviation
 
@@ -493,9 +493,9 @@ class ProDMP(ProMP):
         Args:
             times: time points
             params_L: learnable parameters' variance
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
             flat_shape: if flatten the dimensions of Dof and time
             reg: regularization term
 
@@ -508,7 +508,7 @@ class ProDMP(ProMP):
         # [*add_dim, num_times, num_dof] or [*add_dim, num_dof * num_times]
 
         # Update inputs
-        self.update_inputs(times, None, params_L, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, None, params_L, init_time, init_pos, init_vel)
 
         # Reuse result if existing
         if self.vel_std is not None:
@@ -537,7 +537,7 @@ class ProDMP(ProMP):
                                    reg: float = 1e-9, **kwargs) -> dict:
         """
         Learn DMP weights and goal given trajectory position
-        Use the initial position and velocity as boundary condition
+        Use the initial position and velocity as initial condition
 
         Args:
             times: trajectory time points
@@ -548,9 +548,9 @@ class ProDMP(ProMP):
         Returns:
             param_dict: dictionary of parameters containing
                 - params (w + g)
-                - bc_time
-                - bc_pos
-                - bc_vel
+                - init_time
+                - init_pos
+                - init_vel
         """
         # Shape of times:
         # [*add_dim, num_times]
@@ -567,24 +567,24 @@ class ProDMP(ProMP):
 
         trajs = torch.as_tensor(trajs, dtype=self.dtype, device=self.device)
 
-        # Get boundary conditions
+        # Get initial conditions
         dt = self.basis_gn.scaled_dt * self.phase_gn.tau
 
         if all([key in kwargs.keys() 
-                for key in ["bc_time", "bc_pos", "bc_vel"]]):
-            logging.warning("ProDMP uses the given boundary conditions")
-            bc_time = kwargs["bc_time"]
-            bc_pos = kwargs["bc_pos"]
-            bc_vel = kwargs["bc_vel"]
+                for key in ["init_time", "init_pos", "init_vel"]]):
+            logging.warning("ProDMP uses the given initial conditions")
+            init_time = kwargs["init_time"]
+            init_pos = kwargs["init_pos"]
+            init_vel = kwargs["init_vel"]
         else:
-            bc_time = times[..., 0]
-            bc_pos = trajs[..., 0, :]
-            bc_vel = torch.diff(trajs, dim=-2)[..., 0, :] / dt
+            init_time = times[..., 0]
+            init_pos = trajs[..., 0, :]
+            init_vel = torch.diff(trajs, dim=-2)[..., 0, :] / dt
 
         # Setup stuff
         self.set_add_dim(list(trajs.shape[:-2]))
         self.set_times(times)
-        self.set_boundary_conditions(bc_time, bc_pos, bc_vel)
+        self.set_initial_conditions(init_time, init_pos, init_vel)
 
         self.compute_intermediate_terms_single()
         self.compute_intermediate_terms_multi_dof()
@@ -608,7 +608,7 @@ class ProDMP(ProMP):
         #      -> [*add_dim, num_dof * num_times]
         trajs = trajs.reshape([*self.add_dim, -1])
 
-        # Position minus boundary condition terms,
+        # Position minus initial condition terms,
         pos_wg = trajs - self.pos_bc
 
         # Einsum_shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g]
@@ -628,12 +628,12 @@ class ProDMP(ProMP):
         self.set_mp_params_variances(None)
 
         return {"params": params,
-                "bc_time": bc_time,
-                "bc_pos": bc_pos,
-                "bc_vel": bc_vel}
+                "init_time": init_time,
+                "init_pos": init_pos,
+                "init_vel": init_vel}
 
     def compute_intermediate_terms_single(self):
-        # Determinant of boundary condition,
+        # Determinant of initial condition,
         # Shape: [*add_dim]
         det = self.y1_bc * self.dy2_bc - self.y2_bc * self.dy1_bc
         # Compute coefficients to form up traj position and velocity
@@ -655,23 +655,23 @@ class ProDMP(ProMP):
         dxi_4 = torch.einsum("...,...i->...i", self.y2_bc / det, self.dy1) \
                 - torch.einsum("...,...i->...i", self.y1_bc / det, self.dy2)
 
-        # Generate basis boundary condition values
+        # Generate basis initial condition values
         # [*add_dim, num_basis_g]
-        pos_basis_bc = self.basis_gn.basis(self.bc_time[..., None]).squeeze(-2)
-        vel_basis_bc = self.basis_gn.vel_basis(self.bc_time[..., None]).squeeze(
+        pos_basis_bc = self.basis_gn.basis(self.init_time[..., None]).squeeze(-2)
+        vel_basis_bc = self.basis_gn.vel_basis(self.init_time[..., None]).squeeze(
             -2)
 
-        # Scale bc_vel
-        bc_vel = self.bc_vel * self.phase_gn.tau[..., None]
+        # Scale init_vel
+        init_vel = self.init_vel * self.phase_gn.tau[..., None]
 
-        # Compute position and velocity boundary condition part
+        # Compute position and velocity initial condition part
         # Einsum shape: [*add_dim, num_times],
         #               [*add_dim, num_dof]
         #            -> [*add_dim, num_dof, num_times]
-        pos_det = torch.einsum('...j,...i->...ij', xi_1, self.bc_pos) \
-                  + torch.einsum('...j,...i->...ij', xi_2, bc_vel)
-        vel_det = torch.einsum('...j,...i->...ij', dxi_1, self.bc_pos) \
-                  + torch.einsum('...j,...i->...ij', dxi_2, bc_vel)
+        pos_det = torch.einsum('...j,...i->...ij', xi_1, self.init_pos) \
+                  + torch.einsum('...j,...i->...ij', xi_2, init_vel)
+        vel_det = torch.einsum('...j,...i->...ij', dxi_1, self.init_pos) \
+                  + torch.einsum('...j,...i->...ij', dxi_2, init_vel)
 
         # Reshape: [*add_dim, num_dof, num_times]
         #       -> [*add_dim, num_dof * num_times]
@@ -692,7 +692,7 @@ class ProDMP(ProMP):
             + self.basis_gn.vel_basis(self.times)
 
     def compute_intermediate_terms_multi_dof(self):
-        # Determinant of boundary condition,
+        # Determinant of initial condition,
         # Shape: [*add_dim]
         det = self.y1_bc * self.dy2_bc - self.y2_bc * self.dy1_bc
 
@@ -707,12 +707,12 @@ class ProDMP(ProMP):
         dxi_4 = torch.einsum("...,...i->...i", self.y2_bc / det, self.dy1) \
                 - torch.einsum("...,...i->...i", self.y1_bc / det, self.dy2)
 
-        # Generate blocked basis boundary condition values
+        # Generate blocked basis initial condition values
         # [*add_dim, num_dof, num_dof * num_basis_g]
         pos_basis_bc_multi_dofs = self.basis_gn.basis_multi_dofs(
-            self.bc_time[..., None], self.num_dof)
+            self.init_time[..., None], self.num_dof)
         vel_basis_bc_multi_dofs = self.basis_gn.vel_basis_multi_dofs(
-            self.bc_time[..., None], self.num_dof)
+            self.init_time[..., None], self.num_dof)
 
         # Compute position and velocity variant part (part 3)
         # Position and velocity part 3_1 and 3_2
@@ -750,12 +750,12 @@ class ProDMP(ProMP):
                                device=self.device, dtype=self.dtype)
         self.set_add_dim([])
         self.set_times(times)
-        self.set_boundary_conditions(
-            bc_time=torch.zeros([], device=self.device,
+        self.set_initial_conditions(
+            init_time=torch.zeros([], device=self.device,
                                 dtype=self.dtype) + delay,
-            bc_pos=torch.zeros([self.num_dof], device=self.device,
+            init_pos=torch.zeros([self.num_dof], device=self.device,
                                dtype=self.dtype),
-            bc_vel=torch.zeros([self.num_dof], device=self.device,
+            init_vel=torch.zeros([self.num_dof], device=self.device,
                                dtype=self.dtype),
         )
 

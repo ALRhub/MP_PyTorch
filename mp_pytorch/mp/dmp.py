@@ -66,44 +66,44 @@ class DMP(MPInterface):
         w_g_scale[-1] = self.goal_scale
         return w_g_scale
 
-    def set_boundary_conditions(self, bc_time: Union[torch.Tensor, np.ndarray],
-                                bc_pos: Union[torch.Tensor, np.ndarray],
-                                bc_vel: Union[torch.Tensor, np.ndarray]):
+    def set_initial_conditions(self, init_time: Union[torch.Tensor, np.ndarray],
+                                init_pos: Union[torch.Tensor, np.ndarray],
+                                init_vel: Union[torch.Tensor, np.ndarray]):
         """
-        Set boundary conditions in a batched manner
+        Set initial conditions in a batched manner
 
         Args:
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
 
         Returns:
             None
         """
-        # Shape of bc_time:
+        # Shape of init_time:
         # [*add_dim]
         #
-        # Shape of bc_pos:
+        # Shape of init_pos:
         # [*add_dim, num_dof]
         #
-        # Shape of bc_vel:
+        # Shape of init_vel:
         # [*add_dim, num_dof]
 
-        bc_time = torch.as_tensor(bc_time, dtype=self.dtype, device=self.device)
-        bc_pos = torch.as_tensor(bc_pos, dtype=self.dtype, device=self.device)
-        bc_vel = torch.as_tensor(bc_vel, dtype=self.dtype, device=self.device)
+        init_time = torch.as_tensor(init_time, dtype=self.dtype, device=self.device)
+        init_pos = torch.as_tensor(init_pos, dtype=self.dtype, device=self.device)
+        init_vel = torch.as_tensor(init_vel, dtype=self.dtype, device=self.device)
 
-        assert list(bc_time.shape) == [*self.add_dim], \
-            f"shape of boundary condition time {list(bc_time.shape)} " \
+        assert list(init_time.shape) == [*self.add_dim], \
+            f"shape of initial condition time {list(init_time.shape)} " \
             f"does not match batch dimension {[*self.add_dim]}"
-        assert list(bc_pos.shape) == list(bc_vel.shape) \
-               and list(bc_vel.shape) == [*self.add_dim, self.num_dof], \
-            f"shape of boundary condition position {list(bc_pos.shape)} " \
-            f"and boundary condition velocity do not match {list(bc_vel.shape)}"
-        super().set_boundary_conditions(bc_time, bc_pos, bc_vel)
+        assert list(init_pos.shape) == list(init_vel.shape) \
+               and list(init_vel.shape) == [*self.add_dim, self.num_dof], \
+            f"shape of initial condition position {list(init_pos.shape)} " \
+            f"and initial condition velocity do not match {list(init_vel.shape)}"
+        super().set_initial_conditions(init_time, init_pos, init_vel)
 
     def get_traj_pos(self, times=None, params=None,
-                     bc_time=None, bc_pos=None, bc_vel=None):
+                     init_time=None, init_pos=None, init_vel=None):
         """
         Compute trajectories at desired time points
 
@@ -112,9 +112,9 @@ class DMP(MPInterface):
         Args:
             times: time points
             params: learnable parameters
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
 
         Returns:
             pos
@@ -124,23 +124,23 @@ class DMP(MPInterface):
         # [*add_dim, num_times, num_dof]
 
         # Update inputs
-        self.update_inputs(times, params, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, init_time, init_pos, init_vel)
 
         # Reuse result if existing
         if self.pos is not None:
             return self.pos
 
-        # Check boundary condition, the desired times should start from
-        # boundary condition time steps or plus dt
-        if not torch.allclose(self.bc_time, self.times[..., 0]):
-            assert torch.allclose(self.times[..., 1] + self.bc_time, 2 * self.times[..., 0]), \
-                f"The start time value {self.times[..., 1]} should be either bc_time {self.bc_time} or bc_time + dt."
-            times_include_bc = torch.cat([self.bc_time[..., None], self.times], dim=-1)
+        # Check initial condition, the desired times should start from
+        # initial condition time steps or plus dt
+        if not torch.allclose(self.init_time, self.times[..., 0]):
+            assert torch.allclose(self.times[..., 1] + self.init_time, 2 * self.times[..., 0]), \
+                f"The start time value {self.times[..., 1]} should be either init_time {self.init_time} or init_time + dt."
+            times_include_bc = torch.cat([self.init_time[..., None], self.times], dim=-1)
 
             # Recursively call itself
             self.get_traj_pos(times_include_bc)
 
-            # Remove the bc_time from the result
+            # Remove the init_time from the result
             self.pos = self.pos[..., 1:, :]
             self.vel = self.vel[..., 1:, :]
             self.times = self.times[..., 1:]
@@ -175,8 +175,8 @@ class DMP(MPInterface):
         vel = torch.zeros([*self.add_dim, self.times.shape[-1], self.num_dof],
                           dtype=self.dtype, device=self.device)
 
-        pos[..., 0, :] = self.bc_pos
-        vel[..., 0, :] = self.bc_vel * self.phase_gn.tau[..., None]
+        pos[..., 0, :] = self.init_pos
+        vel[..., 0, :] = self.init_vel * self.phase_gn.tau[..., None]
 
         # Get scaled time increment steps
         scaled_times = self.phase_gn.left_bound_linear_phase(self.times)
@@ -204,7 +204,7 @@ class DMP(MPInterface):
         return pos
 
     def get_traj_vel(self, times=None, params=None,
-                     bc_time=None, bc_pos=None, bc_vel=None):
+                     init_time=None, init_pos=None, init_vel=None):
         """
         Get trajectory velocity
 
@@ -213,9 +213,9 @@ class DMP(MPInterface):
         Args:
             times: time points, can be None
             params: learnable parameters, can be None
-            bc_time: boundary condition time
-            bc_pos: boundary condition position
-            bc_vel: boundary condition velocity
+            init_time: initial condition time
+            init_pos: initial condition position
+            init_vel: initial condition velocity
 
         Returns:
             vel
@@ -225,7 +225,7 @@ class DMP(MPInterface):
         # [*add_dim, num_times, num_dof]
 
         # Update inputs
-        self.update_inputs(times, params, bc_time, bc_pos, bc_vel)
+        self.update_inputs(times, params, init_time, init_pos, init_vel)
 
         # Reuse result if existing
         if self.vel is not None:

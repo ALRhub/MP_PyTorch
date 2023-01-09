@@ -9,18 +9,18 @@ from mp_pytorch.mp import MPFactory
 
 def test_dmp():
     util.print_wrap_title("test_dmp")
-    config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
+    config, times, params, params_L, init_time, init_pos, init_vel, demos = \
         get_mp_utils("dmp", True, True)
 
     mp = MPFactory.init_mp(**config)
 
     # params_L here is redundant, but it will not fail the update func
 
-    # Uncomment this line below if you want to exclude bc_time from prediction
+    # Uncomment this line below if you want to exclude init_time from prediction
     # times = times[..., 1:]
 
     mp.update_inputs(times=times, params=params, params_L=params_L,
-                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+                     init_time=init_time, init_pos=init_pos, init_vel=init_vel)
 
     traj_dict = mp.get_trajs(get_pos=True, get_vel=True)
 
@@ -41,7 +41,7 @@ def test_dmp():
     print(mp.get_params_bounds().shape)
 
     # Show scaled basis
-    config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
+    config, times, params, params_L, init_time, init_pos, init_vel, demos = \
         get_mp_utils("dmp", False, False)
 
     mp = MPFactory.init_mp(**config)

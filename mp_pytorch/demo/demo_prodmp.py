@@ -13,11 +13,11 @@ from mp_pytorch.mp import ProDMP
 
 def test_prodmp():
     util.print_wrap_title("test_prodmp")
-    config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
+    config, times, params, params_L, init_time, init_pos, init_vel, demos = \
         get_mp_utils("prodmp", True, True)
     mp = MPFactory.init_mp(**config)
     mp.update_inputs(times=times, params=params, params_L=params_L,
-                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+                     init_time=init_time, init_pos=init_pos, init_vel=init_vel)
     assert isinstance(mp, ProDMP)
     traj_dict = mp.get_trajs(get_pos=True, get_pos_cov=True,
                              get_pos_std=True, get_vel=True,
@@ -73,7 +73,7 @@ def test_prodmp():
 
     # Learn weights
     util.print_line_title("learn weights")
-    config, times, params, params_L, bc_time, bc_pos, bc_vel, demos = \
+    config, times, params, params_L, init_time, init_pos, init_vel, demos = \
         get_mp_utils("prodmp", False, False)
 
     mp = MPFactory.init_mp(**config)
@@ -85,12 +85,12 @@ def test_prodmp():
                     labels=["demos", "rec_demos"],
                     title="ProDMP demos vs. rec_demos")
 
-    des_bc_pos = torch.zeros_like(demos[:, 0]) - 0.25
-    des_bc_vel = torch.zeros_like(demos[:, 0])
+    des_init_pos = torch.zeros_like(demos[:, 0]) - 0.25
+    des_init_vel = torch.zeros_like(demos[:, 0])
 
     params_dict = \
-        mp.learn_mp_params_from_trajs(times, demos, bc_time=times[:, 0],
-                                      bc_pos=des_bc_pos, bc_vel=des_bc_vel)
+        mp.learn_mp_params_from_trajs(times, demos, init_time=times[:, 0],
+                                      init_pos=des_init_pos, init_vel=des_init_vel)
 
     # Reconstruct demos using learned weights
     rec_demo = mp.get_traj_pos(times, **params_dict)
@@ -107,7 +107,7 @@ def test_prodmp_disable_weights():
     learn_tau = True
     learn_delay = True
 
-    config, times, params, _, bc_time, bc_pos, bc_vel, demos = \
+    config, times, params, _, init_time, init_pos, init_vel, demos = \
         get_mp_utils("prodmp", learn_tau, learn_delay)
 
     # Disable weights
@@ -123,7 +123,7 @@ def test_prodmp_disable_weights():
 
     mp = MPFactory.init_mp(**config)
     mp.update_inputs(times=times, params=params, params_L=None,
-                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+                     init_time=init_time, init_pos=init_pos, init_vel=init_vel)
     traj_dict = mp.get_trajs(get_pos=True, get_pos_cov=False,
                              get_pos_std=False, get_vel=True,
                              get_vel_cov=False, get_vel_std=False)
@@ -145,7 +145,7 @@ def test_prodmp_disable_goal():
     learn_tau = True
     learn_delay = True
 
-    config, times, params, _, bc_time, bc_pos, bc_vel, demos = \
+    config, times, params, _, init_time, init_pos, init_vel, demos = \
         get_mp_utils("prodmp", learn_tau, learn_delay)
 
     # Disable weights
@@ -163,7 +163,7 @@ def test_prodmp_disable_goal():
 
     mp = MPFactory.init_mp(**config)
     mp.update_inputs(times=times, params=params, params_L=None,
-                     bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+                     init_time=init_time, init_pos=init_pos, init_vel=init_vel)
     traj_dict = mp.get_trajs(get_pos=True, get_pos_cov=False,
                              get_pos_std=False, get_vel=True,
                              get_vel_cov=False, get_vel_std=False)

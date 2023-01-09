@@ -53,16 +53,16 @@ def get_mp_config():
     times = util.add_expand_dim(times, [0], [num_traj])
 
     # Get BC
-    bc_time = times[:, 0]
-    bc_pos = 5 * torch.ones([num_traj, config.num_dof])
-    bc_vel = torch.zeros_like(bc_pos)
+    init_time = times[:, 0]
+    init_pos = 5 * torch.ones([num_traj, config.num_dof])
+    init_vel = torch.zeros_like(init_pos)
 
-    return config, params, times, bc_time, bc_pos, bc_vel
+    return config, params, times, init_time, init_pos, init_vel
 
 
 def test_dmp_vs_prodmp_identical(plot=False):
     # Get config
-    config, params, times, bc_time, bc_pos, bc_vel = get_mp_config()
+    config, params, times, init_time, init_pos, init_vel = get_mp_config()
 
     # Initialize the DMP and ProDMP
     config.mp_type = "dmp"
@@ -72,10 +72,10 @@ def test_dmp_vs_prodmp_identical(plot=False):
 
     # Get trajectory
     dmp.update_inputs(times=times, params=params,
-                      bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+                      init_time=init_time, init_pos=init_pos, init_vel=init_vel)
 
     prodmp.update_inputs(times=times, params=params, params_L=None,
-                         bc_time=bc_time, bc_pos=bc_pos, bc_vel=bc_vel)
+                         init_time=init_time, init_pos=init_pos, init_vel=init_vel)
 
     dmp_pos = dmp.get_traj_pos()
     dmp_vel = dmp.get_traj_vel()

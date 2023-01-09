@@ -9,7 +9,7 @@ from mp_pytorch import util
 
 
 def get_mp_scale_and_delay_util(mp_type: str, tau: float, delay: float):
-    config, _, params, params_L, _, bc_pos, _, _ = get_mp_utils(mp_type, False,
+    config, _, params, params_L, _, init_pos, _, _ = get_mp_utils(mp_type, False,
                                                                 False)
     config = Dict(config)
     config.tau = tau
@@ -18,10 +18,10 @@ def get_mp_scale_and_delay_util(mp_type: str, tau: float, delay: float):
     num_t = int((tau + delay) / config.mp_args.dt) * 2 + 1
     times = util.tensor_linspace(0, torch.ones([num_traj, 1])
                                  * tau + delay, num_t).squeeze(-1)
-    bc_time = times[:, 0] + delay
-    bc_vel = torch.zeros_like(bc_pos)
+    init_time = times[:, 0] + delay
+    init_vel = torch.zeros_like(init_pos)
 
-    return config.to_dict(), times, params, params_L, bc_time, bc_pos, bc_vel
+    return config.to_dict(), times, params, params_L, init_time, init_pos, init_vel
 
 
 def test_static_delay_and_scale():
@@ -37,7 +37,7 @@ def test_static_delay_and_scale():
         fig.suptitle(f"Static scale and delay of {mp_type}")
         for i, tau in enumerate(tau_list):
             for j, delay in enumerate(delay_list):
-                config, _, params, params_L, bc_time, bc_pos, bc_vel = \
+                config, _, params, params_L, init_time, init_pos, init_vel = \
                     get_mp_scale_and_delay_util(mp_type, tau, delay)
                 config = Dict(config)
                 num_traj = params.shape[0]
@@ -48,11 +48,11 @@ def test_static_delay_and_scale():
 
                 mp = MPFactory.init_mp(**config)
 
-                bc_time = times[:, 0]
+                init_time = times[:, 0]
                 mp.update_inputs(times=times, params=params,
                                  params_L=params_L,
-                                 bc_time=bc_time, bc_pos=bc_pos,
-                                 bc_vel=bc_vel)
+                                 init_time=init_time, init_pos=init_pos,
+                                 init_vel=init_vel)
                 traj_pos = mp.get_traj_pos()[0, :, 0]
                 traj_pos = util.to_np(traj_pos)
 
@@ -116,15 +116,15 @@ def test_learnable_delay_and_scale():
                 tau_delay[i * len(tau_list) + j] = torch.Tensor([tau, delay])
         params = torch.cat([tau_delay, params], dim=-1)
 
-        bc_time = times[:, 0]
-        bc_pos = 5 * torch.ones([num_traj, config.num_dof])
-        bc_vel = torch.zeros_like(bc_pos)
+        init_time = times[:, 0]
+        init_pos = 5 * torch.ones([num_traj, config.num_dof])
+        init_vel = torch.zeros_like(init_pos)
 
         mp = MPFactory.init_mp(**config)
         mp.update_inputs(times=times, params=params,
                          params_L=params_L,
-                         bc_time=bc_time, bc_pos=bc_pos,
-                         bc_vel=bc_vel)
+                         init_time=init_time, init_pos=init_pos,
+                         init_vel=init_vel)
 
         traj_pos = mp.get_traj_pos()[..., 0]
         traj_pos = util.to_np(traj_pos)

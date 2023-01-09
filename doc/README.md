@@ -56,7 +56,7 @@
 |                     | DMP                                     |                                                   | Class for Dynamic Movement Primitives                                                                         |        |
 |                     | ProMP                                   |                                                   | Class for Probablistic Movement Primitives                                                                    |        |
 |                     | ProDMP                                  |                                                   | Class for [Probablistic Dynamic Movement Primitives](https://arxiv.org/abs/2210.01531)                        |        |
-|                     |                                         | `ProDMP.set_boundary_conditions`                  | Set boundary conditions for ProDMP in a batched manner                                                        |        |
-|                     |                                         | `ProDMP.compute_intermediate_terms_single`        | Determinant of boundary condition                                                                             |        |
-|                     |                                         | `ProDMP.compute_intermediate_terms_multi_dof`     | Determinant of boundary condition                                                                             |        |
+|                     |                                         | `ProDMP.set_initial_conditions`                  | Set initial conditions for ProDMP in a batched manner                                                        |        |
+|                     |                                         | `ProDMP.compute_intermediate_terms_single`        | Determinant of initial condition                                                                             |        |
+|                     |                                         | `ProDMP.compute_intermediate_terms_multi_dof`     | Determinant of initial condition                                                                             |        |
 -->

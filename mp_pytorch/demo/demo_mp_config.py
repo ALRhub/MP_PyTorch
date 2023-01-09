@@ -72,16 +72,16 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
     params_L = lct(torch.randn([num_traj, num_param, num_param])) \
                * params_L_scale_factor
 
-    bc_time = times[:, 0]
-    bc_pos = 5 * torch.ones([num_traj, config.num_dof])
+    init_time = times[:, 0]
+    init_pos = 5 * torch.ones([num_traj, config.num_dof])
     if config.learn_delay:
-        bc_vel = torch.zeros_like(bc_pos)
+        init_vel = torch.zeros_like(init_pos)
     else:
-        bc_vel = -5 * torch.ones([num_traj, config.num_dof])
+        init_vel = -5 * torch.ones([num_traj, config.num_dof])
 
     demos = torch.zeros([*times.shape, config.num_dof])
     for i in range(config.num_dof):
         demos[..., i] = torch.sin(2 * times + i)
 
-    return config.to_dict(), times, params, params_L, bc_time, bc_pos, \
-           bc_vel, demos
+    return config.to_dict(), times, params, params_L, init_time, init_pos, \
+           init_vel, demos
