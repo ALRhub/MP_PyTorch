@@ -307,7 +307,9 @@ class ProDMP(ProMP):
                                               pos_cov)).item() * traj_cov_reg
 
         # Add regularization term for numerical stability
-        self.pos_cov = pos_cov + torch.eye(pos_cov.shape[-1]) * reg_term_pos
+        self.pos_cov = pos_cov + torch.eye(pos_cov.shape[-1],
+                                           dtype=self.dtype,
+                                           device=self.device) * reg_term_pos
 
         return self.pos_cov
 
@@ -481,7 +483,9 @@ class ProDMP(ProMP):
                                               vel_cov)).item() * traj_cov_reg
 
         # Add regularization term for numerical stability
-        vel_cov = vel_cov + torch.eye(vel_cov.shape[-1]) * reg_term_vel
+        vel_cov = vel_cov + torch.eye(vel_cov.shape[-1],
+                                      dtype=self.dtype,
+                                      device=self.device) * reg_term_vel
 
         # Unscale velocity to original time scale space
         self.vel_cov = vel_cov / self.phase_gn.tau[..., None, None] ** 2
@@ -604,7 +608,9 @@ class ProDMP(ProMP):
         #            -> [*add_dim, num_dof * num_basis_g, num_dof * num_basis_g]
         A = torch.einsum('...ki,...kj->...ij', pos_H_multi, pos_H_multi)
         # todo, check here
-        A += torch.eye(self.num_dof * self.num_basis_g) * reg
+        A += torch.eye(self.num_dof * self.num_basis_g,
+                       dtype=self.dtype,
+                       device=self.device) * reg
 
         # Swap axis and reshape: [*add_dim, num_times, num_dof]
         #                     -> [*add_dim, num_dof, num_times]

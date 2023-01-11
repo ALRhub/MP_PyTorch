@@ -217,7 +217,9 @@ class ProMP(ProbabilisticMPInterface):
                                               pos_cov)).item() * traj_cov_reg
 
         # Add regularization term for numerical stability
-        self.pos_cov = pos_cov + torch.eye(pos_cov.shape[-1]) * reg_term_pos
+        self.pos_cov = pos_cov + torch.eye(pos_cov.shape[-1],
+                                           dtype=self.dtype,
+                                           device=self.device) * reg_term_pos
         return self.pos_cov
 
     def get_traj_pos_std(self, times=None, params_L=None, init_time=None,
@@ -417,7 +419,9 @@ class ProMP(ProbabilisticMPInterface):
         #            -> [*add_dim, num_dof * num_basis, num_dof * num_basis]
         A = torch.einsum('...ki,...kj->...ij', basis_multi_dofs,
                          basis_multi_dofs)
-        A += torch.eye(self._num_local_params) * reg
+        A += torch.eye(self._num_local_params,
+                       dtype=self.dtype,
+                       device=self.device) * reg
 
         # Reorder axis [*add_dim, num_times, num_dof]
         #           -> [*add_dim, num_dof, num_times]
