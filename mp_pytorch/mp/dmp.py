@@ -284,6 +284,10 @@ class DMP(MPInterface):
         # Shape: [*add_dim, num_times, num_basis]
         basis_values = self.basis_gn.basis(times) * canonical_x[..., None] * weights_scale
 
+        # Enforce all variables to numpy
+        times, basis_values, delay, tau = \
+            mp_pytorch.util.to_nps(times, basis_values, delay, tau)
+
         if plot:
             import matplotlib.pyplot as plt
             plt.figure()

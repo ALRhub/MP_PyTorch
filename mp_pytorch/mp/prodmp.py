@@ -5,6 +5,8 @@ import logging
 import numpy as np
 import torch
 import logging
+
+import mp_pytorch.util
 from mp_pytorch.basis_gn import ProDMPBasisGenerator
 from .promp import ProMP
 
@@ -144,8 +146,8 @@ class ProDMP(ProMP):
         super().set_times(times)
 
     def set_initial_conditions(self, init_time: Union[torch.Tensor, np.ndarray],
-                                init_pos: Union[torch.Tensor, np.ndarray],
-                                init_vel: Union[torch.Tensor, np.ndarray]):
+                               init_pos: Union[torch.Tensor, np.ndarray],
+                               init_vel: Union[torch.Tensor, np.ndarray]):
         """
         Set initial conditions in a batched manner
 
@@ -166,15 +168,19 @@ class ProDMP(ProMP):
         # Shape of init_vel:
         # [*add_dim, num_dof]
 
-        init_time = torch.as_tensor(init_time, dtype=self.dtype, device=self.device)
-        init_pos = torch.as_tensor(init_pos, dtype=self.dtype, device=self.device)
-        init_vel = torch.as_tensor(init_vel, dtype=self.dtype, device=self.device)
+        init_time = torch.as_tensor(init_time, dtype=self.dtype,
+                                    device=self.device)
+        init_pos = torch.as_tensor(init_pos, dtype=self.dtype,
+                                   device=self.device)
+        init_vel = torch.as_tensor(init_vel, dtype=self.dtype,
+                                   device=self.device)
 
         assert list(init_time.shape) == [*self.add_dim]
         assert list(init_pos.shape) == list(init_vel.shape) and list(
             init_vel.shape) == [*self.add_dim, self.num_dof]
 
-        init_time = torch.as_tensor(init_time, dtype=self.dtype, device=self.device)
+        init_time = torch.as_tensor(init_time, dtype=self.dtype,
+                                    device=self.device)
         y1_init, y2_init, dy1_init, dy2_init = self.basis_gn.general_solution_values(
             init_time[..., None])
 
@@ -570,7 +576,7 @@ class ProDMP(ProMP):
         # Get initial conditions
         dt = self.basis_gn.scaled_dt * self.phase_gn.tau
 
-        if all([key in kwargs.keys() 
+        if all([key in kwargs.keys()
                 for key in ["init_time", "init_pos", "init_vel"]]):
             logging.warning("ProDMP uses the given initial conditions")
             init_time = kwargs["init_time"]
@@ -657,8 +663,10 @@ class ProDMP(ProMP):
 
         # Generate basis initial condition values
         # [*add_dim, num_basis_g]
-        pos_basis_init = self.basis_gn.basis(self.init_time[..., None]).squeeze(-2)
-        vel_basis_init = self.basis_gn.vel_basis(self.init_time[..., None]).squeeze(
+        pos_basis_init = self.basis_gn.basis(self.init_time[..., None]).squeeze(
+            -2)
+        vel_basis_init = self.basis_gn.vel_basis(
+            self.init_time[..., None]).squeeze(
             -2)
 
         # Scale init_vel
@@ -752,11 +760,11 @@ class ProDMP(ProMP):
         self.set_times(times)
         self.set_initial_conditions(
             init_time=torch.zeros([], device=self.device,
-                                dtype=self.dtype) + delay,
+                                  dtype=self.dtype) + delay,
             init_pos=torch.zeros([self.num_dof], device=self.device,
-                               dtype=self.dtype),
+                                 dtype=self.dtype),
             init_vel=torch.zeros([self.num_dof], device=self.device,
-                               dtype=self.dtype),
+                                 dtype=self.dtype),
         )
 
         self.compute_intermediate_terms_single()
@@ -766,6 +774,11 @@ class ProDMP(ProMP):
         # Get basis
         # Shape: [*add_dim, num_times, num_basis]
         basis_values = self.pos_H_single * weights_goal_scale
+
+        # Enforce all variables to numpy
+        times, basis_values, delay, tau = \
+            mp_pytorch.util.to_nps(times, basis_values, delay, tau)
+
         if plot:
             import matplotlib.pyplot as plt
             fig, axes = plt.subplots(1, 2, sharex=True, squeeze=False)
