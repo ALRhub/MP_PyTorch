@@ -8,10 +8,9 @@ from typing import Tuple
 
 import numpy as np
 import torch
-
+from mp_pytorch.util import to_nps
 from mp_pytorch.basis_gn import BasisGenerator
 from .mp_interfaces import ProbabilisticMPInterface
-
 
 
 class ProMP(ProbabilisticMPInterface):
@@ -468,7 +467,7 @@ class ProMP(ProbabilisticMPInterface):
 
         # Enforce all variables to numpy
         times, basis_values, delay, tau = \
-            mp_pytorch.util.to_nps(times, basis_values, delay, tau)
+            to_nps(times, basis_values, delay, tau)
 
         if plot:
             import matplotlib.pyplot as plt
