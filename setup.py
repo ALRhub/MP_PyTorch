@@ -5,7 +5,7 @@ readme = (this_directory/"README.md").read_text()
 
 setup(
     name='mp_pytorch',
-    version='0.1.2',
+    version='0.1.3',
     packages=['mp_pytorch', 'mp_pytorch.mp', 'mp_pytorch.util',
               'mp_pytorch.basis_gn', 'mp_pytorch.phase_gn', 'mp_pytorch.demo'],
     url='https://github.com/ALRhub/MP_PyTorch',
