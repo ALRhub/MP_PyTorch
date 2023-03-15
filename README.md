@@ -94,12 +94,14 @@ The structure of this package can be seen as follows:
 ## Cite
 If you interest this project and use it in a scientific publication, we would appreciate citations to the following information:
 ```markdown
-@article{li2022prodmps,
-  title={ProDMPs: A Unified Perspective on Dynamic and Probabilistic Movement Primitives},
+@article{li2023prodmp,
+  title={ProDMP: A Unified Perspective on Dynamic and Probabilistic Movement Primitives},
   author={Li, Ge and Jin, Zeqi and Volpp, Michael and Otto, Fabian and Lioutikov, Rudolf and Neumann, Gerhard},
-  journal={arXiv preprint arXiv:2210.01531},
-  year={2022}
+  journal={IEEE Robotics and Automation Letters},
+  year={2023},
+  publisher={IEEE}
 }
+
 ```
 
 &nbsp;
