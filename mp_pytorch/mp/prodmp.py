@@ -777,9 +777,14 @@ class ProDMP(ProMP):
 
         weights_goal_scale = self.weights_goal_scale
 
+        dummy_params = torch.ones([self.num_params], device=self.device,
+                                  dtype=self.dtype).reshape(self.num_dof, -1)
+        # Shape: [num_basis_g]
+        dummy_params_pad = self.padding(dummy_params)[0]
+
         # Get basis
         # Shape: [*add_dim, num_times, num_basis]
-        basis_values = self.pos_H_single * weights_goal_scale
+        basis_values = self.pos_H_single * weights_goal_scale * dummy_params_pad
 
         # Enforce all variables to numpy
         times, basis_values, delay, tau = \
