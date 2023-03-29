@@ -43,6 +43,7 @@ class ProDMP(ProMP):
         # Disable learning of weights or goal
         self.disable_weights = kwargs.get("disable_weights", False)
         self.disable_goal = kwargs.get("disable_goal", False)
+        self.relative_goal = kwargs.get("relative_goal", False)
         assert not (self.disable_weights and self.disable_goal), \
             "Cannot disable both weights and goal learning."
 
@@ -230,6 +231,11 @@ class ProDMP(ProMP):
             params = self.params.reshape([*self.add_dim, self.num_dof, -1])
             params = self.padding(params)
 
+            # Apply relative goal
+            if self.relative_goal:
+                params = params.clone()
+                params[..., -1] += self.init_pos
+
             # Scale basis functions
             pos_H_single = self.pos_H_single * self.weights_goal_scale
 
@@ -400,6 +406,11 @@ class ProDMP(ProMP):
             # Reshape (and pad) params to [*add_dim, num_dof, num_basis_g]
             params = self.params.reshape([*self.add_dim, self.num_dof, -1])
             params = self.padding(params)
+
+            # Apply relative goal
+            if self.relative_goal:
+                params = params.clone()
+                params[..., -1] += self.init_pos
 
             # Scale basis functions
             vel_H_single = self.vel_H_single * self.weights_goal_scale
@@ -754,6 +765,16 @@ class ProDMP(ProMP):
         self.vel_H_multi = \
             vel_H_ + self.basis_gn.vel_basis_multi_dofs(self.times,
                                                         self.num_dof)
+
+    def sample_trajectories(self, times=None, params=None, params_L=None,
+                            init_time=None, init_pos=None, init_vel=None,
+                            num_smp=1, flat_shape=False):
+        if self.relative_goal:
+            raise NotImplementedError
+        else:
+            return super().sample_trajectories(times, params, params_L,
+                                               init_time, init_pos, init_vel,
+                                               num_smp, flat_shape)
 
     def _show_scaled_basis(self, plot=False) \
             -> Tuple[torch.Tensor, torch.Tensor]:
