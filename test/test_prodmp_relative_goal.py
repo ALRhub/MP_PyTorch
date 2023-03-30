@@ -5,12 +5,13 @@ from mp_pytorch import util
 from mp_pytorch.mp import MPFactory
 
 
-def get_mp_config(relative_goal=False):
+def get_mp_config(relative_goal=False, disable_goal=False):
     """
     Get the config of DMPs for testing
 
     Args:
         relative_goal: if True, the goal is relative to the initial position
+        disable_goal:
 
     Returns:
         config in dictionary
@@ -25,14 +26,15 @@ def get_mp_config(relative_goal=False):
     config.learn_tau = True
     config.learn_delay = True
 
-    config.mp_args.num_basis = 9
+    config.mp_args.num_basis = 4
     config.mp_args.basis_bandwidth_factor = 2
     config.mp_args.num_basis_outside = 0
     config.mp_args.alpha = 25
     config.mp_args.alpha_phase = 2
     config.mp_args.dt = 0.001
     config.mp_args.relative_goal = relative_goal
-    config.mp_args.weights_scale = torch.ones([9]) * 1
+    config.mp_args.disable_goal = disable_goal
+    config.mp_args.weights_scale = torch.ones([4]) * 1
     config.mp_args.goal_scale = 1
 
     # assume we have 3 trajectories in a batch
@@ -50,15 +52,18 @@ def get_mp_config(relative_goal=False):
 
     # Get IC
     init_time = times[:, 0]
-    init_pos_scalar = 5
+    init_pos_scalar = 1
     init_pos = init_pos_scalar * torch.ones([num_traj, config.num_dof])
     init_vel = torch.zeros_like(init_pos)
 
     # Get params
-    goal = -2
+    goal = init_pos_scalar
     if relative_goal:
         goal -= init_pos_scalar
-    params_list = [100, 200, 300, -100, -200, -300, 100, 200, 300, goal]
+    if not disable_goal:
+        params_list = [100, 200, 300, -100, goal]
+    else:
+        params_list = [100, 200, 300, -100]
     params = torch.Tensor(params_list * config.num_dof)
     params = util.add_expand_dim(params, [0], [num_traj])
     params = torch.cat([scale_delay, params], dim=-1)
@@ -66,9 +71,9 @@ def get_mp_config(relative_goal=False):
     return config, params, times, init_time, init_pos, init_vel
 
 
-def get_prodmp_results(relative_goal):
+def get_prodmp_results(relative_goal, disable_goal=False):
     config, params, times, init_time, init_pos, init_vel = get_mp_config(
-        relative_goal)
+        relative_goal, disable_goal)
     mp = MPFactory.init_mp(**config)
     mp.update_inputs(times, params, None, init_time, init_pos, init_vel)
     result_dict = mp.get_trajs()
@@ -78,13 +83,16 @@ def get_prodmp_results(relative_goal):
 if __name__ == "__main__":
     no_relative_goal_results = get_prodmp_results(False)
     relative_goal_results = get_prodmp_results(True)
+    disable_goal_results = get_prodmp_results(True, True)
 
     for key in no_relative_goal_results.keys():
         print(key)
         if no_relative_goal_results[key] is None:
             print("None")
         elif torch.allclose(no_relative_goal_results[key],
-                            relative_goal_results[key]):
+                            relative_goal_results[key])\
+                and torch.allclose(no_relative_goal_results[key],
+                                   disable_goal_results[key]):
             print("PASS")
         else:
             print("FAIL")
