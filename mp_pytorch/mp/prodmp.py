@@ -779,16 +779,6 @@ class ProDMP(ProMP):
             vel_H_ + self.basis_gn.vel_basis_multi_dofs(self.times,
                                                         self.num_dof)
 
-    def sample_trajectories(self, times=None, params=None, params_L=None,
-                            init_time=None, init_pos=None, init_vel=None,
-                            num_smp=1, flat_shape=False):
-        if self.relative_goal:
-            raise NotImplementedError
-        else:
-            return super().sample_trajectories(times, params, params_L,
-                                               init_time, init_pos, init_vel,
-                                               num_smp, flat_shape)
-
     def _show_scaled_basis(self, plot=False) \
             -> Tuple[torch.Tensor, torch.Tensor]:
         tau = self.phase_gn.tau
