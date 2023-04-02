@@ -231,11 +231,6 @@ class ProDMP(ProMP):
             params = self.params.reshape([*self.add_dim, self.num_dof, -1])
             params = self.padding(params)
 
-            # Apply relative goal
-            if self.relative_goal:
-                params = params.clone()
-                params[..., -1] += self.init_pos
-
             # Scale basis functions
             pos_H_single = self.pos_H_single * self.weights_goal_scale
 
@@ -248,6 +243,18 @@ class ProDMP(ProMP):
                 torch.einsum('...jk,...ik->...ij', pos_H_single, params)
             pos_linear = torch.reshape(pos_linear, [*self.add_dim, -1])
             pos = self.pos_init + pos_linear
+
+            if self.relative_goal:
+                # Einsum shape: [*add_dim, num_times],
+                #               [*add_dim, num_dof]
+                #            -> [*add_dim, num_dof, num_times]
+                # Reshape to -> [*add_dim, num_dof * num_times]
+                pos_goal = \
+                    torch.einsum('...j,...i->...ij', self.pos_H_single[..., -1],
+                                 self.init_pos)
+                pos_goal = torch.reshape(pos_goal, [*self.add_dim, -1])
+                pos += pos_goal
+
             self.pos = pos
 
         if not flat_shape:
@@ -407,11 +414,6 @@ class ProDMP(ProMP):
             params = self.params.reshape([*self.add_dim, self.num_dof, -1])
             params = self.padding(params)
 
-            # Apply relative goal
-            if self.relative_goal:
-                params = params.clone()
-                params[..., -1] += self.init_pos
-
             # Scale basis functions
             vel_H_single = self.vel_H_single * self.weights_goal_scale
 
@@ -424,6 +426,17 @@ class ProDMP(ProMP):
                 torch.einsum('...jk,...ik->...ij', vel_H_single, params)
             vel_linear = torch.reshape(vel_linear, [*self.add_dim, -1])
             vel = self.vel_init + vel_linear
+
+            if self.relative_goal:
+                # Einsum shape: [*add_dim, num_times],
+                #               [*add_dim, num_dof]
+                #            -> [*add_dim, num_dof, num_times]
+                # Reshape to -> [*add_dim, num_dof * num_times]
+                vel_goal = \
+                    torch.einsum('...j,...i->...ij', self.vel_H_single[..., -1],
+                                 self.init_pos)  # Fixme if I am wrong
+                vel_goal = torch.reshape(vel_goal, [*self.add_dim, -1])
+                vel += vel_goal
 
             # Unscale velocity to original time scale space
             vel = vel / self.phase_gn.tau[..., None]
