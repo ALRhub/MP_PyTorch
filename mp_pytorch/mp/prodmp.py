@@ -801,7 +801,7 @@ class ProDMP(ProMP):
 
         weights_goal_scale = self.weights_goal_scale
 
-        dummy_params = torch.ones([self.num_params], device=self.device,
+        dummy_params = torch.ones([self._num_local_params], device=self.device,
                                   dtype=self.dtype).reshape(self.num_dof, -1)
         # Shape: [num_basis_g]
         dummy_params_pad = self.padding(dummy_params)[0]
