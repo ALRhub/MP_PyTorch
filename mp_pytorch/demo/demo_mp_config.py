@@ -91,7 +91,7 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False,
 
     demos = torch.zeros([*times.shape, config.num_dof])
     for i in range(config.num_dof):
-        demos[..., i] = torch.sin(2 * times + i)
+        demos[..., i] = torch.sin(2 * times + i) + 5
 
     return config.to_dict(), times, params, params_L, init_time, init_pos, \
            init_vel, demos

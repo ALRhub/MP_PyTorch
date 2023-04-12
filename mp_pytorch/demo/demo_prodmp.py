@@ -58,12 +58,12 @@ def test_prodmp():
     plt.show()
 
     # Sample trajectories
-    # util.print_line_title("sample trajectories")
-    # num_smp = 50
-    # samples, samples_vel = mp.sample_trajectories(num_smp=num_smp)
-    # print("samples.shape", samples.shape)
-    # util.debug_plot(times[0], [samples[0, i, :, 0] for i in range(num_smp)],
-    #                 title="prodmp_samples")
+    util.print_line_title("sample trajectories")
+    num_smp = 50
+    samples, samples_vel = mp.sample_trajectories(num_smp=num_smp)
+    print("samples.shape", samples.shape)
+    util.debug_plot(times[0], [samples[0, i, :, 0] for i in range(num_smp)],
+                    title="prodmp_samples")
 
     # Parameters demo
     util.print_line_title("params_bounds")
@@ -76,7 +76,7 @@ def test_prodmp():
     util.print_line_title("learn weights")
     config, times, params, params_L, init_time, init_pos, init_vel, demos = \
         get_mp_utils("prodmp", False, False)
-
+    config['mp_args']['relative_goal'] = True
     mp = MPFactory.init_mp(**config)
     params_dict = mp.learn_mp_params_from_trajs(times, demos)
 
@@ -86,7 +86,7 @@ def test_prodmp():
                     labels=["demos", "rec_demos"],
                     title="ProDMP demos vs. rec_demos")
 
-    des_init_pos = torch.zeros_like(demos[:, 0]) - 0.25
+    des_init_pos = torch.zeros_like(demos[:, 0]) - 0.25 + 5
     des_init_vel = torch.zeros_like(demos[:, 0])
 
     params_dict = \
