@@ -38,7 +38,7 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False,
 
     if "dmp" in config.mp_type:
         num_param += config.num_dof
-        params_scale_factor = 10
+        params_scale_factor = 1000
         params_L_scale_factor = 0.3
 
     # assume we have 3 trajectories in a batch
@@ -51,11 +51,11 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False,
     # initial position
     init_pos = 5 * torch.ones([num_traj, config.num_dof])
 
-    # params = torch.randn([num_traj, num_param]) * params_scale_factor
-    params = torch.ones([num_traj, num_param]) * params_scale_factor
+    params = torch.randn([num_traj, num_param]) * params_scale_factor
+    # params = torch.ones([num_traj, num_param]) * params_scale_factor
 
     if "dmp" in config.mp_type:
-        params[:, config.mp_args.num_basis::config.mp_args.num_basis+1] *= 1
+        params[:, config.mp_args.num_basis::config.mp_args.num_basis+1] *= 0.001
         if relative_goal:
             params[:, config.mp_args.num_basis::config.mp_args.num_basis+1] -= \
                 init_pos

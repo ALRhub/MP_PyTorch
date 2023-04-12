@@ -10,7 +10,7 @@ from mp_pytorch.mp import MPFactory
 
 def test_prodmp_scaling(auto_scale=True, manual_w_scale=1., manual_g_scale=1.):
     config, time, params, params_L, init_time, init_pos, init_vel, demos = \
-        get_mp_utils("prodmp", True, True)
+        get_mp_utils("prodmp", True, True, relative_goal=True)
     config['mp_args']['auto_scale_basis'] = auto_scale
     config['mp_args']['weights_scale'] = manual_w_scale
     config['mp_args']['goal_scale'] = manual_g_scale
