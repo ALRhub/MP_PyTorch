@@ -75,8 +75,8 @@ def test_prodmp():
     # Learn weights
     util.print_line_title("learn weights")
     config, times, params, params_L, init_time, init_pos, init_vel, demos = \
-        get_mp_utils("prodmp", False, False)
-    config['mp_args']['relative_goal'] = True
+        get_mp_utils("prodmp", False, False, True)
+
     mp = MPFactory.init_mp(**config)
     params_dict = mp.learn_mp_params_from_trajs(times, demos)
 
@@ -145,9 +145,10 @@ def test_prodmp_disable_goal():
     util.print_wrap_title("test_prodmp_disable_goals")
     learn_tau = True
     learn_delay = True
+    relative_goal = True
 
     config, times, params, _, init_time, init_pos, init_vel, demos = \
-        get_mp_utils("prodmp", learn_tau, learn_delay)
+        get_mp_utils("prodmp", learn_tau, learn_delay, relative_goal)
 
     # Disable weights
     config["mp_args"]["disable_goal"] = True
@@ -183,8 +184,8 @@ def test_prodmp_disable_goal():
 
 def main():
     test_prodmp()
-    # test_prodmp_disable_weights()
-    # test_prodmp_disable_goal()
+    test_prodmp_disable_weights()
+    test_prodmp_disable_goal()
 
 
 if __name__ == "__main__":
