@@ -4,7 +4,8 @@ from addict import Dict
 import mp_pytorch.util as util
 
 
-def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
+def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False,
+                 relative_goal=False):
     torch.manual_seed(0)
     config = Dict()
 
@@ -22,6 +23,7 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
     config.mp_args.weights_scale = torch.ones([config.mp_args.num_basis])
     # config.mp_args.weights_scale = 10
     config.mp_args.goal_scale = 1
+    config.mp_args.relative_goal = relative_goal
     config.mp_type = mp_type
 
     if mp_type == "zero_padding_promp":
@@ -46,10 +48,18 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
     # Get parameters
     torch.manual_seed(0)
 
+    # initial position
+    init_pos = 5 * torch.ones([num_traj, config.num_dof])
+
     params = torch.randn([num_traj, num_param]) * params_scale_factor
+    # params = torch.ones([num_traj, num_param]) * params_scale_factor
 
     if "dmp" in config.mp_type:
-        params[:, config.mp_args.num_basis::config.mp_args.num_basis] *= 0.001
+        params[:, config.mp_args.num_basis::config.mp_args.num_basis+1] *= 0.001
+        if relative_goal:
+            params[:, config.mp_args.num_basis::config.mp_args.num_basis+1] -= \
+                init_pos
+
 
     if config.learn_delay:
         torch.manual_seed(0)
@@ -73,7 +83,7 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
                * params_L_scale_factor
 
     init_time = times[:, 0]
-    init_pos = 5 * torch.ones([num_traj, config.num_dof])
+
     if config.learn_delay:
         init_vel = torch.zeros_like(init_pos)
     else:
@@ -81,7 +91,7 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False):
 
     demos = torch.zeros([*times.shape, config.num_dof])
     for i in range(config.num_dof):
-        demos[..., i] = torch.sin(2 * times + i)
+        demos[..., i] = torch.sin(2 * times + i) + 5
 
     return config.to_dict(), times, params, params_L, init_time, init_pos, \
            init_vel, demos

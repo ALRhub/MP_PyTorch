@@ -14,7 +14,8 @@ from mp_pytorch.mp import ProDMP
 def test_prodmp():
     util.print_wrap_title("test_prodmp")
     config, times, params, params_L, init_time, init_pos, init_vel, demos = \
-        get_mp_utils("prodmp", True, True)
+        get_mp_utils("prodmp", True, True, False)
+
     mp = MPFactory.init_mp(**config)
     mp.update_inputs(times=times, params=params, params_L=params_L,
                      init_time=init_time, init_pos=init_pos, init_vel=init_vel)
@@ -74,7 +75,7 @@ def test_prodmp():
     # Learn weights
     util.print_line_title("learn weights")
     config, times, params, params_L, init_time, init_pos, init_vel, demos = \
-        get_mp_utils("prodmp", False, False)
+        get_mp_utils("prodmp", False, False, True)
 
     mp = MPFactory.init_mp(**config)
     params_dict = mp.learn_mp_params_from_trajs(times, demos)
@@ -85,7 +86,7 @@ def test_prodmp():
                     labels=["demos", "rec_demos"],
                     title="ProDMP demos vs. rec_demos")
 
-    des_init_pos = torch.zeros_like(demos[:, 0]) - 0.25
+    des_init_pos = torch.zeros_like(demos[:, 0]) - 0.25 + 5
     des_init_vel = torch.zeros_like(demos[:, 0])
 
     params_dict = \
@@ -144,9 +145,10 @@ def test_prodmp_disable_goal():
     util.print_wrap_title("test_prodmp_disable_goals")
     learn_tau = True
     learn_delay = True
+    relative_goal = True
 
     config, times, params, _, init_time, init_pos, init_vel, demos = \
-        get_mp_utils("prodmp", learn_tau, learn_delay)
+        get_mp_utils("prodmp", learn_tau, learn_delay, relative_goal)
 
     # Disable weights
     config["mp_args"]["disable_goal"] = True

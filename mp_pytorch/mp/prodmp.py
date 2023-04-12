@@ -43,8 +43,19 @@ class ProDMP(ProMP):
         # Disable learning of weights or goal
         self.disable_weights = kwargs.get("disable_weights", False)
         self.disable_goal = kwargs.get("disable_goal", False)
+
+        # Whether the goal term is relative to the initial position, setting it
+        # to False will make the goal term absolute, and may perform worse in
+        # some cases, e.g. Deep RL.
+        self.relative_goal = kwargs.get("relative_goal", False)
+
         assert not (self.disable_weights and self.disable_goal), \
             "Cannot disable both weights and goal learning."
+        if self.disable_goal and not self.relative_goal:
+            logging.warning("Disabling goal without using relative goal is "
+                            "equivalent to setting the goal to zero. In this"
+                            " case the trajectory may converge to zero very"
+                            " quickly and thus lead to wrong learning results.")
 
         # Super init
         super().__init__(basis_gn, num_dof, weights_scale, dtype, device,
@@ -56,8 +67,25 @@ class ProDMP(ProMP):
         # Goal scale
         self.auto_scale_basis = kwargs.get("auto_scale_basis", False)
         self.goal_scale = goal_scale
+        if self.goal_scale != 1.0 and not self.relative_goal:
+            logging.warning("Using goal scaling without using relative goal "
+                            "may lead to unexpected generated trajectories.")
+
         self.weights_goal_scale = self.get_weights_goal_scale(
             self.auto_scale_basis)
+
+        # Padding params when weights or goal is disabled
+        padding_basis = self.basis_gn.num_basis if self.disable_weights else 0
+        padding_goal = 1 if self.disable_goal else 0
+        if self.disable_weights or self.disable_goal:
+            self.padding = torch.nn.ConstantPad2d(
+                (padding_basis, padding_goal, 0, 0), 0)
+            logging.warning(
+                "Padding ProDMP is being used. Only the traj position"
+                " and velocity can be computed correctly. The other "
+                "entities are not guaranteed.")
+        else:
+            self.padding = lambda x: x
 
         # Runtime intermediate variables shared by different getting functions
         self.y1 = None
@@ -76,19 +104,6 @@ class ProDMP(ProMP):
 
         self.pos_H_multi = None
         self.vel_H_multi = None
-
-        # Padding params when weights or goal is disabled
-        padding_basis = self.basis_gn.num_basis if self.disable_weights else 0
-        padding_goal = 1 if self.disable_goal else 0
-        if self.disable_weights or self.disable_goal:
-            self.padding = torch.nn.ConstantPad2d(
-                (padding_basis, padding_goal, 0, 0), 0)
-            logging.warning(
-                "Padding ProDMP is being used. Only the traj position"
-                " and velocity can be computed correctly. The other "
-                "entities are not guaranteed.")
-        else:
-            self.padding = lambda x: x
 
     @property
     def _num_local_params(self) -> int:
@@ -242,6 +257,18 @@ class ProDMP(ProMP):
                 torch.einsum('...jk,...ik->...ij', pos_H_single, params)
             pos_linear = torch.reshape(pos_linear, [*self.add_dim, -1])
             pos = self.pos_init + pos_linear
+
+            if self.relative_goal:
+                # Einsum shape: [*add_dim, num_times],
+                #               [*add_dim, num_dof]
+                #            -> [*add_dim, num_dof, num_times]
+                # Reshape to -> [*add_dim, num_dof * num_times]
+                pos_goal = \
+                    torch.einsum('...j,...i->...ij', self.pos_H_single[..., -1],
+                                 self.init_pos)
+                pos_goal = torch.reshape(pos_goal, [*self.add_dim, -1])
+                pos += pos_goal
+
             self.pos = pos
 
         if not flat_shape:
@@ -413,6 +440,17 @@ class ProDMP(ProMP):
                 torch.einsum('...jk,...ik->...ij', vel_H_single, params)
             vel_linear = torch.reshape(vel_linear, [*self.add_dim, -1])
             vel = self.vel_init + vel_linear
+
+            if self.relative_goal:
+                # Einsum shape: [*add_dim, num_times],
+                #               [*add_dim, num_dof]
+                #            -> [*add_dim, num_dof, num_times]
+                # Reshape to -> [*add_dim, num_dof * num_times]
+                vel_goal = \
+                    torch.einsum('...j,...i->...ij', self.vel_H_single[..., -1],
+                                 self.init_pos)
+                vel_goal = torch.reshape(vel_goal, [*self.add_dim, -1])
+                vel += vel_goal
 
             # Unscale velocity to original time scale space
             vel = vel / self.phase_gn.tau[..., None]
@@ -623,6 +661,17 @@ class ProDMP(ProMP):
         # Position minus initial condition terms,
         pos_wg = trajs - self.pos_init
 
+        if self.relative_goal:
+            # Einsum shape: [*add_dim, num_times],
+            #               [*add_dim, num_dof]
+            #            -> [*add_dim, num_dof, num_times]
+            # Reshape to -> [*add_dim, num_dof * num_times]
+            pos_goal = \
+                torch.einsum('...j,...i->...ij', self.pos_H_single[..., -1],
+                             self.init_pos)
+            pos_goal = torch.reshape(pos_goal, [*self.add_dim, -1])
+            pos_wg -= pos_goal
+
         # Einsum_shape: [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #               [*add_dim, num_dof * num_times]
         #            -> [*add_dim, num_dof * num_basis_g]
@@ -743,7 +792,6 @@ class ProDMP(ProMP):
                               vel_basis_init_multi_dofs)
         # Reshape: [*add_dim, num_dof, num_times, num_dof * num_basis_g]
         #       -> [*add_dim, num_dof * num_times, num_dof * num_basis_g]
-        # todo, check here
         pos_H_ = torch.reshape(pos_H_, [*self.add_dim, -1,
                                         self.num_dof * self.num_basis_g])
         vel_H_ = torch.reshape(vel_H_, [*self.add_dim, -1,
