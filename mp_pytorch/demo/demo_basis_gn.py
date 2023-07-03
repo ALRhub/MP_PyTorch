@@ -23,6 +23,7 @@ def demo_prodmp_basis():
     basis_gn = ProDMPBasisGenerator(phase_generator=phase_gn,
                                     num_basis=10,
                                     basis_bandwidth_factor=3,
+                                    pre_compute_length_factor=6,
                                     num_basis_outside=0)
     basis_gn.show_basis(plot=True)
 
