@@ -677,6 +677,15 @@ class ProDMP(ProMP):
         #            -> [*add_dim, num_dof * num_basis_g]
         B = torch.einsum('...ki,...k->...i', pos_H_multi, pos_wg)
 
+        if self.disable_goal:
+            basis_idx = [i for i in range(self.num_dof * self.num_basis_g)
+             if i % self.num_basis_g != self.num_basis_g - 1]
+            A = mp_pytorch.util.get_sub_tensor(A, [-1, -2],
+                                               [basis_idx, basis_idx])
+            B = mp_pytorch.util.get_sub_tensor(B, [-1], [basis_idx])
+        # todo disable weights
+
+
         # Shape of weights: [*add_dim, num_dof * num_basis_g]
         params = torch.linalg.solve(A, B)
 
