@@ -466,21 +466,34 @@ class ProMP(ProbabilisticMPInterface):
 
         # Get basis
         # Shape: [*add_dim, num_times, num_basis]
-        basis_values = \
-            self.basis_gn.basis(times) * weights_scale
+        basis_values = self.basis_gn.basis(times) * weights_scale
+
+        vel_basis_values = torch.zeros_like(basis_values, dtype=self.dtype,
+                                            device=self.device)
+        vel_basis_values[..., :-1, :] = torch.diff(basis_values, dim=-2) \
+                           / torch.diff(times)[..., None]
+        vel_basis_values[..., -1, :] = vel_basis_values[..., -2, :]
 
         # Enforce all variables to numpy
-        times, basis_values, delay, tau = \
-            to_nps(times, basis_values, delay, tau)
+        times, basis_values, vel_basis_values, delay, tau = \
+            to_nps(times, basis_values, vel_basis_values, delay, tau)
 
         if plot:
             import matplotlib.pyplot as plt
-            plt.figure()
+            fig, axes = plt.subplots(2, 1, sharex=True, squeeze=False)
             for i in range(basis_values.shape[-1]):
-                plt.plot(times, basis_values[:, i], label=f"basis_{i}")
-            plt.grid()
-            plt.legend()
-            plt.axvline(x=delay, linestyle='--', color='k', alpha=0.3)
-            plt.axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
-            plt.show()
+                axes[0, 0].plot(times, basis_values[:, i], label=f"basis_{i}")
+                axes[1, 0].plot(times, vel_basis_values[:, i],
+                                label=f"basis_{i}")
+            axes[0, 0].grid()
+            axes[0, 0].legend()
+            axes[0, 0].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
+            axes[0, 0].axvline(x=delay + tau, linestyle='--', color='k', alpha=0.3)
+
+            axes[1, 0].grid()
+            axes[1, 0].legend()
+            axes[1, 0].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
+            axes[1, 0].axvline(x=delay + tau, linestyle='--', color='k',
+                               alpha=0.3)
+
         return times, basis_values
