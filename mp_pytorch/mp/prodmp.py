@@ -844,6 +844,10 @@ class ProDMP(ProMP):
         basis_values = self.pos_H_single * weights_goal_scale * dummy_params_pad
         vel_basis_values =\
             self.vel_H_single * weights_goal_scale * dummy_params_pad
+
+        # Unscale velocity back to original time-scale space
+        vel_basis_values = vel_basis_values / self.phase_gn.tau[..., None]
+
         # Enforce all variables to numpy
 
         times, basis_values, delay, tau = \

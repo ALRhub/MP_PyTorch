@@ -2,6 +2,7 @@ import torch
 
 from mp_pytorch.phase_gn import PhaseGenerator
 from .basis_generator import BasisGenerator
+from ..phase_gn import ExpDecayPhaseGenerator
 
 
 class NormalizedRBFBasisGenerator(BasisGenerator):
@@ -47,12 +48,26 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
                                        + self.phase_generator.delay,
                                        self._num_basis, dtype=self.dtype,
                                        device=self.device)
+            delta_center = centers_t[1] - centers_t[0]
+            centers_t = torch.cat([centers_t,
+                                   torch.atleast_1d(centers_t[-1] + delta_center)],
+                                  dim=-1)
+            centers_p = self.phase_generator.unbound_phase(centers_t)
             # RBF centers in phase scope
-            self.centers_p = self.phase_generator.unbound_phase(centers_t)
-
-            tmp_bandwidth = \
-                torch.cat((self.centers_p[1:] - self.centers_p[:-1],
-                           self.centers_p[-1:] - self.centers_p[-2:-1]), dim=-1)
+            self.centers_p = centers_p[:-1]
+            # if isinstance(phase_generator, ExpDecayPhaseGenerator) and \
+            #         self._num_basis == 1:
+            #     tmp_bandwidth_last /= 2
+                # Todo, this solution is not very good
+                # tmp_bandwidth_last = \
+                #     torch.min(self.centers_p[-1:],
+                #               self.centers_p[-2:-1] - self.centers_p[-1:])
+            # else:
+            #     tmp_bandwidth_last = self.centers_p[-1:] - self.centers_p[-2:-1]
+            tmp_bandwidth = centers_p[1:] - centers_p[:-1]
+            if isinstance(phase_generator, ExpDecayPhaseGenerator) \
+                    and self._num_basis == 2:
+                tmp_bandwidth[-1] = tmp_bandwidth[-1] * 2
 
         elif self._num_basis == 1:
             # RBF centers in time scope
@@ -70,6 +85,8 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
         # The Centers should not overlap too much (makes w almost random due
         # to aliasing effect).Empirically chosen
         self.bandwidth = self.basis_bandwidth_factor / (tmp_bandwidth ** 2)
+        # self.bandwidth = torch.arange(1, self._num_basis + 1,
+        #                               dtype=self.dtype, device=self.device) / self.centers_p
 
     def basis(self, times: torch.Tensor) -> torch.Tensor:
         """
@@ -148,4 +165,4 @@ class ZeroPaddingNormalizedRBFBasisGenerator(NormalizedRBFBasisGenerator):
     @property
     def num_basis(self):
         return super().num_basis - self.num_basis_zero_start \
-               - self.num_basis_zero_goal
+            - self.num_basis_zero_goal
