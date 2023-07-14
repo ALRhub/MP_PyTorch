@@ -1,13 +1,13 @@
 from mp_pytorch.basis_gn import torch
 from mp_pytorch.mp import MPFactory
 
-
 DEFAULT_VALUES = dict(
     num_dof=2,
     tau=1.0,
     learn_tau=True,
     device="cuda",
-    mp_type="prodmp",
+    mp_type="promp",
+    # mp_type="prodmp",
     mp_args=dict(
         num_basis=3,
         dt=0.01,
@@ -30,6 +30,7 @@ class SimplePredictor(torch.nn.Module):
             torch.nn.Linear(32, 32),
             torch.nn.ReLU(),
             torch.nn.Linear(32, output_size),
+            torch.nn.ReLU()
         )
 
         self.learn_tau = learn_tau
@@ -37,12 +38,8 @@ class SimplePredictor(torch.nn.Module):
         self.max_tau = 3.0
 
     def forward(self, x):
-        params = self.net(x)
-        if self.learn_tau:
-            sigmoid_result = torch.sigmoid(params[:, 0]) * self.max_tau + self.min_tau
-            params = torch.cat((sigmoid_result.unsqueeze(-1), params[:, 1:]), dim=-1)
-
-        return params
+        output = self.net(x)
+        return output + 1
 
 
 if __name__ == "__main__":
@@ -50,26 +47,38 @@ if __name__ == "__main__":
 
     # Create a simple predictor
     input_size = 10
-    output_size = DEFAULT_VALUES["num_dof"] * DEFAULT_VALUES["mp_args"]["num_basis"] + DEFAULT_VALUES["num_dof"] + 1 * DEFAULT_VALUES["learn_tau"]
+    # output_size = DEFAULT_VALUES["num_dof"] * DEFAULT_VALUES["mp_args"][
+    #     "num_basis"] + DEFAULT_VALUES["num_dof"] + 1 * DEFAULT_VALUES[
+    #                   "learn_tau"]
+    output_size = DEFAULT_VALUES["num_dof"] * DEFAULT_VALUES["mp_args"][
+        "num_basis"] + 1 * DEFAULT_VALUES["learn_tau"]
 
-    predictor = SimplePredictor(input_size, output_size, DEFAULT_VALUES["learn_tau"]).to(DEFAULT_VALUES["device"])
+    predictor = SimplePredictor(input_size, output_size,
+                                DEFAULT_VALUES["learn_tau"]).to(
+        DEFAULT_VALUES["device"])
 
     optimizer = torch.optim.Adam(predictor.parameters(), lr=1e-3)
 
     batch_size = 80
 
-    prediction_times = torch.arange(0, 1, DEFAULT_VALUES["mp_args"]["dt"]).to(DEFAULT_VALUES["device"]).unsqueeze(0).repeat(batch_size, 1)
+    prediction_times = torch.arange(0, 1, DEFAULT_VALUES["mp_args"]["dt"]).to(
+        DEFAULT_VALUES["device"]).unsqueeze(0).repeat(batch_size, 1)
 
-    for _ in range(10):
+    for iteration in range(10):
         # Generate random input
         x = torch.randn(batch_size, input_size).to(DEFAULT_VALUES["device"])
 
-        referenc_trajectory = torch.randn((batch_size, prediction_times.shape[-1], DEFAULT_VALUES["num_dof"])).to(DEFAULT_VALUES["device"])
+        referenc_trajectory = torch.randn((batch_size,
+                                           prediction_times.shape[-1],
+                                           DEFAULT_VALUES["num_dof"])).to(
+            DEFAULT_VALUES["device"])
 
         initial_position = torch.randn_like(referenc_trajectory[:, 0, :])
         initial_velocity = torch.randn_like(referenc_trajectory[:, 0, :])
         initial_time = torch.zeros_like(referenc_trajectory[:, 0, 0])
-        prediction_times = torch.arange(0, 1, DEFAULT_VALUES["mp_args"]["dt"]).to(DEFAULT_VALUES["device"]).unsqueeze(0).repeat(batch_size, 1)
+        prediction_times = torch.arange(0, 1,
+                                        DEFAULT_VALUES["mp_args"]["dt"]).to(
+            DEFAULT_VALUES["device"]).unsqueeze(0).repeat(batch_size, 1)
 
         # Predict the parameters of the MP
         params = predictor(x)
@@ -87,10 +96,14 @@ if __name__ == "__main__":
         trajectory = mp.get_traj_pos()
 
         # Compute the loss
-        loss = torch.nn.functional.mse_loss(trajectory, referenc_trajectory)
+        loss = trajectory.mean()
+
+        optimizer.zero_grad(set_to_none=True)
+
+        params = mp.get_params()
 
         loss.backward()
-        optimizer.step()
-        optimizer.zero_grad()
 
-        print(loss.item())
+        optimizer.step()
+
+        # print(loss.item())

@@ -21,6 +21,7 @@ class LinearPhaseGenerator(PhaseGenerator):
 
         phase = torch.clip(
             (times - self.delay[..., None]) / self.tau[..., None], 0, 1)
+
         return phase
 
     def phase_to_time(self, phases: torch.Tensor) -> torch.Tensor:

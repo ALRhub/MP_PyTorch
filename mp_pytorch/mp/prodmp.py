@@ -133,7 +133,7 @@ class ProDMP(ProMP):
             w_g_scale[:-1] = w_g_scale[:-1] * self.weights_scale
             w_g_scale[-1] = w_g_scale[-1] * self.goal_scale
         else:
-            w_g_scale = torch.zeros(self.num_basis_g, self.device)
+            w_g_scale = torch.zeros(self.num_basis_g, device=self.device)
             w_g_scale[:-1] = self.weights_scale
             w_g_scale[-1] = self.goal_scale
         return w_g_scale
