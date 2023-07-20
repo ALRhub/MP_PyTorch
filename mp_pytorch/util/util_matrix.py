@@ -107,9 +107,10 @@ def tensor_linspace(start: Union[float, int, torch.Tensor],
     #   start and end.
 
     if isinstance(start, torch.Tensor) and not isinstance(end, torch.Tensor):
-        end += torch.zeros_like(start)
+        # end += torch.zeros_like(start)
+        end = end + torch.zeros_like(start)
     elif not isinstance(start, torch.Tensor) and isinstance(end, torch.Tensor):
-        start += torch.zeros_like(end)
+        start = start + torch.zeros_like(end)
     elif isinstance(start, torch.Tensor) and isinstance(end, torch.Tensor):
         assert start.size() == end.size()
     else:

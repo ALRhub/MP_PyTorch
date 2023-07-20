@@ -6,6 +6,7 @@ DEFAULT_VALUES = dict(
     tau=1.0,
     learn_tau=True,
     device="cuda",
+    # mp_type="dmp",
     mp_type="promp",
     # mp_type="prodmp",
     mp_args=dict(
@@ -18,6 +19,36 @@ DEFAULT_VALUES = dict(
         num_basis_outside=0,
     ),
 )
+
+
+def print_computational_graph(grad_fn, level: int = 0):
+    for next_grad_fn, _ in grad_fn.next_functions:
+        next_grad_fn_str = "." * level + repr(next_grad_fn)
+        if hasattr(next_grad_fn, "_raw_saved_self"):
+            try:
+                hasattr(next_grad_fn, "_saved_self")
+            except RuntimeError:
+                next_grad_fn_str += ",self=MISSING"
+            else:
+                if next_grad_fn._saved_self is None:
+                    next_grad_fn_str += f",self=None"
+                else:
+                    next_grad_fn_str += f",self=[{next_grad_fn._saved_self.shape}]"
+
+        if hasattr(next_grad_fn, "_raw_saved_other"):
+            try:
+                hasattr(next_grad_fn, "_saved_other")
+            except RuntimeError:
+                next_grad_fn_str += ",other=MISSING"
+            else:
+                if next_grad_fn._saved_other is None:
+                    next_grad_fn_str += f",other=None"
+                else:
+                    next_grad_fn_str += f",other=[{next_grad_fn._saved_other.shape}]"
+
+        print(next_grad_fn_str)
+        if next_grad_fn is not None:
+            print_computational_graph(next_grad_fn, level + 1)
 
 
 class SimplePredictor(torch.nn.Module):
@@ -47,9 +78,9 @@ if __name__ == "__main__":
 
     # Create a simple predictor
     input_size = 10
-    # output_size = DEFAULT_VALUES["num_dof"] * DEFAULT_VALUES["mp_args"][
-    #     "num_basis"] + DEFAULT_VALUES["num_dof"] + 1 * DEFAULT_VALUES[
-    #                   "learn_tau"]
+    output_size = DEFAULT_VALUES["num_dof"] * DEFAULT_VALUES["mp_args"][
+        "num_basis"] + DEFAULT_VALUES["num_dof"] + 1 * DEFAULT_VALUES[
+                      "learn_tau"]
     output_size = DEFAULT_VALUES["num_dof"] * DEFAULT_VALUES["mp_args"][
         "num_basis"] + 1 * DEFAULT_VALUES["learn_tau"]
 
@@ -64,7 +95,7 @@ if __name__ == "__main__":
     prediction_times = torch.arange(0, 1, DEFAULT_VALUES["mp_args"]["dt"]).to(
         DEFAULT_VALUES["device"]).unsqueeze(0).repeat(batch_size, 1)
 
-    for iteration in range(10):
+    for iteration in range(1):
         # Generate random input
         x = torch.randn(batch_size, input_size).to(DEFAULT_VALUES["device"])
 
@@ -97,6 +128,8 @@ if __name__ == "__main__":
 
         # Compute the loss
         loss = trajectory.mean()
+
+        print_computational_graph(loss.grad_fn)
 
         optimizer.zero_grad(set_to_none=True)
 
