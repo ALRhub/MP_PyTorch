@@ -122,7 +122,9 @@ class PhaseGenerator(ABC):
             tau = params[..., iterator]
             assert tau.min() > 0
             if is_finalized:
-                pass
+                assert not tau.requires_grad, \
+                    "Parameters are finalized and won't be updated. " \
+                    "Requiring gradient of it will cause errors."
             else:
                 self.tau = tau
             iterator += 1
@@ -130,7 +132,9 @@ class PhaseGenerator(ABC):
             delay = params[..., iterator]
             assert delay.min() >= 0
             if is_finalized:
-                pass
+                assert not delay.requires_grad, \
+                    "Parameters are finalized and won't be updated. " \
+                    "Requiring gradient of it will cause errors."
             else:
                 self.delay = delay
             iterator += 1
