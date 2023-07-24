@@ -117,10 +117,10 @@ if __name__ == "__main__":
             init_pos=initial_position,
             init_vel=initial_velocity,
             init_time=initial_time,
-            params=torch.randn_like(params),
+            params=params,
             params_L=None,
         )
-        mp.phase_gn.set_params(params[..., 0])
+
         trajectory = mp.get_traj_pos()
 
         # Compute the loss
