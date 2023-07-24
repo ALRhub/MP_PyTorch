@@ -61,7 +61,7 @@ class DMP(MPInterface):
         """
         Returns: the weights and goal scaling vector
         """
-        w_g_scale = torch.zeros(self.num_basis_g)
+        w_g_scale = torch.zeros(self.num_basis_g, device=self.device)
         w_g_scale[:-1] = self.weights_scale
         w_g_scale[-1] = self.goal_scale
         return w_g_scale
