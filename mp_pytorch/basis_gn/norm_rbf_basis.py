@@ -108,29 +108,32 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
 
         # Time to phase
         phase = self.phase_generator.phase(times)
+        return phase
+        # phase = phase[..., None]
+        # basis = phase.expand([*phase.shape[:-1], self._num_basis])
 
         # Add one axis (basis centers) to phase and get shape:
         # [*add_dim, num_times, num_basis]
-        phase = phase[..., None]
-        phase = phase.expand([*phase.shape[:-1], self._num_basis])
-
-        # Add one axis (times) to centers in phase scope and get shape:
-        # [num_times, num_basis]
-        centers = self.centers_p[None, :]
-        centers = centers.expand([num_times, -1])
-
-        # Basis
-        tmp = torch.einsum('...ij,...j->...ij', (phase - centers) ** 2,
-                           self.bandwidth)
-        basis = torch.exp(-tmp / 2)
-
-        # Normalization
-        if self._num_basis > 1:
-            sum_basis = torch.sum(basis, dim=-1, keepdim=True)
-            basis = basis / sum_basis
+        # phase = phase[..., None]
+        # phase = phase.expand([*phase.shape[:-1], self._num_basis])
+        #
+        # # Add one axis (times) to centers in phase scope and get shape:
+        # # [num_times, num_basis]
+        # centers = self.centers_p[None, :]
+        # centers = centers.expand([num_times, -1])
+        #
+        # # Basis
+        # tmp = torch.einsum('...ij,...j->...ij', (phase - centers) ** 2,
+        #                    self.bandwidth)
+        # basis = torch.exp(-tmp / 2)
+        #
+        # # Normalization
+        # if self._num_basis > 1:
+        #     sum_basis = torch.sum(basis, dim=-1, keepdim=True)
+        #     basis = basis / sum_basis
 
         # Return
-        return basis
+        # return basis
 
 
 class ZeroPaddingNormalizedRBFBasisGenerator(NormalizedRBFBasisGenerator):

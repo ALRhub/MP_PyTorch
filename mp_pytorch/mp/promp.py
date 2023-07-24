@@ -117,46 +117,46 @@ class ProMP(ProbabilisticMPInterface):
 
         else:
             assert self.params is not None
-
-            # Reshape params
-            # [*add_dim, num_dof * num_basis] -> [*add_dim, num_dof, num_basis]
-            params = self.params.reshape(*self.add_dim, self.num_dof, -1)
-
-            # Padding if necessary, this is a legacy case
-            # [*add_dim, num_dof, num_basis]
-            # -> [*add_dim, num_dof, num_basis + num_padding]
-            params = self.padding(params)
-            if self.weights_scale.ndim != 0:
-                weights_scale = self.padding(self.weights_scale[None])[0]
-            else:
-                weights_scale = self.padding(torch.ones([1, self.num_basis],
-                                                        dtype=self.dtype,
-                                                        device=self.device) *
-                                             self.weights_scale)[0]
-
-            # Get basis
-            # Shape: [*add_dim, num_times, num_basis]
-            basis_single_dof = \
-                self.basis_gn.basis(self.times) * weights_scale
-
-            # Einsum shape: [*add_dim, num_times, num_basis],
-            #               [*add_dim, num_dof, num_basis]
-            #            -> [*add_dim, num_times, num_dof]
-            pos = torch.einsum('...ik,...jk->...ij', basis_single_dof, params)
-
-            # Padding if necessary, this is a legacy case
-            pos += self.init_pos[..., None, :] if self.has_zero_padding else 0
-
-            self.pos = pos
-
-        if flat_shape:
-            # Switch axes to [*add_dim, num_dof, num_times]
-            pos = torch.einsum('...ji->...ij', pos)
-
-            # Reshape to [*add_dim, num_dof * num_times]
-            pos = pos.reshape(*self.add_dim, -1)
-
-        return pos
+            return self.basis_gn.basis(self.times)
+        #     # Reshape params
+        #     # [*add_dim, num_dof * num_basis] -> [*add_dim, num_dof, num_basis]
+        #     params = self.params.reshape(*self.add_dim, self.num_dof, -1)
+        #
+        #     # Padding if necessary, this is a legacy case
+        #     # [*add_dim, num_dof, num_basis]
+        #     # -> [*add_dim, num_dof, num_basis + num_padding]
+        #     params = self.padding(params)
+        #     if self.weights_scale.ndim != 0:
+        #         weights_scale = self.padding(self.weights_scale[None])[0]
+        #     else:
+        #         weights_scale = self.padding(torch.ones([1, self.num_basis],
+        #                                                 dtype=self.dtype,
+        #                                                 device=self.device) *
+        #                                      self.weights_scale)[0]
+        #
+        #     # Get basis
+        #     # Shape: [*add_dim, num_times, num_basis]
+        #     basis_single_dof = \
+        #         self.basis_gn.basis(self.times) * weights_scale
+        #
+        #     # Einsum shape: [*add_dim, num_times, num_basis],
+        #     #               [*add_dim, num_dof, num_basis]
+        #     #            -> [*add_dim, num_times, num_dof]
+        #     pos = torch.einsum('...ik,...jk->...ij', basis_single_dof, params)
+        #
+        #     # Padding if necessary, this is a legacy case
+        #     pos += self.init_pos[..., None, :] if self.has_zero_padding else 0
+        #
+        #     self.pos = pos
+        #
+        # if flat_shape:
+        #     # Switch axes to [*add_dim, num_dof, num_times]
+        #     pos = torch.einsum('...ji->...ij', pos)
+        #
+        #     # Reshape to [*add_dim, num_dof * num_times]
+        #     pos = pos.reshape(*self.add_dim, -1)
+        #
+        # return pos
 
     def get_traj_pos_cov(self, times=None, params_L=None,
                          init_time=None, init_pos=None, init_vel=None,

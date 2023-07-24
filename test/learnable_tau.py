@@ -6,9 +6,7 @@ DEFAULT_VALUES = dict(
     tau=1.0,
     learn_tau=True,
     device="cuda",
-    # mp_type="dmp",
     mp_type="promp",
-    # mp_type="prodmp",
     mp_args=dict(
         num_basis=3,
         dt=0.01,
@@ -25,12 +23,12 @@ class SimplePredictor(torch.nn.Module):
         super().__init__()
 
         self.net = torch.nn.Sequential(
-            torch.nn.Linear(input_size, 32),
+            torch.nn.Linear(input_size, output_size),
             torch.nn.ReLU(),
-            torch.nn.Linear(32, 32),
-            torch.nn.ReLU(),
-            torch.nn.Linear(32, output_size),
-            torch.nn.ReLU()
+            # torch.nn.Linear(32, 32),
+            # torch.nn.ReLU(),
+            # torch.nn.Linear(32, output_size),
+            # torch.nn.ReLU()
         )
 
         self.learn_tau = learn_tau
@@ -82,7 +80,7 @@ if __name__ == "__main__":
     # predictor = torch.abs((torch.randn((1, output_size)).to(DEFAULT_VALUES["device"])))
     # predictor = torch.nn.Parameter(data=predictor)
     # optimizer = torch.optim.Adam([predictor,], lr=1e-3)
-    #
+
     input_size = 3
     predictor = SimplePredictor(input_size, output_size,
                                 DEFAULT_VALUES["learn_tau"]).to(DEFAULT_VALUES["device"])
@@ -119,10 +117,10 @@ if __name__ == "__main__":
             init_pos=initial_position,
             init_vel=initial_velocity,
             init_time=initial_time,
-            params=params,
+            params=torch.randn_like(params),
             params_L=None,
         )
-
+        mp.phase_gn.set_params(params[..., 0])
         trajectory = mp.get_traj_pos()
 
         # Compute the loss
