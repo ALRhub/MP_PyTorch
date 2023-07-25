@@ -50,7 +50,8 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
                                        device=self.device)
             delta_center = centers_t[1] - centers_t[0]
             centers_t = torch.cat([centers_t,
-                                   torch.atleast_1d(centers_t[-1] + delta_center)],
+                                   torch.atleast_1d(
+                                       centers_t[-1] + delta_center)],
                                   dim=-1)
             centers_p = self.phase_generator.unbound_phase(centers_t)
             # RBF centers in phase scope
@@ -58,10 +59,10 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
             # if isinstance(phase_generator, ExpDecayPhaseGenerator) and \
             #         self._num_basis == 1:
             #     tmp_bandwidth_last /= 2
-                # Todo, this solution is not very good
-                # tmp_bandwidth_last = \
-                #     torch.min(self.centers_p[-1:],
-                #               self.centers_p[-2:-1] - self.centers_p[-1:])
+            # Todo, this solution is not very good
+            # tmp_bandwidth_last = \
+            #     torch.min(self.centers_p[-1:],
+            #               self.centers_p[-2:-1] - self.centers_p[-1:])
             # else:
             #     tmp_bandwidth_last = self.centers_p[-1:] - self.centers_p[-2:-1]
             tmp_bandwidth = centers_p[1:] - centers_p[:-1]
@@ -165,4 +166,4 @@ class ZeroPaddingNormalizedRBFBasisGenerator(NormalizedRBFBasisGenerator):
     @property
     def num_basis(self):
         return super().num_basis - self.num_basis_zero_start \
-            - self.num_basis_zero_goal
+               - self.num_basis_zero_goal
