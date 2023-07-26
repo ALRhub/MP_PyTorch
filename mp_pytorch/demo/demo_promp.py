@@ -112,12 +112,18 @@ def test_zero_padding_promp():
     print("traj_dict[vel].shape", vel.shape)
     util.debug_plot(times[0], [vel[0, :, 0]], title="zero_promp_vel_mean")
 
+    # Pos Std
+    util.print_line_title("zero padding pos std")
+    pos_std = mp.get_traj_pos_std()
+    print("traj_dict[std].shape", pos_std.shape)
+    util.debug_plot(times[0], [pos_std[0, :, 0]], title="zero_promp_pos_std")
+
     # Show scaled basis
     mp.show_scaled_basis(plot=True)
 
 
 def main():
-    test_promp()
+    # test_promp()
     test_zero_padding_promp()
 
 
