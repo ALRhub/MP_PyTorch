@@ -71,10 +71,13 @@ class ExpDecayPhaseGenerator(PhaseGenerator):
 
         iterator = 0
         if self.learn_alpha_phase:
+            alpha_phase = remaining_params[..., iterator]
             if is_finalized:
-                pass
+                assert not alpha_phase.requires_grad,\
+                    "Parameters are finalized and won't be updated. " \
+                    "Requiring gradient of it will cause errors."
             else:
-                self.alpha_phase = remaining_params[..., iterator]
+                self.alpha_phase = alpha_phase
             iterator += 1
         self.finalize()
         return remaining_params[..., iterator:]
