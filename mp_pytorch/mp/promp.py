@@ -44,12 +44,6 @@ class ProMP(ProbabilisticMPInterface):
             self.padding = torch.nn.ConstantPad2d(
                 (self.basis_gn.num_basis_zero_start,
                  self.basis_gn.num_basis_zero_goal, 0, 0), 0)
-            self.padding_cov = torch.nn.ConstantPad2d(
-                (self.basis_gn.num_basis_zero_start,
-                 self.basis_gn.num_basis_zero_goal,
-                 self.basis_gn.num_basis_zero_start,
-                 self.basis_gn.num_basis_zero_goal), 0)
-                        # Fixme
             logging.warning(
                 "Zero Padding ProMP is being used. Only the traj position"
                 " and velocity can be computed correctly. The other "
@@ -199,19 +193,10 @@ class ProMP(ProbabilisticMPInterface):
             return None
 
         # Get weights scale
-
-        # !!!!!! todo, fixme, params_L needs to be reshaped before padding
-        # See how the params were reshaped in get_traj_pos
-
-
-        if self.weights_scale.ndim != 0:
-            weights_scale = self.padding(self.weights_scale[None])[0]
+        if self.weights_scale.ndim == 0:
+            weights_scale = self.weights_scale
         else:
-            weights_scale = self.padding(torch.ones([1, self.num_basis],
-                                                    dtype=self.dtype,
-                                                    device=self.device) *
-                                         self.weights_scale)[0]
-        weights_scale = weights_scale.repeat(self.num_dof)
+            weights_scale = self.weights_scale.repeat(self.num_dof)
 
         # Get basis of all Dofs
         # Shape: [*add_dim, num_dof * num_times, num_dof * num_basis]
@@ -224,7 +209,7 @@ class ProMP(ProbabilisticMPInterface):
         #            -> [*add_dim, num_dof * num_times, num_dof * num_times]
         pos_cov = torch.einsum('...ik,...kl,...jl->...ij',
                                basis_multi_dofs,
-                               self.padding_cov(self.params_cov),
+                               self.params_cov,
                                basis_multi_dofs)
 
         # Determine regularization term to make traj_cov positive definite
