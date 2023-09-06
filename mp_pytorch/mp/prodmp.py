@@ -851,8 +851,9 @@ class ProDMP(ProMP):
 
         # Enforce all variables to numpy
 
-        times, basis_values, delay, tau = \
-            mp_pytorch.util.to_nps(times, basis_values, delay, tau)
+        times, basis_values, vel_basis_values, delay, tau = \
+            mp_pytorch.util.to_nps(times, basis_values, vel_basis_values,
+                                   delay, tau)
 
         if plot:
             import matplotlib.pyplot as plt
