@@ -646,7 +646,7 @@ class ProDMP(ProMP):
         #               [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #            -> [*add_dim, num_dof * num_basis_g, num_dof * num_basis_g]
         A = torch.einsum('...ki,...kj->...ij', pos_H_multi, pos_H_multi)
-        # todo, check here
+
         A += torch.eye(self.num_dof * self.num_basis_g,
                        dtype=self.dtype,
                        device=self.device) * reg
@@ -677,6 +677,15 @@ class ProDMP(ProMP):
         #               [*add_dim, num_dof * num_times]
         #            -> [*add_dim, num_dof * num_basis_g]
         B = torch.einsum('...ki,...k->...i', pos_H_multi, pos_wg)
+
+        if self.disable_goal:
+            basis_idx = [i for i in range(self.num_dof * self.num_basis_g)
+             if i % self.num_basis_g != self.num_basis_g - 1]
+            A = mp_pytorch.util.get_sub_tensor(A, [-1, -2],
+                                               [basis_idx, basis_idx])
+            B = mp_pytorch.util.get_sub_tensor(B, [-1], [basis_idx])
+        # todo disable weights
+
 
         # Shape of weights: [*add_dim, num_dof * num_basis_g]
         params = torch.linalg.solve(A, B)
@@ -834,16 +843,25 @@ class ProDMP(ProMP):
         # Get basis
         # Shape: [*add_dim, num_times, num_basis]
         basis_values = self.pos_H_single * weights_goal_scale * dummy_params_pad
+        vel_basis_values =\
+            self.vel_H_single * weights_goal_scale * dummy_params_pad
+
+        # Unscale velocity back to original time-scale space
+        vel_basis_values = vel_basis_values / self.phase_gn.tau[..., None]
 
         # Enforce all variables to numpy
-        times, basis_values, delay, tau = \
-            mp_pytorch.util.to_nps(times, basis_values, delay, tau)
+
+        times, basis_values, vel_basis_values, delay, tau = \
+            mp_pytorch.util.to_nps(times, basis_values, vel_basis_values,
+                                   delay, tau)
 
         if plot:
             import matplotlib.pyplot as plt
-            fig, axes = plt.subplots(1, 2, sharex=True, squeeze=False)
+            fig, axes = plt.subplots(2, 2, sharex=True, squeeze=False)
             for i in range(basis_values.shape[-1] - 1):
                 axes[0, 0].plot(times, basis_values[:, i], label=f"w_basis_{i}")
+                axes[1, 0].plot(times, vel_basis_values[:, i],
+                                label=f"w_basis_{i}")
             axes[0, 0].grid()
             axes[0, 0].legend()
             axes[0, 0].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
@@ -855,6 +873,19 @@ class ProDMP(ProMP):
             axes[0, 1].legend()
             axes[0, 1].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
             axes[0, 1].axvline(x=delay + tau, linestyle='--', color='k',
+                               alpha=0.3)
+
+            axes[1, 0].grid()
+            axes[1, 0].legend()
+            axes[1, 0].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
+            axes[1, 0].axvline(x=delay + tau, linestyle='--', color='k',
+                               alpha=0.3)
+
+            axes[1, 1].plot(times, vel_basis_values[:, -1], label=f"goal_basis")
+            axes[1, 1].grid()
+            axes[1, 1].legend()
+            axes[1, 1].axvline(x=delay, linestyle='--', color='k', alpha=0.3)
+            axes[1, 1].axvline(x=delay + tau, linestyle='--', color='k',
                                alpha=0.3)
 
             plt.show()

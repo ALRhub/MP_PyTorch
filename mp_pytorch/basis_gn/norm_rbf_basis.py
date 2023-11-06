@@ -2,6 +2,7 @@ import torch
 
 from mp_pytorch.phase_gn import PhaseGenerator
 from .basis_generator import BasisGenerator
+from ..phase_gn import ExpDecayPhaseGenerator
 
 
 class NormalizedRBFBasisGenerator(BasisGenerator):
@@ -47,12 +48,19 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
                                        + self.phase_generator.delay,
                                        self._num_basis, dtype=self.dtype,
                                        device=self.device)
+            delta_center = centers_t[1] - centers_t[0]
+            centers_t = torch.cat([centers_t,
+                                   torch.atleast_1d(
+                                       centers_t[-1] + delta_center)],
+                                  dim=-1)
+            centers_p = self.phase_generator.unbound_phase(centers_t)
             # RBF centers in phase scope
-            self.centers_p = self.phase_generator.unbound_phase(centers_t)
+            self.centers_p = centers_p[:-1]
 
-            tmp_bandwidth = \
-                torch.cat((self.centers_p[1:] - self.centers_p[:-1],
-                           self.centers_p[-1:] - self.centers_p[-2:-1]), dim=-1)
+            tmp_bandwidth = centers_p[1:] - centers_p[:-1]
+            if isinstance(phase_generator, ExpDecayPhaseGenerator) \
+                    and self._num_basis == 2:
+                tmp_bandwidth[-1] = tmp_bandwidth[-1] * 2
 
         elif self._num_basis == 1:
             # RBF centers in time scope

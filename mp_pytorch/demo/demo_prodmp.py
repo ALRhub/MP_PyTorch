@@ -183,6 +183,9 @@ def test_prodmp_disable_goal():
 
 
 def main():
+    # To suppress the warning message, uncomment the following lines
+    # import logging
+    # logging.basicConfig(level=logging.ERROR)
     test_prodmp()
     test_prodmp_disable_weights()
     test_prodmp_disable_goal()

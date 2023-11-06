@@ -16,6 +16,17 @@ def demo_norm_rbf_basis():
     basis_gn.show_basis(plot=True)
 
 
+def demo_norm_rbf_basis_with_exp_decay_phase():
+    phase_gn = ExpDecayPhaseGenerator(tau=3, delay=1, alpha_phase=3,
+                                      learn_tau=False, learn_delay=False,
+                                      learn_alpha_phase=False)
+    basis_gn = NormalizedRBFBasisGenerator(phase_generator=phase_gn,
+                                           num_basis=10,
+                                           basis_bandwidth_factor=3,
+                                           num_basis_outside=0)
+    basis_gn.show_basis(plot=True)
+
+
 def demo_prodmp_basis():
     phase_gn = ExpDecayPhaseGenerator(tau=3, delay=1, alpha_phase=3,
                                       learn_tau=False, learn_delay=False,
@@ -23,10 +34,12 @@ def demo_prodmp_basis():
     basis_gn = ProDMPBasisGenerator(phase_generator=phase_gn,
                                     num_basis=10,
                                     basis_bandwidth_factor=3,
+                                    pre_compute_length_factor=6,
                                     num_basis_outside=0)
     basis_gn.show_basis(plot=True)
 
 
 if __name__ == "__main__":
     demo_norm_rbf_basis()
+    demo_norm_rbf_basis_with_exp_decay_phase()
     demo_prodmp_basis()

@@ -1,6 +1,7 @@
 """
     Utilities of matrix operation
 """
+from typing import Iterable
 from typing import Optional
 from typing import Union
 
@@ -164,3 +165,27 @@ def indexing_interpolate(data: torch.Tensor,
                                  [-1] * ndim_data)
     interpolate_result = torch.lerp(data[indices_0], data[indices_1], weights)
     return interpolate_result
+
+
+def get_sub_tensor(data: torch.Tensor, dims: Iterable, indices: Iterable):
+    """
+    Get sub tensor from a given tensor's data, and multi-dimensional indices
+    First form up an expression string and then slice the data tensor
+    Args:
+        data: original tensor
+        dims: dimensions to be sliced
+        indices: slice of these dimensions
+
+    Returns:
+        sliced tensor
+
+    """
+    exp_str = ""
+    for i, dim in enumerate(dims):
+        if dim < 0:
+            dim += data.ndim
+        temp_str = ":, " * dim
+        dim_exp_str = f"[{temp_str}indices[{i}]]"
+        exp_str += dim_exp_str
+
+    return eval("data" + exp_str)

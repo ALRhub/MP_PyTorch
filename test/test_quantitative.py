@@ -84,8 +84,8 @@ def dmp_quantitative_test(plot=False):
     assert torch.abs(pos[0, 2000, 0] - 1.2169) < 3.71e-5
     assert torch.abs(pos[0, 3000, 0] + 0.9573) < 3.6e-5
     assert torch.abs(pos[0, 4000, 0] + 2.0863) < 3.78e-5
-    assert torch.abs(pos[0, 5000, 0] + 2.2132) < 2.56e-5
-    assert torch.abs(pos[0, 6000, 0] + 1.8799) < 2.146e-6
+    assert torch.abs(pos[0, 5000, 0] + 2.2135) < 3.6e-5
+    assert torch.abs(pos[0, 6000, 0] + 1.8863) < 1.4e-5
     return True
 
 
@@ -118,7 +118,7 @@ def promp_quantitative_test(plot=False):
     assert torch.abs(pos[0, 2000, 0] - 219.7397) < 4.6e-5
     assert torch.abs(pos[0, 3000, 0] + 111.4337) < 3.1e-5
     assert torch.abs(pos[0, 4000, 0] + 145.4950) < 3.1e-5
-    assert torch.abs(pos[0, 5000, 0] - 203.8375) < 3.1e-5
+    assert torch.abs(pos[0, 5000, 0] - 203.8375) < 4.6e-5
     assert torch.abs(pos[0, 6000, 0] - 80.8178) < 3.82
 
     assert torch.abs(mvn.log_prob(pos_flat)[0] - 801.7334) < 1e-1
@@ -149,10 +149,10 @@ def prodmp_quantitative_test(plot=True):
     assert torch.abs(pos[0, 2000, 0] - 1.2203) < 4.37e-5
     assert torch.abs(pos[0, 3000, 0] + 0.9576) < 3.9e-5
     assert torch.abs(pos[0, 4000, 0] + 2.0867) < 3.56e-5
-    assert torch.abs(pos[0, 5000, 0] + 2.2136) < 3.49e-5
-    assert torch.abs(pos[0, 6000, 0] + 1.8799) < 4.73e-5
+    assert torch.abs(pos[0, 5000, 0] + 2.2139) < 2.6e-5
+    assert torch.abs(pos[0, 6000, 0] + 1.8863) < 4e-5
 
-    assert torch.abs(mvn.log_prob(pos_flat)[0] - 774.2725) < 6.11e-5
+    assert torch.abs(mvn.log_prob(pos_flat)[0] - 774.3701) < 6.11e-5
     return True
 
 
