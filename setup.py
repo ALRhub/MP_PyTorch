@@ -12,12 +12,7 @@ setup(
     license='MIT',
     author='Ge Li @ ALR, KIT',
     author_email='ge.li@kit.edu',
-    install_requires=[
-        'numpy',
-        'matplotlib',
-        'torch',
-        'addict',
-    ],
+    install_requires=[],
 
     # README.md
     description='The Movement Primitives Package in PyTorch',
