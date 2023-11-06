@@ -156,4 +156,4 @@ class ZeroPaddingNormalizedRBFBasisGenerator(NormalizedRBFBasisGenerator):
     @property
     def num_basis(self):
         return super().num_basis - self.num_basis_zero_start \
-            - self.num_basis_zero_goal
+               - self.num_basis_zero_goal

@@ -646,7 +646,7 @@ class ProDMP(ProMP):
         #               [*add_dim, num_dof * num_times, num_dof * num_basis_g]
         #            -> [*add_dim, num_dof * num_basis_g, num_dof * num_basis_g]
         A = torch.einsum('...ki,...kj->...ij', pos_H_multi, pos_H_multi)
-        # todo, check here
+
         A += torch.eye(self.num_dof * self.num_basis_g,
                        dtype=self.dtype,
                        device=self.device) * reg

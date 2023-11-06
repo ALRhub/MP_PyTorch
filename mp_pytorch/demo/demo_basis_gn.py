@@ -10,7 +10,7 @@ def demo_norm_rbf_basis():
     phase_gn = LinearPhaseGenerator(tau=3, delay=1,
                                     learn_tau=False, learn_delay=False)
     basis_gn = NormalizedRBFBasisGenerator(phase_generator=phase_gn,
-                                           num_basis=4,
+                                           num_basis=10,
                                            basis_bandwidth_factor=3,
                                            num_basis_outside=0)
     basis_gn.show_basis(plot=True)
@@ -21,7 +21,7 @@ def demo_norm_rbf_basis_with_exp_decay_phase():
                                       learn_tau=False, learn_delay=False,
                                       learn_alpha_phase=False)
     basis_gn = NormalizedRBFBasisGenerator(phase_generator=phase_gn,
-                                           num_basis=2,
+                                           num_basis=10,
                                            basis_bandwidth_factor=3,
                                            num_basis_outside=0)
     basis_gn.show_basis(plot=True)
@@ -32,7 +32,7 @@ def demo_prodmp_basis():
                                       learn_tau=False, learn_delay=False,
                                       learn_alpha_phase=False)
     basis_gn = ProDMPBasisGenerator(phase_generator=phase_gn,
-                                    num_basis=2,
+                                    num_basis=10,
                                     basis_bandwidth_factor=3,
                                     pre_compute_length_factor=6,
                                     num_basis_outside=0)
@@ -40,6 +40,6 @@ def demo_prodmp_basis():
 
 
 if __name__ == "__main__":
-    # demo_norm_rbf_basis()
-    # demo_norm_rbf_basis_with_exp_decay_phase()
+    demo_norm_rbf_basis()
+    demo_norm_rbf_basis_with_exp_decay_phase()
     demo_prodmp_basis()
