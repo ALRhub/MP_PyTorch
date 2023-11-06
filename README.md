@@ -16,12 +16,17 @@ For the installation we recommend you set up a conda environment or venv beforeh
 
 This package will automatically install the following dependencies: addict, numpy, pytorch and matplotlib.
 
-### 1. Install from PyPI
+### 2. Install from Conda (Recommended)
+```bash
+conda install -c conda-forge mp_pytorch
+```
+
+### 2. Install from PyPI
 ```bash
 pip install mp_pytorch
 ```
 
-### 2. Install from source
+### 3. Install from source
 
 ```bash 
 git clone git@github.com:ALRhub/MP_PyTorch.git
