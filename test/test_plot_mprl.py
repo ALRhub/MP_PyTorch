@@ -96,7 +96,7 @@ def get_mp_utils(mp_type: str, learn_tau=False, learn_delay=False,
         demos[..., i] = torch.sin(2 * times + i) + 5
 
     return config.to_dict(), times, params, params_L, init_time, init_pos, \
-        init_vel, demos
+           init_vel, demos
 
 
 def test_prodmp():
@@ -132,52 +132,61 @@ def test_prodmp():
 
     # BBRL
     import matplotlib.pyplot as plt
-    # plt.figure()
-    # # for i in [1, 5, 6, 7, 9]:
-    # for i in [9]:
-    #     plt.plot(times[0][::5], smp_traj[0, i, :, 0][::5], linewidth=2)
-    # plt.grid(alpha=0.5)
-    # plt.xlabel("Time [s]", fontsize=20)
-    # plt.ylabel("Pos [rad]", fontsize=20)
-    # plt.xticks(fontsize=15)
-    # plt.yticks(fontsize=15)
+    plt.figure()
+    # for i in [1, 5, 6, 7, 9]:
+    for i in [9]:
+        plt.plot(times[0][::5], smp_traj[0, i, :, 0][::5], linewidth=2)
+    plt.grid(alpha=0.5)
+    plt.xlabel("Time [s]", fontsize=20)
+    plt.ylabel("Torque [N·m]", fontsize=20)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
     # plt.show()
-    # tikzplotlib.save("test_prodmp.tex")
+    tikzplotlib.save("test_prodmp.tex")
+    plt.close()
 
     # TCP
     plt.figure()
     for i in [1, 5, 6, 7]:
-        plt.plot(times[0][::5], smp_traj[0, i, :, 0][::5], linewidth=2, color='gray', alpha=0.5)
+        plt.plot(times[0][::5], smp_traj[0, i, :, 0][::5], linewidth=2,
+                 color='gray', alpha=0.5)
     plt.plot(times[0][::5][:20], smp_traj[0, 9, :, 0][::5][:20], linewidth=2)
-    plt.plot(times[0][::5][20:40], smp_traj[0, 9, :, 0][::5][20:40], linewidth=2)
-    plt.plot(times[0][::5][40:60], smp_traj[0, 9, :, 0][::5][40:60], linewidth=2)
-    plt.plot(times[0][::5][60:80], smp_traj[0, 9, :, 0][::5][60:80], linewidth=2)
-    plt.plot(times[0][::5][80:100], smp_traj[0, 9, :, 0][::5][80:100], linewidth=2)
+    plt.plot(times[0][::5][20:40], smp_traj[0, 9, :, 0][::5][20:40],
+             linewidth=2)
+    plt.plot(times[0][::5][40:60], smp_traj[0, 9, :, 0][::5][40:60],
+             linewidth=2)
+    plt.plot(times[0][::5][60:80], smp_traj[0, 9, :, 0][::5][60:80],
+             linewidth=2)
+    plt.plot(times[0][::5][80:100], smp_traj[0, 9, :, 0][::5][80:100],
+             linewidth=2)
     plt.plot(times[0][::5][100:], smp_traj[0, 9, :, 0][::5][100:], linewidth=2)
 
-    plt.scatter(times[0][::5][::20], smp_traj[0, 9, :, 0][::5][::20], s=100, color='black', zorder=1000)
+    plt.scatter(times[0][::5][::20], smp_traj[0, 9, :, 0][::5][::20], s=100,
+                color='black', zorder=1000)
     plt.grid(alpha=0.5)
     plt.xlabel("Time [s]", fontsize=20)
-    plt.ylabel("Pos [rad]", fontsize=20)
+    plt.ylabel("Torque [N·m]", fontsize=20)
     plt.xticks(fontsize=15)
     plt.yticks(fontsize=15)
     # plt.show()
     tikzplotlib.save("tcp.tex")
+    plt.close()
 
     # PPO
-    # ppo_traj = smp_traj[0, 9, :, 0]
-    # ppo_noise = torch.randn(ppo_traj.shape) * 0.15
-    # fig = plt.figure()
-    # plt.plot(times[0][::5], (ppo_traj)[::5], label="Mean")
-    # plt.plot(times[0][::5], (ppo_traj + ppo_noise)[::5], label="Mean + Noise")
-    # plt.grid(alpha=0.5)
-    # plt.xlabel("Time [s]", fontsize=20)
-    # plt.ylabel("Pos [rad]", fontsize=20)
-    # plt.xticks(fontsize=15)
-    # plt.yticks(fontsize=15)
-    # plt.legend(fontsize=15, loc='upper right', ncol=1)
-    # # plt.show()
-    # tikzplotlib.save("test_ppo.tex", figure=fig)
+    ppo_traj = smp_traj[0, 9, :, 0]
+    ppo_noise = torch.randn(ppo_traj.shape) * 0.15
+    fig = plt.figure()
+    plt.plot(times[0][::5], (ppo_traj)[::5], label="Mean")
+    plt.plot(times[0][::5], (ppo_traj + ppo_noise)[::5], label="Mean + Noise")
+    plt.grid(alpha=0.5)
+    plt.xlabel("Time [s]", fontsize=20)
+    plt.ylabel("Torque [N·m]", fontsize=20)
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.legend(fontsize=15, loc='upper right', ncol=1)
+    # plt.show()
+    tikzplotlib.save("test_ppo.tex", figure=fig)
+    plt.close()
 
 
 def tikzplotlib_fix_ncols(obj):
@@ -188,6 +197,7 @@ def tikzplotlib_fix_ncols(obj):
         obj._ncol = obj._ncols
     for child in obj.get_children():
         tikzplotlib_fix_ncols(child)
+
 
 if __name__ == "__main__":
     test_prodmp()
