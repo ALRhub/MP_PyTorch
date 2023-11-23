@@ -118,7 +118,7 @@ class NormalizedRBFBasisGenerator(BasisGenerator):
         # Normalization
         if self._num_basis > 1:
             sum_basis = torch.sum(basis, dim=-1, keepdim=True)
-            basis = basis / sum_basis
+            basis = basis / (sum_basis + 1e-15)
 
         # Return
         return basis
