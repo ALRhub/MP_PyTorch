@@ -291,28 +291,37 @@ if __name__ == "__main__":
     promp_plot_trajs = promp_bc_conditioning()
     prodmp_fig_cond, prodmp_old_times, prodmp_old_traj, prodmp_plot_times, \
     prodmp_plot_trajs = prodmp_bc()
-    fig, axes = plt.subplots(2, 1, figsize=(5, 3.5), sharex=True, squeeze=True,
+    fig, axes = plt.subplots(2, 1, figsize=(5, 5), sharex=True, squeeze=True,
                              gridspec_kw={'height_ratios': [1, 1]}, )
 
+    # Down sampling
+    down_smp = 10
+
     # ProDMP
-    axes[0].plot(prodmp_old_times, prodmp_old_traj + 0.1, "k", linewidth=3)
-    axes[0].plot(prodmp_plot_times, prodmp_plot_trajs + 0.1, linewidth=2,
+    axes[0].plot(prodmp_old_times[420::down_smp], prodmp_old_traj[420::down_smp] + 0.1, "k", linewidth=3)
+    axes[0].plot(prodmp_plot_times[:100:down_smp], prodmp_plot_trajs[:100:down_smp, :] + 0.1, linewidth=2,
                  zorder=100)
     axes[0].set_xlim([0.85, 1.15])
     axes[0].set_ylim([0.6, 1.2])
     axes[0].grid(True, alpha=0.5)
     axes[0].axvline(x=1.0, linewidth=3, color="r")
+    axes[0].set_ylabel("Action")
 
     # ProMP
-    axes[1].plot(promp_old_times, promp_old_traj + 0.1, "k", linewidth=3,
+    axes[1].plot(promp_old_times[420::down_smp], promp_old_traj[420::down_smp] + 0.1, "k", linewidth=3,
                  label="Previous Traj.")
-    axes[1].plot(promp_plot_times, promp_plot_trajs + 0.1, linewidth=2,
+    axes[1].plot(promp_plot_times[:100:down_smp], promp_plot_trajs[:100:down_smp, :] + 0.1, linewidth=2,
                  zorder=100)
     axes[1].set_xlim([0.85, 1.15])
     axes[1].set_ylim([0.6, 1.2])
     axes[1].grid(True, alpha=0.5)
     axes[1].axvline(x=1.0, linewidth=3, color="r", label="Replan Time")
     axes[1].legend(loc="lower left", handlelength=0.8, labelspacing=0.9)
+    axes[1].set_ylabel("Action")
+    axes[1].set_xlabel("Time [s]")
 
-    plt.show()
-    fig.savefig(f"/tmp/promp_vs_prodmp.pdf", dpi=200, bbox_inches="tight")
+    # plt.show()
+    # fig.savefig(f"/tmp/promp_vs_prodmp.pdf", dpi=200, bbox_inches="tight")
+    import tikzplotlib
+    tikzplotlib.get_tikz_code(figure=fig,)
+    tikzplotlib.save(f"/tmp/promp_vs_prodmp.tex")
