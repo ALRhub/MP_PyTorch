@@ -1,5 +1,6 @@
 import torch
 from addict import Dict
+from matplotlib import pyplot as plt
 
 from mp_pytorch import util
 from mp_pytorch.mp import MPFactory
@@ -32,7 +33,7 @@ def get_mp_config():
     config.mp_args.dt = 0.001
     config.mp_args.weights_scale = torch.ones([9]) * 1
     config.mp_args.goal_scale = 1
-
+    config.mp_args.auto_scale_basis = True
     # assume we have 3 trajectories in a batch
     num_traj = 3
 
@@ -82,12 +83,35 @@ def test_dmp_vs_prodmp_identical(plot=False):
     prodmp_pos = prodmp.get_traj_pos()
     prodmp_vel = prodmp.get_traj_vel()
 
+    mid_time_step = 2000
+    mid_time = times[:, mid_time_step]
+    remaining_time = times[:, mid_time_step:]
+    mid_pos = prodmp_pos[:, mid_time_step]
+    mid_vel = prodmp_vel[:, mid_time_step]
+
+    prodmp.update_inputs(times=remaining_time, params=params, params_L=None,
+                         init_time=mid_time, init_pos=mid_pos, init_vel=mid_vel)
+
+    mid_prodmp_pos = prodmp.get_traj_pos()
+    mid_prodmp_vel = prodmp.get_traj_vel()
+
+
     if plot:
-        util.debug_plot(x=None, y=[dmp_pos[0, :, 0], prodmp_pos[0, :, 0]],
+        util.debug_plot(x=times[0], y=[dmp_pos[0, :, 0], prodmp_pos[0, :, 0]],
                         labels=["dmp", "prodmp"], title="DMP vs. ProDMP")
 
-        util.debug_plot(x=None, y=[dmp_vel[0, :, 0], prodmp_vel[0, :, 0]],
+        ax = plt.gca()
+        ax.plot(remaining_time[0], mid_prodmp_pos[0, :, 0], label="mid_prodmp")
+        ax.legend()
+
+        util.debug_plot(x=times[0], y=[dmp_vel[0, :, 0], prodmp_vel[0, :, 0]],
                         labels=["dmp", "prodmp"], title="DMP vs. ProDMP")
+        ax = plt.gca()
+        ax.plot(remaining_time[0], mid_prodmp_vel[0, :, 0], label="mid_prodmp")
+        ax.legend()
+
+
+
 
     # Compute error
     error = dmp_pos - prodmp_pos
