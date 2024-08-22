@@ -712,6 +712,7 @@ class ProbabilisticMPInterface(MPInterface):
         """
 
         tanh_squash = kwargs.get("tanh_squash", False)  # Used for SAC policy
+        tanh_scale_after_squash = kwargs.get("tanh_scale_after_squash", 1.0)
 
         # Shape of pos_smp
         # [*add_dim, num_smp, num_times, num_dof]
@@ -739,6 +740,7 @@ class ProbabilisticMPInterface(MPInterface):
 
         if tanh_squash:
             params_smp = torch.tanh(params_smp)
+            params_smp = tanh_scale_after_squash * params_smp
 
         # Switch axes to [*add_dim, num_smp, num_mp_params]
         params_smp = torch.einsum('i...j->...ij', params_smp)
