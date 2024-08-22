@@ -693,7 +693,7 @@ class ProbabilisticMPInterface(MPInterface):
 
     def sample_trajectories(self, times=None, params=None, params_L=None,
                             init_time=None, init_pos=None, init_vel=None,
-                            num_smp=1, flat_shape=False):
+                            num_smp=1, flat_shape=False, **kwargs):
         """
         Sample trajectories from MP
 
@@ -710,6 +710,8 @@ class ProbabilisticMPInterface(MPInterface):
         Returns:
             sampled trajectories
         """
+
+        tanh_squash = kwargs.get("tanh_squash", False)  # Used for SAC policy
 
         # Shape of pos_smp
         # [*add_dim, num_smp, num_times, num_dof]
@@ -734,6 +736,9 @@ class ProbabilisticMPInterface(MPInterface):
         params_smp = MultivariateNormal(loc=params,
                                         scale_tril=params_L,
                                         validate_args=False).rsample([num_smp])
+
+        if tanh_squash:
+            params_smp = torch.tanh(params_smp)
 
         # Switch axes to [*add_dim, num_smp, num_mp_params]
         params_smp = torch.einsum('i...j->...ij', params_smp)
