@@ -238,10 +238,12 @@ class MPInterface(ABC):
         init_vel = torch.as_tensor(init_vel, dtype=self.dtype, device=self.device)
 
         # If velocity is non-zero, then cannot wait
-        if torch.count_nonzero(init_vel) != 0:
-            assert torch.all(self.init_time - self.phase_gn.delay >= 0), \
-                f"Cannot set non-zero initial velocity {init_vel} if initial condition time" \
-                f"value(s) {self.init_time} is (are) smaller than delay value(s) {self.phase_gn.delay}"
+        mask_before_delay = self.init_time - self.phase_gn.delay < 0
+        init_vel_before_delay = init_vel[mask_before_delay]
+        assert torch.count_nonzero(init_vel_before_delay) == 0, \
+            (f"Cannot set non-zero initial velocity if the corresponding "
+             f"initial condition time is (are) smaller than delay value(s).")
+
         self.init_vel = init_vel
         self.clear_computation_result()
 
