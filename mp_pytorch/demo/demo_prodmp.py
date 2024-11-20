@@ -4,7 +4,7 @@
 
 import torch
 from matplotlib import pyplot as plt
-
+from matplotlib.ticker import MultipleLocator, MaxNLocator
 import mp_pytorch.util as util
 from mp_pytorch.demo import get_mp_utils
 from mp_pytorch.mp import MPFactory
@@ -100,7 +100,37 @@ def test_prodmp():
                     title="ProDMP demos vs. rec_demos")
 
     # Show scaled basis
-    mp.show_scaled_basis(plot=True)
+    times, basis_values = mp.show_scaled_basis(plot=True)
+    # Weights basis
+    plt.figure(figsize=(5, 3.5), dpi=200)
+    plt.plot(times[333:666]/3, basis_values[333:666, :10])
+    plt.grid()
+    ax = plt.gca()
+    # ax.xaxis.set_major_locator(MultipleLocator(1))  # Major ticks every 1 unit
+    ax.yaxis.set_major_locator(MultipleLocator(0.0005))  # Maj
+    ax.ticklabel_format(axis='y', style='scientific', scilimits=(-3, 3))
+    # ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=4))
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.xlabel("Normalized time", fontsize=15)
+    plt.ylabel("ProDMP weights basis", fontsize=15)
+    plt.savefig("/tmp/prodmp_basis_fn.pdf", dpi=200, bbox_inches="tight")
+
+    # Goal basis
+    plt.figure(figsize=(5, 3.5), dpi=200)
+    plt.plot(times[333:666]/3, basis_values[333:666, -1])
+    plt.grid()
+    ax = plt.gca()
+    # ax.xaxis.set_major_locator(MultipleLocator(1))  # Major ticks every 1 unit
+    # ax.yaxis.set_major_locator(MultipleLocator(0.0005))  # Maj
+    # ax.ticklabel_format(axis='y', style='scientific', scilimits=(-3, 3))
+    # ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=4))
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.xlabel("Normalized Time", fontsize=15)
+    plt.ylabel("ProDMP Goal Basis", fontsize=15)
+    plt.savefig("/tmp/prodmp_basis_goal.pdf", dpi=200, bbox_inches="tight")
+
 
 
 def test_prodmp_disable_weights():

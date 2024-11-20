@@ -3,7 +3,7 @@
 """
 
 from matplotlib import pyplot as plt
-
+from matplotlib.ticker import MultipleLocator
 import mp_pytorch.util as util
 from mp_pytorch.demo import get_mp_utils
 from mp_pytorch.mp import MPFactory
@@ -86,7 +86,21 @@ def test_promp():
                     title="ProMP demos vs. rec_demos")
 
     # Show scaled basis
-    mp.show_scaled_basis(plot=True)
+    times, basis_values = mp.show_scaled_basis(plot=False)
+    plt.figure(figsize=(5, 3.5), dpi=200)
+    plt.plot(times[333:666]/3, basis_values[333:666])
+    plt.grid()
+    ax = plt.gca()
+    # ax.xaxis.set_major_locator(MultipleLocator(1))  # Major ticks every 1 unit
+    ax.yaxis.set_major_locator(MultipleLocator(0.2))  # Maj
+    plt.xticks(fontsize=15)
+    plt.yticks(fontsize=15)
+    plt.xlabel("Normalized Time", fontsize=15)
+    plt.ylabel("DMPs / ProMPs basis", fontsize=15)
+    plt.ylim(-0.035, 0.835)
+    plt.savefig("/tmp/promp_basis_fn.pdf", dpi=200, bbox_inches="tight")
+
+
 
 
 def test_zero_padding_promp():
